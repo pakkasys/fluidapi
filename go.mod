@@ -1,4 +1,4 @@
-module github.com/PakkaSys/fluidapi
+module github.com/pakkasys/fluidapi
 
 go 1.23.0
 
