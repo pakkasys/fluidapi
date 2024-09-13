@@ -7,8 +7,8 @@ import (
 type Middleware func(http.Handler) http.Handler
 
 // ApplyMiddlewares applies a chain of middlewares to an http.Handler.
-// - h: The http.Handler to wrap with middlewares.
-// - middlewares: A variadic parameter of Middleware functions to apply.
+//   - h: The http.Handler to wrap with middlewares.
+//   - middlewares: A variadic parameter of Middleware functions to apply.
 func ApplyMiddlewares(h http.Handler, middlewares ...Middleware) http.Handler {
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		h = middlewares[i](h)
@@ -22,7 +22,7 @@ type MiddlewareInput struct {
 }
 
 // NewMiddlewareInput creates a new MiddlewareInput with the provided input.
-// - input: The input to be used by a middleware.
+//   - input: The input to be used by a middleware.
 func NewMiddlewareInput(input any) MiddlewareInput {
 	return MiddlewareInput{
 		Input: input,
@@ -55,7 +55,7 @@ func (b *MiddlewareWrapperBuilder) Build() *MiddlewareWrapper {
 }
 
 // ID sets the ID for the MiddlewareWrapper being built.
-// - id: The identifier for the middleware.
+//   - id: The identifier for the middleware.
 func (b *MiddlewareWrapperBuilder) ID(id string) *MiddlewareWrapperBuilder {
 	b.middlewareWrapper.ID = id
 	return b
@@ -63,7 +63,7 @@ func (b *MiddlewareWrapperBuilder) ID(id string) *MiddlewareWrapperBuilder {
 
 // Middleware sets the Middleware function for the MiddlewareWrapper being
 // built.
-// - middleware: The Middleware function to be set.
+//   - middleware: The Middleware function to be set.
 func (b *MiddlewareWrapperBuilder) Middleware(
 	middleware Middleware,
 ) *MiddlewareWrapperBuilder {
@@ -73,7 +73,7 @@ func (b *MiddlewareWrapperBuilder) Middleware(
 
 // MiddlewareInputs sets the slice of MiddlewareInput for the MiddlewareWrapper
 // being built.
-// - middlewareInputs: A slice of MiddlewareInput to be set.
+//   - middlewareInputs: A slice of MiddlewareInput to be set.
 func (b *MiddlewareWrapperBuilder) MiddlewareInputs(
 	middlewareInputs []MiddlewareInput,
 ) *MiddlewareWrapperBuilder {
@@ -83,7 +83,7 @@ func (b *MiddlewareWrapperBuilder) MiddlewareInputs(
 
 // AddMiddlewareInput appends a MiddlewareInput to the MiddlewareWrapper being
 // built.
-// - middlewareInput: The MiddlewareInput to add.
+//   - middlewareInput: The MiddlewareInput to add.
 func (b *MiddlewareWrapperBuilder) AddMiddlewareInput(
 	middlewareInput MiddlewareInput,
 ) *MiddlewareWrapperBuilder {

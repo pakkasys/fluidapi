@@ -8,8 +8,8 @@ type Error struct {
 }
 
 // NewError creates a new Error instance.
-// - id: A unique identifier for the error.
-// - data: Additional data related to the error (optional).
+//   - id: A unique identifier for the error.
+//   - data: Additional data related to the error (optional).
 func NewError(id string, data any) *Error {
 	return &Error{
 		ID:   id,

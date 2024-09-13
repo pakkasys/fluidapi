@@ -139,8 +139,8 @@ func queryMultiple[T any](
 	if err != nil {
 		return nil, err
 	}
-	defer statement.Close()
 	defer rows.Close()
+	defer statement.Close()
 
 	entities, err := rowsToEntities(rows, rowScannerMultiple)
 	if err != nil {

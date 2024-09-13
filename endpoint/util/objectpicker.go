@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"github.com/pakkasys/fluidapi/core/api"
-	"github.com/pakkasys/fluidapi/core/client/url"
+	"github.com/pakkasys/fluidapi/core/client"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -320,7 +320,7 @@ func (o *ObjectPicker[T]) needsSource(config FieldConfig, source string) bool {
 }
 
 func (o *ObjectPicker[T]) urlToMap(r *http.Request) URLData {
-	return url.DecodeURL(r.URL.Query())
+	return client.DecodeURL(r.URL.Query())
 }
 
 func (o *ObjectPicker[T]) bodyToMap(r *http.Request) (BodyData, error) {
