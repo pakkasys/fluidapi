@@ -75,7 +75,11 @@ func (o *ObjectPicker[T]) PickObject(
 
 	var urlData URLData
 	if o.needsSource(fieldConfig, sourceURL) {
-		urlData = o.urlToMap(r)
+		var err error
+		urlData, err = client.DecodeURL(r.URL.Query())
+		if err != nil {
+			return nil, InvalidInputError()
+		}
 	}
 
 	pickedObject, err := o.pickObjectForObj(
@@ -317,10 +321,6 @@ func (o *ObjectPicker[T]) needsSource(config FieldConfig, source string) bool {
 		}
 	}
 	return needsBody
-}
-
-func (o *ObjectPicker[T]) urlToMap(r *http.Request) URLData {
-	return client.DecodeURL(r.URL.Query())
 }
 
 func (o *ObjectPicker[T]) bodyToMap(r *http.Request) (BodyData, error) {

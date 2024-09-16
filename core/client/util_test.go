@@ -331,7 +331,7 @@ func TestToURLParamString_Map(t *testing.T) {
 	expectedResult1 := "key1=value1&key2=value2"
 	expectedResult2 := "key2=value2&key1=value1" // Order is not guaranteed
 
-	assert.True(t, result == expectedResult1 || result == expectedResult2,
+	assert.True(t, *result == expectedResult1 || *result == expectedResult2,
 		"unexpected URL parameter string for map input: %s", result)
 }
 
@@ -346,7 +346,7 @@ func TestToURLParamString_EmptyMap(t *testing.T) {
 	assert.Nil(t, err, "expected no error for empty map input")
 
 	// Verify the result is an empty string
-	assert.Equal(t, "", result, "expected empty string for empty map input")
+	assert.Equal(t, "", *result, "expected empty string for empty map input")
 }
 
 // TestToURLParamString_NilMap tests toURLParamString with a nil map.

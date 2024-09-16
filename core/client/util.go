@@ -120,23 +120,26 @@ func constructURL(
 		if err != nil {
 			return nil, err
 		}
-		fullURL := fmt.Sprintf("%s?%s", url, params)
+		fullURL := fmt.Sprintf("%s?%s", url, *params)
 		return &fullURL, nil
 	}
 }
 
-func toURLParamString(input map[string]any) (string, error) {
+func toURLParamString(input map[string]any) (*string, error) {
 	if input == nil {
-		return "", fmt.Errorf("input map is nil")
+		return nil, fmt.Errorf("input map is nil")
 	}
 
 	values := url.Values{}
 	for key, value := range input {
-		EncodeStructToURL(&values, key, reflect.ValueOf(value))
+		err := EncodeURL(&values, key, reflect.ValueOf(value))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	urlParams := values.Encode()
-	return urlParams, nil
+	return &urlParams, nil
 }
 
 func responseToPayload[T any](

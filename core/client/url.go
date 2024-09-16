@@ -10,166 +10,327 @@ import (
 	"time"
 )
 
-// Decodes URL from following syntax:
-// someKey=value
-// someStruct.field=value
-// someSlice[0].field=value
-func DecodeURL(values url.Values) map[string]any {
-	urlData := make(map[string]any)
-	for k, v := range values {
-		setNestedMapValue(urlData, k, v[0])
-	}
-	return urlData
+const (
+	maxRecursionDepth = 10   // Maximum allowed depth for nested structures
+	maxSliceSize      = 1000 // Maximum allowed size for slices
+)
+
+// Matches a string with a word followed by "[" and a number in decimal
+// (base 10) and "]" e.g. "mySlice[0]" matches as "mySlice" and "0"
+const sliceRegexp = `(\w+)\[(\d+)\]`
+
+// MinSlices keeps track of slice elements with minimal length
+type minSlice struct {
+	elements map[int]any
 }
 
-// Encodes URL into following syntax:
+func newMinSlice() *minSlice {
+	return &minSlice{elements: make(map[int]any)}
+}
+
+func (s *minSlice) set(index int, value any) {
+	s.elements[index] = value
+}
+
+func (s *minSlice) get(index int) (any, bool) {
+	value, exists := s.elements[index]
+	return value, exists
+}
+
+func (s *minSlice) toSlice() []any {
+	slice := make([]any, 0, len(s.elements))
+	for _, value := range s.elements {
+		slice = append(slice, value)
+	}
+	return slice
+}
+
+// Decodes URL from the following syntax:
 // someKey=value
 // someStruct.field=value
-// someSlice[0].field=value
-// Every struct field must have a json tag or else it will panic.
-func EncodeStructToURL(values *url.Values, fieldTag string, v reflect.Value) {
+// someSlice[0]=value
+// someStruct[0].key=value
+func DecodeURL(values url.Values) (map[string]any, error) {
+	urlData := make(map[string]any)
+	depth := 0
+	for key, value := range values {
+		var err error
+		depth, err = setNestedMapValue(urlData, key, value[0], depth)
+		if err != nil {
+			return nil, err
+		}
+	}
+	convertMinSlicesToRegularSlices(urlData)
+	return urlData, nil
+}
+
+// Converts all MinSlice instances in the map to regular slices recursively.
+func convertMinSlicesToRegularSlices(data map[string]any) {
+	for key, value := range data {
+		switch v := value.(type) {
+		case *minSlice:
+			data[key] = v.toSlice()
+		case map[string]any:
+			convertMinSlicesToRegularSlices(v)
+		}
+	}
+}
+
+// Encodes URL into the following syntax:
+// someKey=value
+// someStruct.field=value
+// someSlice[0]=value
+// someStruct[0].key=value
+// It will return an error if a json tag is not found for a struct field.
+func EncodeURL(values *url.Values, fieldTag string, v reflect.Value) error {
+	return encodeValue(values, fieldTag, v)
+}
+
+func encodeValue(values *url.Values, fieldTag string, v reflect.Value) error {
 	switch v.Kind() {
 	case reflect.Ptr, reflect.Interface:
-		// Dereference the pointer and recursively call the function
-		// But first, check if it's not nil to avoid panic
-		if !v.IsNil() {
-			EncodeStructToURL(
-				values,
-				fieldTag,
-				v.Elem(),
-			)
-		}
+		return encodePointer(values, fieldTag, v)
 	case reflect.String:
-		values.Set(fieldTag, v.String())
+		return encodeString(values, fieldTag, v)
 	case reflect.Int, reflect.Int32, reflect.Int64:
-		values.Set(fieldTag, fmt.Sprintf("%d", v.Int()))
+		return encodeInt(values, fieldTag, v)
 	case reflect.Bool:
-		boolVal := v.Bool()
-		values.Set(fieldTag, strconv.FormatBool(boolVal))
+		return encodeBool(values, fieldTag, v)
 	case reflect.Slice:
-		for j := 0; j < v.Len(); j++ {
-			sliceElem := v.Index(j)
-			newFieldTag := fmt.Sprintf("%s[%d]", fieldTag, j)
-			EncodeStructToURL(
-				values,
-				newFieldTag,
-				sliceElem,
-			)
-		}
+		return encodeSlice(values, fieldTag, v)
 	case reflect.Struct:
-		// Special case for time.Time
-		if v.Type() == reflect.TypeOf(time.Time{}) {
-			values.Set(
-				fieldTag,
-				v.Interface().(time.Time).Format(time.RFC3339),
-			)
-			return
-		}
-		for i := 0; i < v.NumField(); i++ {
-			field := v.Field(i)
-			fieldType := v.Type().Field(i)
-
-			// If it's an embedded struct, we recursively call the function
-			// without appending a new tag
-			if fieldType.Anonymous {
-				EncodeStructToURL(values, fieldTag, field)
-				continue
-			}
-
-			newFieldTag := fieldType.Tag.Get("json")
-
-			// Skip if the json tag is not set or empty
-			if newFieldTag == "-" || newFieldTag == "" {
-				panic(fmt.Sprintf(
-					"cannot encode field %q because it has no json tag",
-					fieldType.Name,
-				))
-			}
-
-			// If the field tag doesn't already have a prefix, do not add a dot
-			if fieldTag != "" {
-				newFieldTag = fieldTag + "." + newFieldTag
-			}
-
-			EncodeStructToURL(values, newFieldTag, field)
-		}
+		return encodeStruct(values, fieldTag, v)
 	default:
-		panic(fmt.Sprintf(
+		return fmt.Errorf(
 			"value type not supported by URL encoding: %s",
 			v.Kind(),
-		))
+		)
 	}
 }
 
-// Helper function to set a value in a nested map or slice based on a compound key.
-func setNestedMapValue(m map[string]any, key string, value any) {
-	// Pattern to match array-like indices e.g., someSlice[0]
-	r := regexp.MustCompile(`(\w+)\[(\d+)\]`)
-	parts := strings.Split(key, ".")
+func encodePointer(values *url.Values, fieldTag string, v reflect.Value) error {
+	if !v.IsNil() {
+		return encodeValue(values, fieldTag, v.Elem())
+	}
+	return nil
+}
 
-	var current any = m
-	for i, part := range parts {
-		if i == len(parts)-1 {
-			// Final part where the value must be set
-			if sliceIndex := r.FindStringSubmatch(part); sliceIndex != nil {
-				// It's a slice index
-				sliceName, index := sliceIndex[1], sliceIndex[2]
-				idx, err := strconv.Atoi(index)
-				if err != nil {
-					panic(fmt.Sprintf("invalid index: %s", index))
-				}
-				currentMap := current.(map[string]any)
-				if _, ok := currentMap[sliceName]; !ok {
-					// Make sure the slice can accommodate the index
-					currentMap[sliceName] = make([]any, idx+1)
-				}
-				slice := currentMap[sliceName].([]any)
-				if idx >= len(slice) {
-					// Extend the slice if the index is out of bounds
-					newSlice := make([]any, idx+1)
-					copy(newSlice, slice)
-					slice = newSlice
-				}
-				slice[idx] = value
-				currentMap[sliceName] = slice
-			} else {
-				// Regular key
-				current.(map[string]any)[part] = value
-			}
-			return
-		}
+func encodeString(values *url.Values, fieldTag string, v reflect.Value) error {
+	values.Set(fieldTag, v.String())
+	return nil
+}
 
-		// Intermediate parts, ensure map exists
-		if sliceIndex := r.FindStringSubmatch(part); sliceIndex != nil {
-			// It is a slice index
-			sliceName, index := sliceIndex[1], sliceIndex[2]
-			idx, err := strconv.Atoi(index)
-			if err != nil {
-				panic(fmt.Sprintf("invalid index: %s", index))
-			}
-			currentMap := current.(map[string]any)
-			if _, ok := currentMap[sliceName]; !ok {
-				// Initial slice
-				currentMap[sliceName] = make([]any, idx+1)
-			}
-			slice := currentMap[sliceName].([]any)
-			if idx >= len(slice) {
-				// Extend the slice if the index is out of bounds
-				newSlice := make([]any, idx+1)
-				copy(newSlice, slice)
-				slice = newSlice
-			}
-			if _, ok := slice[idx].(map[string]any); !ok {
-				slice[idx] = make(map[string]any)
-			}
-			current = slice[idx]
-		} else {
-			// Regular map
-			currentMap := current.(map[string]any)
-			if _, ok := currentMap[part]; !ok {
-				currentMap[part] = make(map[string]any)
-			}
-			current = currentMap[part]
+func encodeInt(values *url.Values, fieldTag string, v reflect.Value) error {
+	values.Set(fieldTag, fmt.Sprintf("%d", v.Int()))
+	return nil
+}
+
+func encodeBool(values *url.Values, fieldTag string, v reflect.Value) error {
+	values.Set(fieldTag, strconv.FormatBool(v.Bool()))
+	return nil
+}
+
+func encodeSlice(values *url.Values, fieldTag string, v reflect.Value) error {
+	for j := 0; j < v.Len(); j++ {
+		sliceElem := v.Index(j)
+		newFieldTag := fmt.Sprintf("%s[%d]", fieldTag, j)
+		if err := encodeValue(values, newFieldTag, sliceElem); err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+func encodeStruct(values *url.Values, fieldTag string, v reflect.Value) error {
+	if v.Type() == reflect.TypeOf(time.Time{}) {
+		values.Set(fieldTag, v.Interface().(time.Time).Format(time.RFC3339))
+		return nil
+	}
+	for i := 0; i < v.NumField(); i++ {
+		if err := encodeStructField(values, fieldTag, v, i); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func encodeStructField(
+	values *url.Values,
+	fieldTag string,
+	v reflect.Value,
+	i int,
+) error {
+	field := v.Field(i)
+	fieldType := v.Type().Field(i)
+
+	if fieldType.Anonymous {
+		if err := encodeValue(values, fieldTag, field); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	newFieldTag := fieldType.Tag.Get("json")
+	if newFieldTag == "-" || newFieldTag == "" {
+		return fmt.Errorf(
+			"cannot encode field %q because it has no json tag",
+			fieldType.Name,
+		)
+	}
+
+	if fieldTag != "" {
+		newFieldTag = fieldTag + "." + newFieldTag
+	}
+	if err := encodeValue(values, newFieldTag, field); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setNestedMapValue(
+	current map[string]any,
+	key string,
+	value any,
+	depth int,
+) (int, error) {
+	if depth > maxRecursionDepth {
+		return 0, fmt.Errorf(
+			"exceeded maximum recursion depth of %d",
+			maxRecursionDepth,
+		)
+	}
+	depth++
+
+	var parts []string
+	if key != "" {
+		parts = strings.Split(key, ".")
+	}
+	for i := range parts {
+		part := parts[i]
+		if i == len(parts)-1 {
+			return 0, setFinalValue(current, part, value)
+		}
+		var err error
+		current, err = getIntermediateValue(current, part)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return depth, nil
+}
+
+func setFinalValue(current map[string]any, part string, value any) error {
+	reg := regexp.MustCompile(sliceRegexp)
+	if sliceIndex := reg.FindStringSubmatch(part); sliceIndex != nil {
+		return setSliceValue(current, sliceIndex, value)
+	}
+	current[part] = value
+	return nil
+}
+
+func setSliceValue(
+	current map[string]any,
+	sliceIndex []string,
+	value any,
+) error {
+	sliceName, idx, err := parseSliceIndex(sliceIndex)
+	if err != nil {
+		return err
+	}
+	slice, err := getOrCreateSlice(current, sliceName)
+	if err != nil {
+		return err
+	}
+	slice.set(idx, value)
+	current[sliceName] = slice // Use MinSlice to handle slice elements safely
+	return nil
+}
+
+func getIntermediateValue(
+	current map[string]any,
+	part string,
+) (map[string]any, error) {
+	reg := regexp.MustCompile(sliceRegexp)
+	if sliceIndex := reg.FindStringSubmatch(part); sliceIndex != nil {
+		return createMapIntoSlice(sliceIndex, current)
+	}
+	// Create a map with the part name if it doesn't exist
+	if _, ok := current[part]; !ok {
+		current[part] = make(map[string]any)
+	}
+	return getMap(current, part)
+}
+
+func getMap(current map[string]any, part string) (map[string]any, error) {
+	retMap, ok := current[part]
+	if !ok {
+		return nil, fmt.Errorf("expected map[string]any, got %T", current[part])
+	}
+	cast, ok := retMap.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("expected map[string]any, got %T", retMap)
+	}
+	return cast, nil
+}
+
+func createMapIntoSlice(
+	sliceIndex []string,
+	current map[string]any,
+) (map[string]any, error) {
+	sliceName, idx, err := parseSliceIndex(sliceIndex)
+	if err != nil {
+		return nil, err
+	}
+	slice, err := getOrCreateSlice(current, sliceName)
+	if err != nil {
+		return nil, err
+	}
+	// Ensure the element at idx is a map and initialize if necessary
+	elem, exists := slice.get(idx)
+	if !exists {
+		elem = make(map[string]any)
+		slice.set(idx, elem)
+	}
+	// Eensure elem is a map
+	castedElem, ok := elem.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("expected map[string]any, got %T", elem)
+	}
+	current[sliceName] = slice
+	return castedElem, nil
+}
+
+func parseSliceIndex(sliceIndex []string) (string, int, error) {
+	if len(sliceIndex) != 3 {
+		return "", 0, fmt.Errorf("invalid slice index: %s", sliceIndex)
+	}
+	// Matched slice name and index, e.g. "mySlice" and "0"
+	sliceName, index := sliceIndex[1], sliceIndex[2]
+	// Index must be an integer
+	idx, err := strconv.Atoi(index)
+	if err != nil {
+		return "", 0, fmt.Errorf("invalid index: %s", index)
+	}
+	return sliceName, idx, nil
+}
+
+func getOrCreateSlice(
+	current map[string]any,
+	sliceName string,
+) (*minSlice, error) {
+	if _, ok := current[sliceName]; !ok {
+		current[sliceName] = newMinSlice()
+	}
+	minSlice, ok := current[sliceName].(*minSlice)
+	if !ok {
+		return nil, fmt.Errorf("expected *minSlice, got %T", current[sliceName])
+	}
+	if len(minSlice.elements) >= maxSliceSize {
+		return nil, fmt.Errorf(
+			"exceeded maximum slice size of %d",
+			maxSliceSize,
+		)
+	}
+	return minSlice, nil
 }
