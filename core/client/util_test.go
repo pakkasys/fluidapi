@@ -37,6 +37,17 @@ type MockOutput struct {
 	Message string `json:"message"`
 }
 
+// MockRoundTripper simulates errors during HTTP requests.
+type MockRoundTripper struct {
+	Err error
+}
+
+func (m *MockRoundTripper) RoundTrip(
+	req *http.Request,
+) (*http.Response, error) {
+	return nil, m.Err
+}
+
 // TestProcessAndSend tests the processAndSend function.
 func TestProcessAndSend(t *testing.T) {
 	// Create a mock server to simulate an API endpoint
@@ -86,7 +97,7 @@ func TestProcessAndSend(t *testing.T) {
 	assert.Equal(t, http.StatusOK, result.Response.StatusCode)
 	assert.Equal(t, "success", result.Output.Message)
 
-	// Case 2: Invalid GET request with a body (should error)
+	// Case 2: Invalid GET request with a body
 	_, err = processAndSend[MockOutput](
 		mockClient,
 		mockServer.URL,
@@ -97,16 +108,86 @@ func TestProcessAndSend(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "body cannot be set for GET requests")
 
-	// Case 3: Invalid URL construction
-	result, err = processAndSend[MockOutput](
+	// Case 3: Error in marshalBody
+	unmarshalableBody := make(chan int) // Channels cannot be marshaled
+	input = &RequestData{
+		Body: unmarshalableBody,
+	}
+	_, err = processAndSend[MockOutput](
 		mockClient,
-		"invalid-url",
+		mockServer.URL,
 		"/test",
 		http.MethodPost,
 		input,
 	)
 	assert.NotNil(t, err)
-	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "json: unsupported type: chan int")
+
+	// Case 4: Error in constructURL
+	input = &RequestData{
+		URLParameters: map[string]any{
+			"invalid_param": make(chan int), // Channels cannot be encoded in URL
+		},
+	}
+	_, err = processAndSend[MockOutput](
+		mockClient,
+		mockServer.URL,
+		"/test",
+		http.MethodPost,
+		input,
+	)
+	assert.NotNil(t, err)
+	assert.Contains(
+		t,
+		err.Error(),
+		"value type not supported by URL encoding: chan",
+	)
+
+	// Case 5: Error in createRequest
+	input = &RequestData{}
+	_, err = processAndSend[MockOutput](
+		mockClient,
+		"http://[::1]:namedport",
+		"/test",
+		http.MethodGet,
+		input,
+	)
+	assert.NotNil(t, err)
+
+	// Case 6: Error in client.Do
+	mockClient = &http.Client{
+		Transport: &MockRoundTripper{Err: errors.New("network error")},
+	}
+
+	_, err = processAndSend[MockOutput](
+		mockClient,
+		mockServer.URL,
+		"/test",
+		http.MethodPost,
+		input,
+	)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "network error")
+
+	// Case 7: Error in responseToPayload
+	mockServerInvalidJSON := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write([]byte("invalid json"))
+			assert.Nil(t, err)
+		}),
+	)
+	defer mockServerInvalidJSON.Close()
+
+	_, err = processAndSend[MockOutput](
+		&http.Client{},
+		mockServerInvalidJSON.URL,
+		"/test",
+		http.MethodPost,
+		&RequestData{},
+	)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "JSON unmarshal error")
 }
 
 // TestCreateRequest tests the createRequest function.
@@ -148,7 +229,7 @@ func TestCreateRequest(t *testing.T) {
 	assert.Equal(t, fullURL, req.URL.String())
 
 	// Case 3: Invalid URL
-	invalidURL := "http://[::1]:namedport" // Example of an invalid URL
+	invalidURL := "http://[::1]:namedport"
 	req, err = createRequest(http.MethodGet, invalidURL, nil, headers, cookies)
 	assert.NotNil(t, err)
 	assert.Nil(t, req)

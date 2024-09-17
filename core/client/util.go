@@ -42,7 +42,7 @@ func processAndSend[Payload any](
 		return nil, err
 	}
 
-	request, err := createRequest(
+	req, err := createRequest(
 		method,
 		*constructedURL,
 		bodyReader,
@@ -53,17 +53,17 @@ func processAndSend[Payload any](
 		return nil, err
 	}
 
-	response, err := client.Do(request)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
-	output, err := responseToPayload(response, new(Payload))
+	output, err := responseToPayload(resp, new(Payload))
 	if err != nil {
 		return nil, err
 	}
 
-	return &SendResult[Payload]{response, output}, nil
+	return &SendResult[Payload]{resp, output}, nil
 }
 
 func createRequest(
@@ -142,13 +142,10 @@ func toURLParamString(input map[string]any) (*string, error) {
 	return &urlParams, nil
 }
 
-func responseToPayload[T any](
-	response *http.Response,
-	output *T,
-) (*T, error) {
-	defer response.Body.Close()
+func responseToPayload[T any](r *http.Response, output *T) (*T, error) {
+	defer r.Body.Close()
 
-	body, err := io.ReadAll(response.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
 	}
