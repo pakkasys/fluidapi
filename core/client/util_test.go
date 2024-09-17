@@ -68,7 +68,7 @@ func TestProcessAndSend(t *testing.T) {
 	// Create a mock client using httptest
 	mockClient := &http.Client{}
 
-	// Test case 1: Valid POST request with a body
+	// Case 1: Valid POST request with a body
 	input := &RequestData{
 		Headers: map[string]string{"Content-Type": "application/json"},
 		Body:    map[string]any{"key": "value"},
@@ -86,7 +86,7 @@ func TestProcessAndSend(t *testing.T) {
 	assert.Equal(t, http.StatusOK, result.Response.StatusCode)
 	assert.Equal(t, "success", result.Output.Message)
 
-	// Test case 2: Invalid GET request with a body (should error)
+	// Case 2: Invalid GET request with a body (should error)
 	_, err = processAndSend[MockOutput](
 		mockClient,
 		mockServer.URL,
@@ -97,7 +97,7 @@ func TestProcessAndSend(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "body cannot be set for GET requests")
 
-	// Test case 3: Invalid URL construction
+	// Case 3: Invalid URL construction
 	result, err = processAndSend[MockOutput](
 		mockClient,
 		"invalid-url",
@@ -111,7 +111,7 @@ func TestProcessAndSend(t *testing.T) {
 
 // TestCreateRequest tests the createRequest function.
 func TestCreateRequest(t *testing.T) {
-	// Test case 1: Valid request with headers and cookies
+	// Case 1: Valid request with headers and cookies
 	method := http.MethodPost
 	fullURL := "http://localhost/test"
 	body := bytes.NewReader([]byte(`{"key": "value"}`))
@@ -140,14 +140,14 @@ func TestCreateRequest(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, `{"key": "value"}`, string(bodyBytes))
 
-	// Test case 2: Request with no body
+	// Case 2: Request with no body
 	req, err = createRequest(http.MethodGet, fullURL, nil, headers, cookies)
 	assert.Nil(t, err)
 	assert.NotNil(t, req)
 	assert.Equal(t, http.MethodGet, req.Method)
 	assert.Equal(t, fullURL, req.URL.String())
 
-	// Test case 3: Invalid URL
+	// Case 3: Invalid URL
 	invalidURL := "http://[::1]:namedport" // Example of an invalid URL
 	req, err = createRequest(http.MethodGet, invalidURL, nil, headers, cookies)
 	assert.NotNil(t, err)

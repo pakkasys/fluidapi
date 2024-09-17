@@ -78,7 +78,8 @@ func (e *ErrorHandler) handleAPIError(
 			useData = nil
 		}
 
-		return expectedError.StatusCode, api.NewError(useErrorID, useData)
+		return expectedError.StatusCode,
+			&api.Error{ID: useErrorID, Data: useData}
 	}
 }
 

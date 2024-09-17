@@ -13,7 +13,7 @@ import (
 
 // TestMinSlice tests the methods of MinSlice.
 func TestMinSlice(t *testing.T) {
-	// Test case: Initialize a new MinSlice
+	// Case: Initialize a new MinSlice
 	slice := newMinSlice()
 	assert.NotNil(t, slice, "expected a new MinSlice to be initialized")
 	assert.Equal(
@@ -23,7 +23,7 @@ func TestMinSlice(t *testing.T) {
 		"expected the initial MinSlice to have no elements",
 	)
 
-	// Test case: Set and Get elements in MinSlice
+	// Case: Set and Get elements in MinSlice
 	slice.set(0, "first")
 	value, exists := slice.get(0)
 	assert.True(t, exists, "expected element at index 0 to exist")
@@ -34,12 +34,12 @@ func TestMinSlice(t *testing.T) {
 	assert.True(t, exists, "expected element at index 5 to exist")
 	assert.Equal(t, "fifth", value, "expected value at index 5 to be 'fifth'")
 
-	// Test case: Get an element that does not exist
+	// Case: Get an element that does not exist
 	value, exists = slice.get(10)
 	assert.False(t, exists, "expected element at index 10 to not exist")
 	assert.Nil(t, value, "expected value at index 10 to be nil")
 
-	// Test case: Update an existing element
+	// Case: Update an existing element
 	slice.set(5, "newFifth")
 	value, exists = slice.get(5)
 	assert.True(t, exists, "expected element at index 5 to exist after update")
@@ -50,7 +50,7 @@ func TestMinSlice(t *testing.T) {
 		"expected updated value at index 5 to be 'newFifth'",
 	)
 
-	// Test case: Convert MinSlice to a regular slice
+	// Case: Convert MinSlice to a regular slice
 	slice.set(2, "second")
 	regularSlice := slice.toSlice()
 	expectedSlice := []any{"first", "second", "newFifth"}
@@ -65,7 +65,7 @@ func TestMinSlice(t *testing.T) {
 
 // TestDecodeURL tests the DecodeURL function.
 func TestDecodeURL(t *testing.T) {
-	// Test case: Simple key-value pair
+	// Case: Simple key-value pair
 	values := url.Values{}
 	values.Set("simpleKey", "simpleValue")
 
@@ -77,7 +77,7 @@ func TestDecodeURL(t *testing.T) {
 	}
 	assert.Equal(t, expected, result)
 
-	// Test case: Nested key-value pair
+	// Case: Nested key-value pair
 	values = url.Values{}
 	values.Set("level1.level2.key", "nestedValue")
 
@@ -93,7 +93,7 @@ func TestDecodeURL(t *testing.T) {
 	}
 	assert.Equal(t, expected, result)
 
-	// Test case: Slice of structs
+	// Case: Slice of structs
 	values = url.Values{}
 	values.Set("mySlice[0].key", "value")
 	values.Set("mySlice[1].key", "value")
@@ -109,7 +109,7 @@ func TestDecodeURL(t *testing.T) {
 	}
 	assert.Equal(t, expected, result)
 
-	// Test case: Slice elements
+	// Case: Slice elements
 	values = url.Values{}
 	values.Set("mySlice[0]", "sliceValue1")
 	values.Set("mySlice[1]", "sliceValue2")
@@ -120,7 +120,7 @@ func TestDecodeURL(t *testing.T) {
 	expected = map[string]any{"mySlice": []any{"sliceValue1", "sliceValue2"}}
 	assert.ElementsMatch(t, expected["mySlice"], result["mySlice"])
 
-	// Test case: Overwrite existing values
+	// Case: Overwrite existing values
 	values = url.Values{}
 	values.Set("level1.level2.key", "nestedValue")
 	values.Set("level1.level2.key", "newValue")
@@ -137,7 +137,7 @@ func TestDecodeURL(t *testing.T) {
 	}
 	assert.Equal(t, expected, result)
 
-	// Test case: Slice with string index
+	// Case: Slice with string index
 	values = url.Values{}
 	values.Set("invalidSlice[abc]", "invalidValue")
 
@@ -146,7 +146,7 @@ func TestDecodeURL(t *testing.T) {
 	expected = map[string]any{"invalidSlice[abc]": "invalidValue"}
 	assert.Equal(t, expected, result)
 
-	// Test case: Complex nested and slice structure
+	// Case: Complex nested and slice structure
 	values = url.Values{}
 	values.Set("complex.level1[0]", "value1")
 	values.Set("complex.level1[1]", "value2")
@@ -171,7 +171,7 @@ func TestDecodeURL(t *testing.T) {
 		result["complex"].(map[string]any)["level1"],
 	)
 
-	// Test case: Triggering error with type mismatch
+	// Case: Triggering error with type mismatch
 	values = url.Values{}
 	values.Set("myMap.key", "mapValue")    // Initializes myMap as a map
 	values.Set("myMap[0]", "invalidValue") // Treat myMap as a slice, error
@@ -185,35 +185,35 @@ func TestDecodeURL(t *testing.T) {
 func TestEncodeValue(t *testing.T) {
 	values := &url.Values{}
 
-	// Test case: Encoding a pointer
+	// Case: Encoding a pointer
 	str := "test pointer"
 	v := reflect.ValueOf(&str)
 	err := encodeValue(values, "pointerField", v)
 	assert.Nil(t, err)
 	assert.Equal(t, url.Values{"pointerField": {"test pointer"}}, *values)
 
-	// Test case: Encoding a string
+	// Case: Encoding a string
 	values = &url.Values{}
 	v = reflect.ValueOf("test string")
 	err = encodeValue(values, "stringField", v)
 	assert.Nil(t, err)
 	assert.Equal(t, url.Values{"stringField": {"test string"}}, *values)
 
-	// Test case: Encoding an integer
+	// Case: Encoding an integer
 	values = &url.Values{}
 	v = reflect.ValueOf(42)
 	err = encodeValue(values, "intField", v)
 	assert.Nil(t, err)
 	assert.Equal(t, url.Values{"intField": {"42"}}, *values)
 
-	// Test case: Encoding a boolean
+	// Case: Encoding a boolean
 	values = &url.Values{}
 	v = reflect.ValueOf(true)
 	err = encodeValue(values, "boolField", v)
 	assert.Nil(t, err)
 	assert.Equal(t, url.Values{"boolField": {"true"}}, *values)
 
-	// Test case: Encoding a slice
+	// Case: Encoding a slice
 	values = &url.Values{}
 	v = reflect.ValueOf([]string{"apple", "banana"})
 	err = encodeValue(values, "sliceField", v)
@@ -224,7 +224,7 @@ func TestEncodeValue(t *testing.T) {
 		*values,
 	)
 
-	// Test case: Encoding a struct
+	// Case: Encoding a struct
 	values = &url.Values{}
 	type ExampleStruct struct {
 		Field string `json:"field"`
@@ -234,7 +234,7 @@ func TestEncodeValue(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, url.Values{"structField.field": {"structField"}}, *values)
 
-	// Test case: Unsupported type
+	// Case: Unsupported type
 	values = &url.Values{}
 	v = reflect.ValueOf(map[string]string{"key": "value"}) // Unsupported type
 	err = encodeValue(values, "unsupportedField", v)
@@ -252,7 +252,7 @@ func TestEncodePointer(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, url.Values{"pointerField": {"pointer string"}}, *values)
 
-	// Test case: Nil pointer
+	// Case: Nil pointer
 	values = &url.Values{}
 	var nilPtr *string
 	v = reflect.ValueOf(nilPtr)
@@ -302,14 +302,14 @@ func TestEncodeSlice(t *testing.T) {
 	}
 	assert.Equal(t, expected, *values)
 
-	// Test case: Empty slice
+	// Case: Empty slice
 	values = &url.Values{}
 	v = reflect.ValueOf([]string{})
 	err = encodeSlice(values, "emptySliceField", v)
 	assert.Nil(t, err)
 	assert.Equal(t, url.Values{}, *values)
 
-	// Test case: Slice with unsupported element type
+	// Case: Slice with unsupported element type
 	type UnsupportedType struct {
 		Field string
 	}
@@ -328,7 +328,7 @@ func TestEncodeSlice(t *testing.T) {
 func TestEncodeStruct(t *testing.T) {
 	values := &url.Values{}
 
-	// Test case: Encoding a struct with a time.Time field
+	// Case: Encoding a struct with a time.Time field
 	type StructWithTime struct {
 		Timestamp time.Time `json:"timestamp"`
 	}
@@ -343,7 +343,7 @@ func TestEncodeStruct(t *testing.T) {
 	expected := url.Values{"timeField.timestamp": {"2023-01-01T00:00:00Z"}}
 	assert.Equal(t, expected, *values)
 
-	// Test case: Struct with multiple fields
+	// Case: Struct with multiple fields
 	type MultiFieldStruct struct {
 		Title  string `json:"title"`
 		Author string `json:"author"`
@@ -371,7 +371,7 @@ func TestEncodeStructField(t *testing.T) {
 		Alive bool `json:"alive"`
 	}
 
-	// Test case: Anonymous field encoding
+	// Case: Anonymous field encoding
 	type AnonymousField struct {
 		EmbeddedStruct
 	}
@@ -386,7 +386,7 @@ func TestEncodeStructField(t *testing.T) {
 	}
 	assert.Equal(t, expected, *values)
 
-	// Test case: Error with unsupported anonymous field type
+	// Case: Error with unsupported anonymous field type
 	type UnsupportedAnonymous struct {
 		UnsupportedField int
 	}
@@ -422,7 +422,7 @@ func TestEncodeStructField(t *testing.T) {
 		Alive bool   `json:"alive"`
 	}
 
-	// Test case: Field with a JSON tag
+	// Case: Field with a JSON tag
 	values = &url.Values{}
 	simpleStruct := SimpleStruct{Name: "John", Age: 30, Alive: true}
 
@@ -435,7 +435,7 @@ func TestEncodeStructField(t *testing.T) {
 	}
 	assert.Equal(t, expected, *values)
 
-	// Test case: Error when field without a JSON tag is encountered
+	// Case: Error when field without a JSON tag is encountered
 	type StructWithoutJSON struct {
 		Field string
 	}
@@ -450,7 +450,7 @@ func TestEncodeStructField(t *testing.T) {
 		"cannot encode field \"Field\" because it has no json tag",
 	)
 
-	// Test case: Field with a JSON tag of "-"
+	// Case: Field with a JSON tag of "-"
 	type StructWithIgnoredField struct {
 		IgnoredField string `json:"-"`
 		ValidField   string `json:"valid_field"`
@@ -476,7 +476,7 @@ func TestEncodeStructField(t *testing.T) {
 		"cannot encode field \"IgnoredField\" because it has no json tag",
 	)
 
-	// Test case: Nested field encoding
+	// Case: Nested field encoding
 	type NestedStruct struct {
 		Inner SimpleStruct `json:"inner"`
 	}
@@ -502,7 +502,7 @@ func TestEncodeStructField(t *testing.T) {
 	}
 	assert.Equal(t, expected, *values)
 
-	// Test case: Error with unsupported field type with a JSON tag
+	// Case: Error with unsupported field type with a JSON tag
 	type StructWithUnsupportedField struct {
 		UnsupportedField func() `json:"unsupported_field"`
 		ValidField       string `json:"valid_field"`
@@ -527,14 +527,14 @@ func TestEncodeStructField(t *testing.T) {
 
 // TestSetNestedMapValue tests the setNestedMapValue function.
 func TestSetNestedMapValue(t *testing.T) {
-	// Test case: Empty key
+	// Case: Empty key
 	currentMap := map[string]any{}
 	depth, err := setNestedMapValue(currentMap, "", "value", 0)
 	assert.Nil(t, err)
 	assert.Equal(t, currentMap, map[string]any{})
 	assert.Equal(t, 1, depth)
 
-	// Test case: Simple key-value pair
+	// Case: Simple key-value pair
 	currentMap = map[string]any{}
 	key := "simpleKey"
 	value := "simpleValue"
@@ -549,7 +549,7 @@ func TestSetNestedMapValue(t *testing.T) {
 		"expected value to be set correctly",
 	)
 
-	// Test case: Invalid intermediate value type
+	// Case: Invalid intermediate value type
 	currentMap = map[string]any{}
 	currentMap["level1"] = "notAMap"
 	key = "level1.level2.key"
@@ -569,7 +569,7 @@ func TestSetNestedMapValue(t *testing.T) {
 		"expected error message for invalid intermediate value type",
 	)
 
-	// Test case: Max recursion depth exceeded
+	// Case: Max recursion depth exceeded
 	currentMap = map[string]any{}
 	_, err = setNestedMapValue(currentMap, "", "value", maxRecursionDepth+1)
 	assert.NotNil(t, err)
@@ -584,7 +584,7 @@ func TestSetNestedMapValue(t *testing.T) {
 func TestSetFinalValue(t *testing.T) {
 	currentMap := map[string]any{}
 
-	// Test case: Set a regular key-value pair
+	// Case: Set a regular key-value pair
 	err := setFinalValue(currentMap, "simpleKey", "simpleValue")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -595,7 +595,7 @@ func TestSetFinalValue(t *testing.T) {
 		t.Errorf("expected %v, got %v", expected, currentMap)
 	}
 
-	// Test case: Set a value in a slice
+	// Case: Set a value in a slice
 	err = setFinalValue(currentMap, "mySlice[1]", "sliceValue")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -612,7 +612,7 @@ func TestSetFinalValue(t *testing.T) {
 		t.Errorf("expected %v, got %v", expected, currentMap)
 	}
 
-	// Test case: Ensure it overwrites existing value
+	// Case: Ensure it overwrites existing value
 	err = setFinalValue(currentMap, "simpleKey", "newValue")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -628,7 +628,7 @@ func TestSetFinalValue(t *testing.T) {
 
 // TestSetSliceValue tests the setSliceValue function.
 func TestSetSliceValue(t *testing.T) {
-	// Test case: Valid slice index and value
+	// Case: Valid slice index and value
 	currentMap := map[string]any{}
 	sliceIndex := []string{"", "mySlice", "1"}
 	value := "testValue"
@@ -649,7 +649,7 @@ func TestSetSliceValue(t *testing.T) {
 		"expected the value to be set correctly in the slice",
 	)
 
-	// Test case: Invalid slice index format
+	// Case: Invalid slice index format
 	sliceIndex = []string{"", "mySlice", "abc"}
 
 	// Attempt to set a value with an invalid slice index format
@@ -663,7 +663,7 @@ func TestSetSliceValue(t *testing.T) {
 		"expected error message for invalid index format",
 	)
 
-	// Test case: Invalid slice type in current map
+	// Case: Invalid slice type in current map
 	currentMap = map[string]any{}
 	currentMap["invalidSlice"] = "notASlice" // Set an invalid type
 
@@ -684,7 +684,7 @@ func TestSetSliceValue(t *testing.T) {
 func TestGetIntermediateValue(t *testing.T) {
 	currentMap := map[string]any{}
 
-	// Test case: Get or create a regular map
+	// Case: Get or create a regular map
 	part := "subMap"
 
 	result, err := getIntermediateValue(currentMap, part)
@@ -702,7 +702,7 @@ func TestGetIntermediateValue(t *testing.T) {
 		t.Errorf("expected key %q to be created in parent map", part)
 	}
 
-	// Test case: Delegate to getSliceValue for slice parts
+	// Case: Delegate to getSliceValue for slice parts
 	part = "mySlice[0]"
 	result, err = getIntermediateValue(currentMap, part)
 	if err != nil {
@@ -721,7 +721,7 @@ func TestGetIntermediateValue(t *testing.T) {
 }
 
 func TestGetMap(t *testing.T) {
-	// Test case: Key exists and is a map[string]any
+	// Case: Key exists and is a map[string]any
 	currentMap := map[string]any{
 		"validMap": map[string]any{
 			"key": "value",
@@ -732,7 +732,7 @@ func TestGetMap(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, currentMap["validMap"], result)
 
-	// Test case: Key does not exist
+	// Case: Key does not exist
 	_, err = getMap(currentMap, "nonExistentKey")
 	if err == nil {
 		t.Fatalf("expected an error, got nil")
@@ -743,7 +743,7 @@ func TestGetMap(t *testing.T) {
 		t.Errorf("expected error %q, got %q", expectedError, err.Error())
 	}
 
-	// Test case: Key exists but is not a map[string]any
+	// Case: Key exists but is not a map[string]any
 	currentMap["notAMap"] = "some string"
 	_, err = getMap(currentMap, "notAMap")
 	if err == nil {
@@ -758,7 +758,7 @@ func TestGetMap(t *testing.T) {
 
 // TestCreateMapIntoSlice tests the TestCreateMapIntoSlice function.
 func TestCreateMapIntoSlice(t *testing.T) {
-	// Test case: Valid slice index creation
+	// Case: Valid slice index creation
 	currentMap := map[string]any{}
 	sliceIndex := []string{"", "mySlice", "1"}
 
@@ -785,7 +785,7 @@ func TestCreateMapIntoSlice(t *testing.T) {
 		"expected created map to be stored in the slice",
 	)
 
-	// Test case: Invalid slice index format
+	// Case: Invalid slice index format
 	sliceIndex = []string{"", "mySlice", "abc"}
 	_, err = createMapIntoSlice(sliceIndex, currentMap)
 	assert.NotNil(t, err, "expected an error for invalid slice index format")
@@ -797,7 +797,7 @@ func TestCreateMapIntoSlice(t *testing.T) {
 		"expected error message for invalid index format",
 	)
 
-	// Test case: Handling incorrect element type at index
+	// Case: Handling incorrect element type at index
 	currentMap = map[string]any{}
 	slice, _ := getOrCreateSlice(currentMap, "testSlice")
 	slice.set(0, "notAMap")
@@ -817,7 +817,7 @@ func TestCreateMapIntoSlice(t *testing.T) {
 		"expected error message for incorrect element type",
 	)
 
-	// Test case: Error returned by getOrCreateSlice
+	// Case: Error returned by getOrCreateSlice
 	currentMap = map[string]any{}
 	currentMap["invalidSlice"] = "notASlice" // Set an invalid type
 
@@ -837,7 +837,7 @@ func TestCreateMapIntoSlice(t *testing.T) {
 func TestParseSliceIndex(t *testing.T) {
 	sliceIndex := []string{"", "mySlice", "1"}
 
-	// Test case: Valid slice index parsing
+	// Case: Valid slice index parsing
 	sliceName, index, err := parseSliceIndex(sliceIndex)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -850,14 +850,14 @@ func TestParseSliceIndex(t *testing.T) {
 		)
 	}
 
-	// Test case: Invalid slice index format
+	// Case: Invalid slice index format
 	sliceIndex = []string{"", "mySlice", "abc"}
 	_, _, err = parseSliceIndex(sliceIndex)
 	if err == nil {
 		t.Fatalf("expected an error, got nil")
 	}
 
-	// Test case: Wrong number of slice index parts
+	// Case: Wrong number of slice index parts
 	sliceIndex = []string{"", "mySlice"}
 	_, _, err = parseSliceIndex(sliceIndex)
 	if err == nil {
@@ -867,7 +867,7 @@ func TestParseSliceIndex(t *testing.T) {
 
 // TestGetOrCreateSlice tests the GetOrCreateSlice function.
 func TestGetOrCreateSlice(t *testing.T) {
-	// Test case: Creating a new slice
+	// Case: Creating a new slice
 	currentMap := map[string]any{}
 	sliceName := "newSlice"
 
@@ -887,7 +887,7 @@ func TestGetOrCreateSlice(t *testing.T) {
 		"expected the created slice to be stored in the map",
 	)
 
-	// Test case: Retrieving an existing slice
+	// Case: Retrieving an existing slice
 	existingSlice := newMinSlice()
 	currentMap["existingSlice"] = existingSlice
 
@@ -901,7 +901,7 @@ func TestGetOrCreateSlice(t *testing.T) {
 		"expected the retrieved slice to match the existing slice",
 	)
 
-	// Test case: Handling incorrect type
+	// Case: Handling incorrect type
 	currentMap["incorrectType"] = "notASlice"
 
 	// Attempt to retrieve a slice where the value is not a *minSlice
@@ -915,7 +915,7 @@ func TestGetOrCreateSlice(t *testing.T) {
 		"expected error message for incorrect type",
 	)
 
-	// Test case: Too big slice
+	// Case: Too big slice
 	tooBigSlice := newMinSlice()
 	// Simulate the slice reaching its maximum size
 	for i := 0; i < maxSliceSize; i++ {
