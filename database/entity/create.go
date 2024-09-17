@@ -18,46 +18,46 @@ type Inserter interface {
 
 func CreateEntity[T Inserter](
 	entity T,
-	exec util.Executor,
+	db util.DB,
 	tableName string,
 ) (int64, error) {
 	return checkInsertResult(
-		insert(exec, entity, tableName),
+		insert(db, entity, tableName),
 	)
 }
 
 func CreateEntities[T Inserter](
 	entities []T,
-	exec util.Executor,
+	db util.DB,
 	tableName string,
 ) (int64, error) {
 	if len(entities) == 0 {
 		return 0, nil
 	}
 	return checkInsertResult(
-		insertMany(exec, entities, tableName),
+		insertMany(db, entities, tableName),
 	)
 }
 
 func UpsertEntity[T Inserter](
 	entity T,
-	exec util.Executor,
+	db util.DB,
 	tableName string,
 	updateProjections []util.Projection,
 ) (int64, error) {
 	return checkInsertResult(
-		upsert(exec, entity, tableName, updateProjections),
+		upsert(db, entity, tableName, updateProjections),
 	)
 }
 
 func UpsertEntities[T Inserter](
 	entities []T,
-	exec util.Executor,
+	db util.DB,
 	tableName string,
 	updateProjections []util.Projection,
 ) (int64, error) {
 	return checkInsertResult(
-		upsertMany(exec, entities, tableName, updateProjections),
+		upsertMany(db, entities, tableName, updateProjections),
 	)
 }
 
@@ -118,13 +118,13 @@ func insertQuery(
 }
 
 func insert(
-	exec util.Executor,
+	db util.DB,
 	inserter Inserter,
 	tableName string,
 ) (sql.Result, error) {
 	query, values := insertQuery(inserter, tableName)
 
-	statement, err := exec.Prepare(query)
+	statement, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -172,13 +172,13 @@ func insertManyQuery[T Inserter](
 }
 
 func insertMany[T Inserter](
-	exec util.Executor,
+	db util.DB,
 	entities []T,
 	tableName string,
 ) (sql.Result, error) {
 	query, values := insertManyQuery(entities, tableName)
 
-	statement, err := exec.Prepare(query)
+	statement, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +220,7 @@ func upsertQuery(
 }
 
 func upsert(
-	exec util.Executor,
+	db util.DB,
 	inserter Inserter,
 	tableName string,
 	updateProjections []util.Projection,
@@ -234,7 +234,7 @@ func upsert(
 
 	upsertQuery, values := upsertQuery(inserter, tableName, updateProjections)
 
-	statement, err := exec.Prepare(upsertQuery)
+	statement, err := db.Prepare(upsertQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +274,7 @@ func upsertManyQuery[T Inserter](
 }
 
 func upsertMany[T Inserter](
-	exec util.Executor,
+	db util.DB,
 	entities []T,
 	tableName string,
 	updateProjections []util.Projection,
@@ -290,7 +290,7 @@ func upsertMany[T Inserter](
 	}
 
 	query, values := upsertManyQuery(entities, tableName, updateProjections)
-	statement, err := exec.Prepare(query)
+	statement, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}

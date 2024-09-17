@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/pakkasys/fluidapi/database/util"
 )
 
 // ConnectionType holds the type of the database connection.
@@ -22,13 +24,54 @@ type DBInterface interface {
 	SetConnMaxIdleTime(d time.Duration)
 	SetMaxOpenConns(n int)
 	SetMaxIdleConns(n int)
-	Prepare(query string) (*sql.Stmt, error)
-	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
+	Prepare(query string) (util.Stmt, error)
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (util.Tx, error)
 }
 
 // SQLDB wraps *sql.DB to implement DBInterface.
 type SQLDB struct {
 	*sql.DB
+}
+
+// NewDB creates a new database connection.
+func (db *SQLDB) Ping() error {
+	return db.DB.Ping()
+}
+
+// SetConnMaxLifetime sets the maximum time a connection may be reused.
+func (db *SQLDB) SetConnMaxLifetime(d time.Duration) {
+	db.DB.SetConnMaxLifetime(d)
+}
+
+// SetConnMaxIdleTime sets the maximum time an idle connection may be reused.
+func (db *SQLDB) SetConnMaxIdleTime(d time.Duration) {
+	db.DB.SetConnMaxIdleTime(d)
+}
+
+// SetMaxOpenConns sets the maximum number of open connections to the database.
+func (db *SQLDB) SetMaxOpenConns(n int) {
+	db.DB.SetMaxOpenConns(n)
+}
+
+// SetMaxIdleConns sets the maximum number of idle connections to the database.
+func (db *SQLDB) SetMaxIdleConns(n int) {
+	db.DB.SetMaxIdleConns(n)
+}
+
+func (db *SQLDB) Prepare(query string) (util.Stmt, error) {
+	stmt, err := db.DB.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	return &util.RealStmt{Stmt: stmt}, nil
+}
+
+func (db *SQLDB) BeginTx(ctx context.Context, opts *sql.TxOptions) (util.Tx, error) {
+	tx, err := db.DB.BeginTx(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &util.RealTx{Tx: tx}, nil
 }
 
 // ConnectOptions holds the options for the database connection.

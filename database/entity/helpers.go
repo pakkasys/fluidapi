@@ -11,13 +11,13 @@ func GetEntitiesWithManagedTransaction[T any](
 	ctx context.Context,
 	rowScannerMultiple RowScannerMultiple[T],
 	tableName string,
-	getTxFunc func() (util.Transaction, error),
+	getTxFunc func() (util.Tx, error),
 	dbOptions *GetOptions,
 ) ([]T, error) {
 	return transaction.ExecuteManagedTransaction(
 		ctx,
 		getTxFunc,
-		func(tx util.Transaction) ([]T, error) {
+		func(tx util.Tx) ([]T, error) {
 			return GetEntities(
 				tableName,
 				rowScannerMultiple,
@@ -31,13 +31,13 @@ func GetEntitiesWithManagedTransaction[T any](
 func GetCountWithManagedTransaction(
 	ctx context.Context,
 	tableName string,
-	getTxFunc func() (util.Transaction, error),
+	getTxFunc func() (util.Tx, error),
 	dbOptions *DBOptionsCount,
 ) (int, error) {
 	return transaction.ExecuteManagedTransaction(
 		ctx,
 		getTxFunc,
-		func(tx util.Transaction) (int, error) {
+		func(tx util.Tx) (int, error) {
 			return CountEntities(tx, tableName, dbOptions)
 		},
 	)

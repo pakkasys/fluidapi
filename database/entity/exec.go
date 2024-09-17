@@ -10,11 +10,11 @@ import (
 // Caller is responsible for closing the statement and the rows after
 // successful execution.
 func RowsQuery(
-	exec util.Executor,
+	db util.DB,
 	query string,
 	parameters []any,
-) (*sql.Rows, *sql.Stmt, error) {
-	statement, err := exec.Prepare(query)
+) (util.Rows, util.Stmt, error) {
+	statement, err := db.Prepare(query)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -30,11 +30,11 @@ func RowsQuery(
 
 // ExecQuery runs the query and returns the result.
 func ExecQuery(
-	exec util.Executor,
+	db util.DB,
 	query string,
 	parameters []any,
 ) (sql.Result, error) {
-	statement, err := exec.Prepare(query)
+	statement, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}

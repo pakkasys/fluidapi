@@ -9,12 +9,12 @@ import (
 
 var txContextKey = endpointutil.NewDataKey()
 
-func SetTransactionToContext(ctx context.Context, tx util.Transaction) {
+func SetTransactionToContext(ctx context.Context, tx util.Tx) {
 	endpointutil.SetContextValue(ctx, txContextKey, tx)
 }
 
-func GetTransactionFromContext(ctx context.Context) util.Transaction {
-	return endpointutil.GetContextValue[util.Transaction](
+func GetTransactionFromContext(ctx context.Context) util.Tx {
+	return endpointutil.GetContextValue[util.Tx](
 		ctx,
 		txContextKey,
 		nil,

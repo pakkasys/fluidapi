@@ -27,7 +27,7 @@ func NewUpdate(field string, value any) *Update {
 func UpdateEntities(
 	selectors []util.Selector,
 	updates []Update,
-	exec util.Executor,
+	db util.DB,
 	tableName string,
 ) (int64, error) {
 	if len(updates) == 0 {
@@ -36,7 +36,7 @@ func UpdateEntities(
 
 	return checkUpdateResult(
 		update(
-			exec,
+			db,
 			tableName,
 			updates,
 			selectors,
@@ -69,14 +69,14 @@ func checkUpdateResult(
 }
 
 func update(
-	exec util.Executor,
+	db util.DB,
 	tableName string,
 	updates []Update,
 	selectors []util.Selector,
 ) (sql.Result, error) {
 	query, values := updateQuery(tableName, updates, selectors)
 
-	statement, err := exec.Prepare(query)
+	statement, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +95,7 @@ func updateQuery(
 	updates []Update,
 	selectors []util.Selector,
 ) (string, []any) {
-	whereColumns, whereValues :=
-		internal.ProcessSelectors(selectors)
+	whereColumns, whereValues := internal.ProcessSelectors(selectors)
 
 	setClause, values := getSetClause(updates)
 	values = append(values, whereValues...)

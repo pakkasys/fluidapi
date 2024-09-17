@@ -8,11 +8,11 @@ import (
 	"github.com/pakkasys/fluidapi/database/util"
 )
 
-type TransactionalFunc[Result any] func(tx util.Transaction) (Result, error)
+type TransactionalFunc[Result any] func(tx util.Tx) (Result, error)
 
 func ExecuteTransaction[Result any](
 	ctx context.Context,
-	tx util.Transaction,
+	tx util.Tx,
 	transactionalFunc TransactionalFunc[Result],
 ) (Result, error) {
 	result, txErr := transactionalFunc(tx)
@@ -27,7 +27,7 @@ func ExecuteTransaction[Result any](
 
 func ExecuteManagedTransaction[Result any](
 	ctx context.Context,
-	getTxFunc func() (util.Transaction, error),
+	getTxFunc func() (util.Tx, error),
 	transactionalFunc TransactionalFunc[Result],
 ) (result Result, txErr error) {
 	tx, isNewTx, txErr := handleGetTransactionFromContext(ctx, getTxFunc)
@@ -54,8 +54,8 @@ func ExecuteManagedTransaction[Result any](
 
 func handleGetTransactionFromContext(
 	ctx context.Context,
-	getTxFunc func() (util.Transaction, error),
-) (util.Transaction, bool, error) {
+	getTxFunc func() (util.Tx, error),
+) (util.Tx, bool, error) {
 	tx := GetTransactionFromContext(ctx)
 	isNewTx := false
 
@@ -72,7 +72,7 @@ func handleGetTransactionFromContext(
 	return tx, isNewTx, nil
 }
 
-func finalizeTransaction(tx util.Transaction, txErr error) error {
+func finalizeTransaction(tx util.Tx, txErr error) error {
 	if txErr != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return fmt.Errorf("failed to rollback transaction: %v", rollbackErr)

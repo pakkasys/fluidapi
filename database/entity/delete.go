@@ -21,19 +21,14 @@ func NewDeleteOptions(limit int, orders []util.Order) *DeleteOptions {
 	}
 }
 
-type DBOptionsCount struct {
-	Selectors []util.Selector
-	Joins     []util.Join
-}
-
 func DeleteEntities(
 	selectors []util.Selector,
-	exec util.Executor,
+	db util.DB,
 	tableName string,
 	opts *DeleteOptions,
 ) (int64, error) {
 	result, err := delete(
-		exec,
+		db,
 		tableName,
 		selectors,
 		opts,
@@ -51,13 +46,12 @@ func DeleteEntities(
 }
 
 func delete(
-	exec util.Executor,
+	db util.DB,
 	tableName string,
 	selectors []util.Selector,
 	opts *DeleteOptions,
 ) (sql.Result, error) {
-	whereColumns, whereValues :=
-		internal.ProcessSelectors(selectors)
+	whereColumns, whereValues := internal.ProcessSelectors(selectors)
 
 	whereClause := ""
 	if len(whereColumns) > 0 {
@@ -82,7 +76,7 @@ func delete(
 		}
 	}
 
-	statement, err := exec.Prepare(query)
+	statement, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}

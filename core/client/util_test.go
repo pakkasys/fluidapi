@@ -32,7 +32,7 @@ type TestStruct struct {
 	Auth  string `json:"auth" source:"cookies"`
 }
 
-// MockOutput is a struct for testing purposes
+// MockOutput is a mock output struct.
 type MockOutput struct {
 	Message string `json:"message"`
 }

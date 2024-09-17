@@ -26,6 +26,7 @@ func ProcessSelectors(selectors []util.Selector) ([]string, []any) {
 		whereColumns = append(whereColumns, col)
 		whereValues = append(whereValues, vals...)
 	}
+
 	return whereColumns, whereValues
 }
 

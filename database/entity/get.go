@@ -12,8 +12,8 @@ import (
 
 const lockSQL = "FOR UPDATE"
 
-type RowScanner[T any] func(row *sql.Row, entity *T) error
-type RowScannerMultiple[T any] func(rows *sql.Rows, entity *T) error
+type RowScanner[T any] func(row util.Row, entity *T) error
+type RowScannerMultiple[T any] func(rows util.Rows, entity *T) error
 
 type GetOptions struct {
 	Options
@@ -44,7 +44,7 @@ func (c *GetOptions) WithLock(lock bool) *GetOptions {
 func GetEntity[T any](
 	tableName string,
 	rowScanner RowScanner[T],
-	exec util.Executor,
+	db util.DB,
 	dbOptions *GetOptions,
 ) (*T, error) {
 	query, whereValues := buildBaseGetQuery(
@@ -62,7 +62,7 @@ func GetEntity[T any](
 	return GetEntityWithQuery(
 		tableName,
 		rowScanner,
-		exec,
+		db,
 		query,
 		whereValues,
 	)
@@ -71,12 +71,12 @@ func GetEntity[T any](
 func GetEntityWithQuery[T any](
 	tableName string,
 	rowScanner RowScanner[T],
-	exec util.Executor,
+	db util.DB,
 	query string,
 	parameters []any,
 ) (*T, error) {
 	entity, err := querySingle(
-		exec,
+		db,
 		query,
 		parameters,
 		rowScanner,
@@ -94,7 +94,7 @@ func GetEntityWithQuery[T any](
 func GetEntities[T any](
 	tableName string,
 	rowScannerMultiple RowScannerMultiple[T],
-	exec util.Executor,
+	db util.DB,
 	dbOptions *GetOptions,
 ) ([]T, error) {
 	query, whereValues := buildBaseGetQuery(
@@ -105,7 +105,7 @@ func GetEntities[T any](
 	return GetEntitiesWithQuery(
 		tableName,
 		rowScannerMultiple,
-		exec,
+		db,
 		query,
 		whereValues,
 	)
@@ -114,11 +114,11 @@ func GetEntities[T any](
 func GetEntitiesWithQuery[T any](
 	tableName string,
 	rowScannerMultiple RowScannerMultiple[T],
-	exec util.Executor,
+	db util.DB,
 	query string,
 	parameters []any,
 ) ([]T, error) {
-	entities, err := queryMultiple(exec, query, parameters, rowScannerMultiple)
+	entities, err := queryMultiple(db, query, parameters, rowScannerMultiple)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return []T{}, nil
@@ -130,12 +130,12 @@ func GetEntitiesWithQuery[T any](
 }
 
 func queryMultiple[T any](
-	exec util.Executor,
+	db util.DB,
 	query string,
 	parameters []any,
 	rowScannerMultiple RowScannerMultiple[T],
 ) ([]T, error) {
-	rows, statement, err := RowsQuery(exec, query, parameters)
+	rows, statement, err := RowsQuery(db, query, parameters)
 	if err != nil {
 		return nil, err
 	}
@@ -151,12 +151,12 @@ func queryMultiple[T any](
 }
 
 func querySingle[T any](
-	exec util.Executor,
+	db util.DB,
 	query string,
 	params []any,
 	rowScanner RowScanner[T],
 ) (*T, error) {
-	statement, err := exec.Prepare(query)
+	statement, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func joinClause(joins []util.Join) string {
 	var joinClause string
 	for _, join := range joins {
 		joinClause += fmt.Sprintf(
-			" %s JOIN `%s` ON %s = %s",
+			"%s JOIN `%s` ON %s = %s",
 			join.Type,
 			join.Table,
 			join.OnLeft.String(),
@@ -198,8 +198,7 @@ func joinClause(joins []util.Join) string {
 }
 
 func whereClause(selectors []util.Selector) (string, []any) {
-	whereColumns, whereValues :=
-		internal.ProcessSelectors(selectors)
+	whereColumns, whereValues := internal.ProcessSelectors(selectors)
 
 	var whereClause string
 	if len(whereColumns) > 0 {
@@ -276,7 +275,7 @@ func getOrderClauseFromOrders(
 }
 
 func rowsToEntities[T any](
-	rows *sql.Rows,
+	rows util.Rows,
 	rowScannerMultiple RowScannerMultiple[T],
 ) ([]T, error) {
 	if rowScannerMultiple == nil {
@@ -302,7 +301,7 @@ func rowsToEntities[T any](
 }
 
 func rowToEntity[T any](
-	row *sql.Row,
+	row util.Row,
 	entity *T,
 	rowScanner RowScanner[T],
 ) error {

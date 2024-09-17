@@ -2,34 +2,24 @@ package entity
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pakkasys/fluidapi/database/util"
 )
 
-func NewDBOptionsCount() *DBOptionsCount {
-	return &DBOptionsCount{}
-}
-
-func (c *DBOptionsCount) WithSelectors(
-	selectors []util.Selector,
-) *DBOptionsCount {
-	c.Selectors = selectors
-	return c
-}
-
-func (c *DBOptionsCount) WithJoins(joins []util.Join) *DBOptionsCount {
-	c.Joins = joins
-	return c
+type DBOptionsCount struct {
+	Selectors []util.Selector
+	Joins     []util.Join
 }
 
 func CountEntities(
-	exec util.Executor,
+	db util.DB,
 	tableName string,
 	dbOptions *DBOptionsCount,
 ) (int, error) {
 	query, whereValues := buildBaseCountQuery(tableName, dbOptions)
 
-	statement, err := exec.Prepare(query)
+	statement, err := db.Prepare(query)
 	if err != nil {
 		return 0, err
 	}
@@ -49,12 +39,12 @@ func buildBaseCountQuery(
 ) (string, []any) {
 	whereClause, whereValues := whereClause(dbOptions.Selectors)
 
-	query := fmt.Sprintf(
+	query := strings.Trim(fmt.Sprintf(
 		"SELECT COUNT(*) FROM `%s` %s %s",
 		tableName,
 		joinClause(dbOptions.Joins),
 		whereClause,
-	)
+	), " ")
 
 	return query, whereValues
 }
