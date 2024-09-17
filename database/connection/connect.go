@@ -1,6 +1,7 @@
 package connection
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -14,45 +15,26 @@ const (
 	ConnectionUnix ConnectionType = "unix" // Unix socket connection type
 )
 
-// DatabaseConfigurator defines methods needed to configure a database
-// connection.
-type DatabaseConfigurator interface {
+// DBInterface abstracts database operations for better testability.
+type DBInterface interface {
+	Ping() error
 	SetConnMaxLifetime(d time.Duration)
 	SetConnMaxIdleTime(d time.Duration)
 	SetMaxOpenConns(n int)
 	SetMaxIdleConns(n int)
+	Prepare(query string) (*sql.Stmt, error)
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
 
-// SQLDB wraps *sql.DB to implement the DatabaseConfigurator interface.
+// SQLDB wraps *sql.DB to implement DBInterface.
 type SQLDB struct {
 	*sql.DB
 }
 
-// SetConnMaxLifetime sets the maximum time a connection may be reused.
-func (db *SQLDB) SetConnMaxLifetime(d time.Duration) {
-	db.DB.SetConnMaxLifetime(d)
+// ConnectOptions holds the options for the database connection.
+type ConnectOptions struct {
+	DBFactory func(driver string, dsn string) (DBInterface, error)
 }
-
-// SetConnMaxIdleTime sets the maximum time a connection may remain idle.
-func (db *SQLDB) SetConnMaxIdleTime(d time.Duration) {
-	db.DB.SetConnMaxIdleTime(d)
-}
-
-// SetMaxOpenConns sets the maximum number of open connections.
-func (db *SQLDB) SetMaxOpenConns(n int) {
-	db.DB.SetMaxOpenConns(n)
-}
-
-// SetMaxIdleConns sets the maximum number of idle connections.
-func (db *SQLDB) SetMaxIdleConns(n int) {
-	db.DB.SetMaxIdleConns(n)
-}
-
-// SQLConnectorFunc is a function type that opens a new database connection.
-type SQLConnectorFunc func(driverName, dataSourceName string) (*sql.DB, error)
-
-// DefaultSQLConnector is the default function used to connect to the database.
-var DefaultSQLConnector SQLConnectorFunc = sql.Open
 
 // Config holds the configuration for the database connection.
 type Config struct {
@@ -76,10 +58,10 @@ type Config struct {
 // NewDefaultTCPConfig returns a Config with default settings for TCP
 // connections.
 //
-//   - user: database user
-//   - password: database password
-//   - database: database name
-//   - driverName: database driver name
+//   - user: Database user
+//   - password: Database password
+//   - database: Database name
+//   - driverName: Driver name
 func NewDefaultTCPConfig(
 	user string,
 	password string,
@@ -105,20 +87,19 @@ func NewDefaultTCPConfig(
 // NewDefaultUnixConfig returns a Config with default settings for Unix socket
 // connections.
 //
-//   - user: database user
-//   - password: database password
-//   - database: database name
+//   - user: Database user
+//   - password: Database password
+//   - database: Database name
 //   - socketDirectory: Unix socket directory
 //   - socketName: Unix socket name
-//   - driverName: database driver name
+//   - driverName: Driver name
 func NewDefaultUnixConfig(
 	user string,
 	password string,
 	database string,
 	socketDirectory string,
 	socketName string,
-	driverName string,
-) *Config {
+	driverName string) *Config {
 	return &Config{
 		User:            user,
 		Password:        password,
@@ -138,8 +119,14 @@ func NewDefaultUnixConfig(
 // Connect establishes a connection to the database using the provided
 // configuration.
 //
-//   - cfg: database connection configuration
-func Connect(cfg *Config) (*sql.DB, error) {
+//   - cfg: Database configuration
+//   - connectOpts: Optional ConnectOptions
+func Connect(
+	cfg *Config,
+	connectOpts ...ConnectOptions,
+) (DBInterface, error) {
+	useConnectOpts := determineConnectOpts(connectOpts)
+
 	var dsn string
 	switch cfg.ConnectionType {
 	case ConnectionTCP:
@@ -169,7 +156,7 @@ func Connect(cfg *Config) (*sql.DB, error) {
 		)
 	}
 
-	db, err := sql.Open(cfg.DriverName, dsn)
+	db, err := useConnectOpts.DBFactory(cfg.DriverName, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -183,7 +170,23 @@ func Connect(cfg *Config) (*sql.DB, error) {
 	return db, nil
 }
 
-func configureConnection(db DatabaseConfigurator, cfg *Config) {
+func newSQLDB(driver string, dsn string) (DBInterface, error) {
+	db, err := sql.Open(driver, dsn)
+	if err != nil {
+		return nil, err
+	}
+	return &SQLDB{DB: db}, nil
+}
+
+func determineConnectOpts(connectOpts []ConnectOptions) ConnectOptions {
+	if len(connectOpts) == 0 {
+		return ConnectOptions{DBFactory: newSQLDB}
+	} else {
+		return connectOpts[0]
+	}
+}
+
+func configureConnection(db DBInterface, cfg *Config) {
 	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 	db.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
 	db.SetMaxOpenConns(cfg.MaxOpenConns)
