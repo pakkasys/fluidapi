@@ -39,6 +39,21 @@ func (m *MockDB) BeginTx(
 	return args.Get(0).(util.Tx), args.Error(1)
 }
 
+func (m *MockDB) Exec(query string, args ...any) (util.Result, error) {
+	calledArgs := m.Called(query, args)
+	return nil, calledArgs.Get(1).(error)
+}
+
+func (m *MockDB) Query(query string, args ...any) (util.Rows, error) {
+	calledArgs := m.Called(query, args)
+	return nil, calledArgs.Get(1).(error)
+}
+
+func (m *MockDB) Close() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
 // MockDriver is a stub driver that satisfies the driver.Driver interface.
 type MockDriver struct{}
 

@@ -12,7 +12,11 @@ type MockDB struct {
 
 func (m *MockDB) Prepare(query string) (util.Stmt, error) {
 	args := m.Called(query)
-	return args.Get(0).(util.Stmt), args.Error(1)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	} else {
+		return args.Get(0).(util.Stmt), args.Error(1)
+	}
 }
 
 // MockTx is a mock implementation of the Tx interface.
@@ -42,15 +46,21 @@ func (m *MockStmt) QueryRow(args ...any) util.Row {
 	return argsCalled.Get(0).(util.Row)
 }
 func (m *MockStmt) Exec(args ...any) (util.Result, error) {
-	mockResult := new(MockResult)
 	argsCalled := m.Called(args)
-	return mockResult, argsCalled.Error(1)
+	if argsCalled.Get(0) == nil {
+		return nil, argsCalled.Error(1)
+	} else {
+		return argsCalled.Get(0).(util.Result), argsCalled.Error(1)
+	}
 }
 
 func (m *MockStmt) Query(args ...any) (util.Rows, error) {
-	mockRows := new(MockRows)
 	argsCalled := m.Called(args)
-	return mockRows, argsCalled.Error(1)
+	if argsCalled.Get(0) == nil {
+		return nil, argsCalled.Error(1)
+	} else {
+		return argsCalled.Get(0).(util.Rows), argsCalled.Error(1)
+	}
 }
 
 // MockRows is a mock implementation of the Rows interface.

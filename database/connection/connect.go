@@ -17,7 +17,7 @@ const (
 	ConnectionUnix ConnectionType = "unix" // Unix socket connection type
 )
 
-// DBInterface abstracts database operations for better testability.
+// DBInterface abstracts database operations.
 type DBInterface interface {
 	Ping() error
 	SetConnMaxLifetime(d time.Duration)
@@ -26,6 +26,9 @@ type DBInterface interface {
 	SetMaxIdleConns(n int)
 	Prepare(query string) (util.Stmt, error)
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (util.Tx, error)
+	Exec(query string, args ...any) (util.Result, error)
+	Query(query string, args ...any) (util.Rows, error)
+	Close() error
 }
 
 // SQLDB wraps *sql.DB to implement DBInterface.
@@ -66,12 +69,31 @@ func (db *SQLDB) Prepare(query string) (util.Stmt, error) {
 	return &util.RealStmt{Stmt: stmt}, nil
 }
 
-func (db *SQLDB) BeginTx(ctx context.Context, opts *sql.TxOptions) (util.Tx, error) {
+func (db *SQLDB) BeginTx(
+	ctx context.Context,
+	opts *sql.TxOptions,
+) (util.Tx, error) {
 	tx, err := db.DB.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 	return &util.RealTx{Tx: tx}, nil
+}
+
+func (db *SQLDB) Exec(query string, args ...any) (util.Result, error) {
+	res, err := db.DB.Exec(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	return &util.RealResult{Result: res}, nil
+}
+
+func (db *SQLDB) Query(query string, args ...any) (util.Rows, error) {
+	rows, err := db.DB.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	return &util.RealRows{Rows: rows}, nil
 }
 
 // ConnectOptions holds the options for the database connection.
