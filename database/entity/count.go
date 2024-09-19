@@ -7,11 +7,17 @@ import (
 	"github.com/pakkasys/fluidapi/database/util"
 )
 
+// DBOptionsCount is the options struct for entity count queries.
 type DBOptionsCount struct {
 	Selectors []util.Selector
 	Joins     []util.Join
 }
 
+// CountEntities counts the number of entities in the database.
+//
+//   - db: The database connection.
+//   - tableName: The name of the database table.
+//   - dbOptions: The options for the query.
 func CountEntities(
 	db util.DB,
 	tableName string,

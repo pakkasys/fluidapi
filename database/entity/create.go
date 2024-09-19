@@ -10,20 +10,29 @@ import (
 	"github.com/pakkasys/fluidapi/database/util"
 )
 
+// Inserter is the interface that wraps the GetInserted method.
 type Inserter interface {
 	GetInserted() (columns []string, values []any)
 }
 
+// CreateEntity creates an entity in the database.
+//
+//   - entity: The entity to insert.
+//   - db: The database connection.
+//   - tableName: The name of the database table.
 func CreateEntity[T Inserter](
 	entity T,
 	db util.DB,
 	tableName string,
 ) (int64, error) {
-	return checkInsertResult(
-		insert(db, entity, tableName),
-	)
+	return checkInsertResult(insert(db, entity, tableName))
 }
 
+// CreateEntities creates entities in the database.
+//
+//   - entities: The entities to insert.
+//   - db: The database connection.
+//   - tableName: The name of the database table.
 func CreateEntities[T Inserter](
 	entities []T,
 	db util.DB,
@@ -32,9 +41,7 @@ func CreateEntities[T Inserter](
 	if len(entities) == 0 {
 		return 0, nil
 	}
-	return checkInsertResult(
-		insertMany(db, entities, tableName),
-	)
+	return checkInsertResult(insertMany(db, entities, tableName))
 }
 
 func checkInsertResult(result sql.Result, err error) (int64, error) {

@@ -1,6 +1,9 @@
 package util
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Projection struct {
 	Table  string
@@ -9,5 +12,17 @@ type Projection struct {
 }
 
 func (c *Projection) String() string {
-	return fmt.Sprintf("`%s`.`%s` AS `%s`", c.Table, c.Column, c.Alias)
+	builder := strings.Builder{}
+
+	if c.Table == "" {
+		builder.WriteString(fmt.Sprintf("`%s`", c.Column))
+	} else {
+		builder.WriteString(fmt.Sprintf("`%s`.`%s`", c.Table, c.Column))
+	}
+
+	if c.Alias != "" {
+		builder.WriteString(fmt.Sprintf(" AS `%s`", c.Alias))
+	}
+
+	return builder.String()
 }

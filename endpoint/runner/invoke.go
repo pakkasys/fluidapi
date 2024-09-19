@@ -50,7 +50,7 @@ func GetInvoke[EndpointInput IGetInput, EndpointOutput any, ServiceOutput any](
 type UpdateServiceFunc func(
 	ctx context.Context,
 	databaseSelectors []util.Selector,
-	databaseUpdates []entity.Update,
+	databaseUpdates []entity.UpdateOptions,
 ) (int64, error)
 
 type ToUpdateEndpointOutput[EndpointOutput any] func(

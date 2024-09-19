@@ -34,11 +34,14 @@ func ParseGetEndpointInput[Input any](
 		return nil, err
 	}
 
-	page, err := page.ValidatePage(
-		endpointInput.GetPage(),
-		specification.MaxPageCount(),
-	)
-	if err != nil {
+	inputPage := endpointInput.GetPage()
+	if inputPage == nil {
+		inputPage = &page.InputPage{
+			Offset: 0,
+			Limit:  specification.MaxPageCount(),
+		}
+	}
+	if err := inputPage.Validate(specification.MaxPageCount()); err != nil {
 		return nil, err
 	}
 
@@ -54,14 +57,14 @@ func ParseGetEndpointInput[Input any](
 	return &ParsedGetEndpointInput{
 		Orders:            orders,
 		DatabaseSelectors: databaseSelectors,
-		Page:              page,
+		Page:              inputPage,
 		GetCount:          endpointInput.GetGetCount(),
 	}, nil
 }
 
 type ParsedUpdateEndpointInput struct {
 	DatabaseSelectors []databaseutil.Selector
-	DatabaseUpdates   []entity.Update
+	DatabaseUpdates   []entity.UpdateOptions
 	Upsert            bool
 }
 
@@ -157,7 +160,7 @@ func ParseDeleteEndpointInput[Input any](
 
 	return &ParsedDeleteEndpointInput{
 		DatabaseSelectors: databaseSelectors,
-		DeleteOpts:        entity.NewDeleteOptions(limit, orders),
+		DeleteOpts:        &entity.DeleteOptions{Limit: limit, Orders: orders},
 	}, nil
 }
 

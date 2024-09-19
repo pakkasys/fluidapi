@@ -17,6 +17,8 @@ const (
 
 // ProcessSelectors processes selectors into where clauses and corresponding
 // parameters array.
+//
+//   - selectors: a list of selectors
 func ProcessSelectors(selectors []util.Selector) ([]string, []any) {
 	var whereColumns []string
 	var whereValues []any
@@ -81,21 +83,39 @@ func processDefaultSelector(
 	// Check if the value is nil to handle NULL cases
 	if selector.Value == nil {
 		if selector.Predicate == "=" {
-			return fmt.Sprintf(
-				"`%s`.`%s` %s %s",
-				selector.Table,
-				selector.Field,
-				isClause,
-				sqlNull,
-			), nil
+			if selector.Table == "" {
+				return fmt.Sprintf(
+					"`%s` %s %s",
+					selector.Field,
+					isClause,
+					sqlNull,
+				), nil
+			} else {
+				return fmt.Sprintf(
+					"`%s`.`%s` %s %s",
+					selector.Table,
+					selector.Field,
+					isClause,
+					sqlNull,
+				), nil
+			}
 		} else if selector.Predicate == "!=" {
-			return fmt.Sprintf(
-				"`%s`.`%s` %s %s",
-				selector.Table,
-				selector.Field,
-				isNotClause,
-				sqlNull,
-			), nil
+			if selector.Table == "" {
+				return fmt.Sprintf(
+					"`%s` %s %s",
+					selector.Field,
+					isNotClause,
+					sqlNull,
+				), nil
+			} else {
+				return fmt.Sprintf(
+					"`%s`.`%s` %s %s",
+					selector.Table,
+					selector.Field,
+					isNotClause,
+					sqlNull,
+				), nil
+			}
 		}
 	}
 

@@ -10,35 +10,12 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/page"
 )
 
-const lockSQL = "FOR UPDATE"
-
 type RowScanner[T any] func(row util.Row, entity *T) error
 type RowScannerMultiple[T any] func(rows util.Rows, entity *T) error
 
 type GetOptions struct {
 	Options
-	lock bool
-}
-
-func NewGetOptions() *GetOptions {
-	return &GetOptions{
-		Options: *NewOptions(),
-	}
-}
-
-func GetOptionsFromDBOptions(options Options) *GetOptions {
-	return &GetOptions{
-		Options: options,
-	}
-}
-
-func (c *GetOptions) Lock() bool {
-	return c.lock
-}
-
-func (c *GetOptions) WithLock(lock bool) *GetOptions {
-	c.lock = lock
-	return c
+	Lock bool
 }
 
 func GetEntity[T any](
@@ -47,17 +24,7 @@ func GetEntity[T any](
 	db util.DB,
 	dbOptions *GetOptions,
 ) (*T, error) {
-	query, whereValues := buildBaseGetQuery(
-		tableName,
-		GetOptionsFromDBOptions(
-			*NewGetOptions().
-				WithSelectors(dbOptions.Selectors).
-				WithOrders(dbOptions.Orders).
-				WithPage(page.NewInputPage(0, 1)).
-				WithJoins(dbOptions.Joins).
-				WithProjections(dbOptions.Projections),
-		).WithLock(dbOptions.Lock()),
-	)
+	query, whereValues := buildBaseGetQuery(tableName, dbOptions)
 
 	return GetEntityWithQuery(
 		tableName,
@@ -125,7 +92,6 @@ func GetEntitiesWithQuery[T any](
 		}
 		return nil, err
 	}
-
 	return entities, nil
 }
 
@@ -163,8 +129,13 @@ func querySingle[T any](
 	defer statement.Close()
 
 	var entity T
-	err = rowToEntity(statement.QueryRow(params...), &entity, rowScanner)
+
+	row := statement.QueryRow(params...)
+	err = rowScanner(row, &entity)
 	if err != nil {
+		return nil, err
+	}
+	if err := row.Err(); err != nil {
 		return nil, err
 	}
 
@@ -186,6 +157,9 @@ func projectionsToStrings(projections []util.Projection) []string {
 func joinClause(joins []util.Join) string {
 	var joinClause string
 	for _, join := range joins {
+		if joinClause != "" {
+			joinClause += " "
+		}
 		joinClause += fmt.Sprintf(
 			"%s JOIN `%s` ON %s = %s",
 			join.Type,
@@ -205,7 +179,7 @@ func whereClause(selectors []util.Selector) (string, []any) {
 		whereClause = "WHERE " + strings.Join(whereColumns, " AND ")
 	}
 
-	return whereClause, whereValues
+	return strings.Trim(whereClause, " "), whereValues
 }
 
 func buildBaseGetQuery(
@@ -214,26 +188,29 @@ func buildBaseGetQuery(
 ) (string, []any) {
 	whereClause, whereValues := whereClause(dbOptions.Selectors)
 
-	projectionClause := fmt.Sprintf(
+	builder := strings.Builder{}
+	builder.WriteString(fmt.Sprintf(
 		"SELECT %s",
 		strings.Join(projectionsToStrings(dbOptions.Projections), ","),
-	)
-
-	query := fmt.Sprintf(
-		"%s FROM `%s` %s %s %s %s",
-		projectionClause,
-		tableName,
-		joinClause(dbOptions.Joins),
-		whereClause,
-		getOrderClauseFromOrders(dbOptions.Orders),
-		getLimitOffsetClauseFromPage(dbOptions.Page),
-	)
-
-	if dbOptions.Lock() {
-		query += " " + lockSQL
+	))
+	builder.WriteString(fmt.Sprintf(" FROM `%s`", tableName))
+	if len(dbOptions.Joins) != 0 {
+		builder.WriteString(" " + joinClause(dbOptions.Joins))
+	}
+	if whereClause != "" {
+		builder.WriteString(" " + whereClause)
+	}
+	if len(dbOptions.Orders) != 0 {
+		builder.WriteString(" " + getOrderClauseFromOrders(dbOptions.Orders))
+	}
+	if dbOptions.Page != nil {
+		builder.WriteString(" " + getLimitOffsetClauseFromPage(dbOptions.Page))
+	}
+	if dbOptions.Lock {
+		builder.WriteString(" FOR UPDATE")
 	}
 
-	return query, whereValues
+	return builder.String(), whereValues
 }
 
 func getLimitOffsetClauseFromPage(page *page.InputPage) string {
@@ -248,15 +225,20 @@ func getLimitOffsetClauseFromPage(page *page.InputPage) string {
 	)
 }
 
-func getOrderClauseFromOrders(
-	orders []util.Order,
-) string {
-	orderClause := ""
+func getOrderClauseFromOrders(orders []util.Order) string {
+	if len(orders) == 0 {
+		return ""
+	}
 
-	if len(orders) != 0 {
-		orderClause = "ORDER BY"
-
-		for _, readOrder := range orders {
+	orderClause := "ORDER BY"
+	for _, readOrder := range orders {
+		if readOrder.Table == "" {
+			orderClause += fmt.Sprintf(
+				" `%s` %s,",
+				readOrder.Field,
+				readOrder.Direction,
+			)
+		} else {
 			orderClause += fmt.Sprintf(
 				" `%s`.`%s` %s,",
 				readOrder.Table,
@@ -264,14 +246,9 @@ func getOrderClauseFromOrders(
 				readOrder.Direction,
 			)
 		}
-
-		orderClause = strings.TrimSuffix(
-			orderClause,
-			",",
-		)
 	}
 
-	return orderClause
+	return strings.TrimSuffix(orderClause, ",")
 }
 
 func rowsToEntities[T any](
@@ -298,16 +275,4 @@ func rowsToEntities[T any](
 	}
 
 	return entities, nil
-}
-
-func rowToEntity[T any](
-	row util.Row,
-	entity *T,
-	rowScanner RowScanner[T],
-) error {
-	err := rowScanner(row, entity)
-	if err != nil {
-		return err
-	}
-	return row.Err()
 }

@@ -61,6 +61,7 @@ func (db *SQLDB) SetMaxIdleConns(n int) {
 	db.DB.SetMaxIdleConns(n)
 }
 
+// Prepare creates a prepared statement for later queries or executions.
 func (db *SQLDB) Prepare(query string) (util.Stmt, error) {
 	stmt, err := db.DB.Prepare(query)
 	if err != nil {
@@ -69,6 +70,7 @@ func (db *SQLDB) Prepare(query string) (util.Stmt, error) {
 	return &util.RealStmt{Stmt: stmt}, nil
 }
 
+// BeginTx creates a transaction and returns it.
 func (db *SQLDB) BeginTx(
 	ctx context.Context,
 	opts *sql.TxOptions,
@@ -80,6 +82,7 @@ func (db *SQLDB) BeginTx(
 	return &util.RealTx{Tx: tx}, nil
 }
 
+// Exec executes a query without returning rows.
 func (db *SQLDB) Exec(query string, args ...any) (util.Result, error) {
 	res, err := db.DB.Exec(query, args...)
 	if err != nil {
@@ -88,6 +91,7 @@ func (db *SQLDB) Exec(query string, args ...any) (util.Result, error) {
 	return &util.RealResult{Result: res}, nil
 }
 
+// Query executes a query that returns rows.
 func (db *SQLDB) Query(query string, args ...any) (util.Rows, error) {
 	rows, err := db.DB.Query(query, args...)
 	if err != nil {

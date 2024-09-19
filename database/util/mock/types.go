@@ -45,22 +45,21 @@ func (m *MockStmt) QueryRow(args ...any) util.Row {
 	argsCalled := m.Called(args)
 	return argsCalled.Get(0).(util.Row)
 }
+
 func (m *MockStmt) Exec(args ...any) (util.Result, error) {
 	argsCalled := m.Called(args)
 	if argsCalled.Get(0) == nil {
 		return nil, argsCalled.Error(1)
-	} else {
-		return argsCalled.Get(0).(util.Result), argsCalled.Error(1)
 	}
+	return argsCalled.Get(0).(util.Result), argsCalled.Error(1)
 }
 
 func (m *MockStmt) Query(args ...any) (util.Rows, error) {
 	argsCalled := m.Called(args)
 	if argsCalled.Get(0) == nil {
 		return nil, argsCalled.Error(1)
-	} else {
-		return argsCalled.Get(0).(util.Rows), argsCalled.Error(1)
 	}
+	return argsCalled.Get(0).(util.Rows), argsCalled.Error(1)
 }
 
 // MockRows is a mock implementation of the Rows interface.

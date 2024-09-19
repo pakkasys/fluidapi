@@ -33,7 +33,7 @@ func TestUpsertEntity_NormalOperation(t *testing.T) {
 	mockResult.On("LastInsertId").Return(int64(0), nil)
 
 	// Call the function being tested
-	_, err := UpsertEntity(entity, mockDB, "users", projections)
+	_, err := UpsertEntity(mockDB, "user", entity, projections)
 
 	// Assertions
 	assert.NoError(t, err)
@@ -59,7 +59,7 @@ func TestUpsertEntity_ErrorFromUpsert(t *testing.T) {
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
 
 	// Call the function being tested
-	_, err := UpsertEntity(entity, mockDB, "users", projections)
+	_, err := UpsertEntity(mockDB, "user", entity, projections)
 
 	// Assertions
 	assert.EqualError(t, err, "prepare error")
@@ -95,7 +95,7 @@ func TestUpsertEntities_NormalOperation(t *testing.T) {
 	mockResult.On("LastInsertId").Return(int64(0), nil)
 
 	// Call the function being tested
-	_, err := UpsertEntities(entities, mockDB, "users", projections)
+	_, err := UpsertEntities(mockDB, "user", entities, projections)
 
 	// Assertions
 	assert.NoError(t, err)
@@ -109,9 +109,12 @@ func TestUpsertEntities_EmptyEntities(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
 	// Call the function being tested with an empty list of entities
-	_, err := UpsertEntities([]Inserter{}, mockDB, "users", []util.Projection{
-		{Column: "name", Alias: "test"},
-	})
+	_, err := UpsertEntities(
+		mockDB,
+		"user",
+		[]Inserter{},
+		[]util.Projection{{Column: "name", Alias: "test"}},
+	)
 
 	// Assertions
 	assert.EqualError(t, err, "must provide entities to upsert")
@@ -142,7 +145,7 @@ func TestUpsertEntities_ErrorFromUpsertMany(t *testing.T) {
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
 
 	// Call the function being tested
-	_, err := UpsertEntities(entities, mockDB, "users", projections)
+	_, err := UpsertEntities(mockDB, "user", entities, projections)
 
 	// Assertions
 	assert.EqualError(t, err, "prepare error")
@@ -171,7 +174,7 @@ func TestUpsert_NormalOperation(t *testing.T) {
 	mockStmt.On("Close").Return(nil)
 
 	// Call the function being tested
-	_, err := upsert(mockDB, entity, "users", projections)
+	_, err := upsert(mockDB, "user", entity, projections)
 
 	// Assertions
 	assert.NoError(t, err)
@@ -188,7 +191,7 @@ func TestUpsert_MissingProjections(t *testing.T) {
 	entity := &MockInserter{}
 
 	// Call the function being tested with no update projections
-	_, err := upsert(mockDB, entity, "users", []util.Projection{})
+	_, err := upsert(mockDB, "user", entity, []util.Projection{})
 
 	// Assertions
 	assert.EqualError(t, err, "must provide update projections")
@@ -207,7 +210,7 @@ func TestUpsert_MissingProjectionAlias(t *testing.T) {
 	}
 
 	// Call the function being tested
-	_, err := upsert(mockDB, entity, "users", projections)
+	_, err := upsert(mockDB, "user", entity, projections)
 
 	// Assertions
 	assert.EqualError(t, err, "must provide update projections alias")
@@ -232,7 +235,7 @@ func TestUpsert_PrepareError(t *testing.T) {
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
 
 	// Call the function being tested
-	_, err := upsert(mockDB, entity, "users", projections)
+	_, err := upsert(mockDB, "user", entity, projections)
 
 	// Assertions
 	assert.EqualError(t, err, "prepare error")
@@ -261,7 +264,7 @@ func TestUpsert_ExecError(t *testing.T) {
 	mockStmt.On("Close").Return(nil)
 
 	// Call the function being tested
-	_, err := upsert(mockDB, entity, "users", projections)
+	_, err := upsert(mockDB, "user", entity, projections)
 
 	// Assertions
 	assert.EqualError(t, err, "exec error")
@@ -288,9 +291,9 @@ func TestUpsertManyQuery_NormalOperation(t *testing.T) {
 	entities[1].(*MockInserter).On("GetInserted").
 		Return([]string{"id", "name", "age"}, []any{2, "Bob", 25})
 
-	query, values := upsertManyQuery(entities, "users", projections)
+	query, values := upsertManyQuery(entities, "user", projections)
 
-	expectedQuery := "INSERT INTO `users` (`id`, `name`, `age`) VALUES (?, ?, ?), (?, ?, ?) ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `age` = VALUES(`age`)"
+	expectedQuery := "INSERT INTO `user` (`id`, `name`, `age`) VALUES (?, ?, ?), (?, ?, ?) ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `age` = VALUES(`age`)"
 	expectedValues := []any{1, "Alice", 30, 2, "Bob", 25}
 
 	assert.Equal(t, expectedQuery, query)
@@ -311,9 +314,9 @@ func TestUpsertManyQuery_SingleEntity(t *testing.T) {
 	entities[0].(*MockInserter).On("GetInserted").
 		Return([]string{"id", "name"}, []any{1, "Alice"})
 
-	query, values := upsertManyQuery(entities, "users", projections)
+	query, values := upsertManyQuery(entities, "user", projections)
 
-	expectedQuery := "INSERT INTO `users` (`id`, `name`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `name` = VALUES(`name`)"
+	expectedQuery := "INSERT INTO `user` (`id`, `name`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `name` = VALUES(`name`)"
 	expectedValues := []any{1, "Alice"}
 
 	assert.Equal(t, expectedQuery, query)
@@ -328,7 +331,7 @@ func TestUpsertManyQuery_EmptyEntities(t *testing.T) {
 		{Column: "name", Alias: "test"},
 	}
 
-	query, values := upsertManyQuery(entities, "users", projections)
+	query, values := upsertManyQuery(entities, "user", projections)
 
 	assert.Equal(t, "", query)
 	assert.Equal(t, []any(nil), values)
@@ -350,11 +353,11 @@ func TestUpsertManyQuery_MissingUpdateProjections(t *testing.T) {
 		Return([]string{"id", "name"}, []any{2, "Bob"})
 
 	// Call the function with an empty projection list
-	query, values := upsertManyQuery(entities, "users", []util.Projection{})
+	query, values := upsertManyQuery(entities, "user", []util.Projection{})
 
 	assert.Equal(
 		t,
-		"INSERT INTO `users` (`id`, `name`) VALUES (?, ?), (?, ?)",
+		"INSERT INTO `user` (`id`, `name`) VALUES (?, ?), (?, ?)",
 		query,
 	)
 	assert.Equal(t, []any{1, "Alice", 2, "Bob"}, values)
@@ -385,7 +388,7 @@ func TestUpsertMany_NormalOperation(t *testing.T) {
 	mockStmt.On("Exec", mock.Anything).Return(nil, nil)
 	mockStmt.On("Close").Return(nil)
 
-	_, err := upsertMany(mockDB, entities, "users", projections)
+	_, err := upsertMany(mockDB, entities, "user", projections)
 
 	assert.NoError(t, err)
 	mockDB.AssertExpectations(t)
@@ -403,7 +406,7 @@ func TestUpsertMany_EmptyEntities(t *testing.T) {
 		{Column: "name", Alias: "test"},
 	}
 
-	_, err := upsertMany(mockDB, entities, "users", projections)
+	_, err := upsertMany(mockDB, entities, "user", projections)
 
 	assert.EqualError(t, err, "must provide entities to upsert")
 	mockDB.AssertExpectations(t)
@@ -419,7 +422,7 @@ func TestUpsertMany_MissingUpdateProjections(t *testing.T) {
 		&MockInserter{},
 	}
 
-	_, err := upsertMany(mockDB, entities, "users", []util.Projection{})
+	_, err := upsertMany(mockDB, entities, "user", []util.Projection{})
 
 	assert.EqualError(t, err, "must provide update projections")
 	mockDB.AssertExpectations(t)
@@ -439,7 +442,7 @@ func TestUpsertMany_MissingAliasInProjections(t *testing.T) {
 		{Column: "name", Alias: ""},
 	}
 
-	_, err := upsertMany(mockDB, entities, "users", projections)
+	_, err := upsertMany(mockDB, entities, "user", projections)
 
 	assert.EqualError(t, err, "must provide update projections alias")
 	mockDB.AssertExpectations(t)
@@ -467,7 +470,7 @@ func TestUpsertMany_PrepareError(t *testing.T) {
 	mockDB.On("Prepare", mock.Anything).
 		Return(mockStmt, fmt.Errorf("prepare error"))
 
-	_, err := upsertMany(mockDB, entities, "users", projections)
+	_, err := upsertMany(mockDB, entities, "user", projections)
 
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
@@ -496,7 +499,7 @@ func TestUpsertMany_ExecError(t *testing.T) {
 	mockStmt.On("Exec", mock.Anything).Return(nil, fmt.Errorf("exec error"))
 	mockStmt.On("Close").Return(nil)
 
-	_, err := upsertMany(mockDB, entities, "users", projections)
+	_, err := upsertMany(mockDB, entities, "user", projections)
 
 	assert.EqualError(t, err, "exec error")
 	mockDB.AssertExpectations(t)

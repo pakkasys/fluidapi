@@ -8,10 +8,15 @@ import (
 	"github.com/pakkasys/fluidapi/database/util"
 )
 
+// TransactionalFunc is a function that takes a transaction and returns a
+// result.
 type TransactionalFunc[Result any] func(tx util.Tx) (Result, error)
 
+// ExecuteTransaction executes a TransactionalFunc in a transaction.
+//
+//   - transactionalFunc: The function to execute in a transaction.
+//   - getTxFunc: The function to get a transaction.
 func ExecuteTransaction[Result any](
-	ctx context.Context,
 	tx util.Tx,
 	transactionalFunc TransactionalFunc[Result],
 ) (Result, error) {
@@ -25,6 +30,14 @@ func ExecuteTransaction[Result any](
 	return result, txErr
 }
 
+// ExecuteManagedTransaction executes a TransactionalFunc in a transaction.
+// It uses the context to get the transaction from and if not found it creates
+// a new one. Is successful, the transaction will be, and rolled back if an
+// error occurs.
+//
+//   - ctx: The context to use when getting and setting the transaction.
+//   - getTxFunc: The function to get a new transaction.
+//   - transactionalFunc: The function to execute in a transaction.
 func ExecuteManagedTransaction[Result any](
 	ctx context.Context,
 	getTxFunc func() (util.Tx, error),

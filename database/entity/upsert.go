@@ -8,21 +8,32 @@ import (
 	"github.com/pakkasys/fluidapi/database/util"
 )
 
+// UpsertEntity upserts an entity.
+//
+//   - db: The database connection.
+//   - tableName: The name of the database table.
+//   - entity: The entity to upsert.
+//   - updateProjections: The projections of the entity to update.
 func UpsertEntity[T Inserter](
-	entity T,
 	db util.DB,
 	tableName string,
+	entity T,
 	updateProjections []util.Projection,
 ) (int64, error) {
 	return checkInsertResult(
-		upsert(db, entity, tableName, updateProjections),
+		upsert(db, tableName, entity, updateProjections),
 	)
 }
 
+// UpsertEntities upserts a multiple entities.
+//
+//   - db: The database connection.
+//   - tableName: The name of the database table.
+//   - entities: The entities to upsert.
 func UpsertEntities[T Inserter](
-	entities []T,
 	db util.DB,
 	tableName string,
+	entities []T,
 	updateProjections []util.Projection,
 ) (int64, error) {
 	return checkInsertResult(
@@ -59,8 +70,8 @@ func upsertQuery(
 
 func upsert(
 	db util.DB,
-	inserter Inserter,
 	tableName string,
+	inserter Inserter,
 	updateProjections []util.Projection,
 ) (sql.Result, error) {
 	if len(updateProjections) == 0 {

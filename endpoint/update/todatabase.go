@@ -21,7 +21,7 @@ func GetDatabaseUpdatesFromUpdates(
 	allowedUpdates map[string]APIUpdate,
 	apiFields map[string]dbfield.DBField,
 	validator IValidator,
-) ([]entity.Update, error) {
+) ([]entity.UpdateOptions, error) {
 	matchedUpdates, err := MatchAndValidateInputUpdates(
 		inputUpdates,
 		allowedUpdates,
@@ -81,8 +81,8 @@ func MatchAndValidateInputUpdates(
 func ToDatabaseUpdates(
 	apiToDatabaseFieldMap map[string]dbfield.DBField,
 	matchedUpdates []MatchedUpdate,
-) ([]entity.Update, error) {
-	var databaseUpdates []entity.Update
+) ([]entity.UpdateOptions, error) {
+	var databaseUpdates []entity.UpdateOptions
 
 	for i := range matchedUpdates {
 		matchedUpdate := matchedUpdates[i]
@@ -95,10 +95,10 @@ func ToDatabaseUpdates(
 
 		databaseUpdates = append(
 			databaseUpdates,
-			*entity.NewUpdate(
-				translatedField.Column,
-				matchedUpdate.Value,
-			),
+			entity.UpdateOptions{
+				Field: translatedField.Column,
+				Value: matchedUpdate.Value,
+			},
 		)
 	}
 
