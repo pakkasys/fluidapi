@@ -8,8 +8,6 @@ import (
 	"github.com/pakkasys/fluidapi/database/errors"
 	"github.com/pakkasys/fluidapi/database/internal"
 	"github.com/pakkasys/fluidapi/database/util"
-
-	"github.com/go-sql-driver/mysql"
 )
 
 type Inserter interface {
@@ -41,13 +39,16 @@ func CreateEntities[T Inserter](
 
 func checkInsertResult(result sql.Result, err error) (int64, error) {
 	if err != nil {
-		mysqlErr, ok := err.(*mysql.MySQLError)
-		if ok {
-			if internal.IsDuplicateEntryError(mysqlErr) {
-				return 0, errors.DuplicateEntry(mysqlErr)
-			} else if internal.IsForeignConstraintError(mysqlErr) {
-				return 0, errors.ForeignConstraintError(mysqlErr)
-			}
+		if internal.IsMySQLError(
+			err,
+			internal.MySQLDuplicateEntryErrorCode,
+		) {
+			return 0, errors.DuplicateEntry(err)
+		} else if internal.IsMySQLError(
+			err,
+			internal.MySQLForeignConstraintErrorCode,
+		) {
+			return 0, errors.ForeignConstraintError(err)
 		}
 		return 0, err
 	}
@@ -66,14 +67,10 @@ func getInsertQueryColumnNames(columns []string) string {
 		wrappedColumns[i] = "`" + column + "`"
 	}
 	columnNames := strings.Join(wrappedColumns, ", ")
-
 	return columnNames
 }
 
-func insertQuery(
-	inserter Inserter,
-	tableName string,
-) (string, []any) {
+func insertQuery(inserter Inserter, tableName string) (string, []any) {
 	columns, values := inserter.GetInserted()
 	columnNames := getInsertQueryColumnNames(columns)
 

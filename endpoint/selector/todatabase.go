@@ -119,12 +119,12 @@ func ToDatabaseSelectors(
 
 		databaseSelectors = append(
 			databaseSelectors,
-			*util.NewSelector(
-				translatedField.Table,
-				translatedField.Column,
-				translatedPredicate,
-				matchedSelector.Value,
-			),
+			util.Selector{
+				Table:     translatedField.Table,
+				Field:     translatedField.Column,
+				Predicate: translatedPredicate,
+				Value:     matchedSelector.Value,
+			},
 		)
 	}
 

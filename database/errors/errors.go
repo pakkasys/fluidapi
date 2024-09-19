@@ -2,25 +2,23 @@ package errors
 
 import (
 	"github.com/pakkasys/fluidapi/core/api"
-
-	"github.com/go-sql-driver/mysql"
 )
 
-var DUPLICATE_ENTRY_ERROR_ID = "DUPLICATE_ENTRY"
+const DUPLICATE_ENTRY_ERROR_ID = "DUPLICATE_ENTRY"
 
-func DuplicateEntry(mySQLError *mysql.MySQLError) *api.Error {
+func DuplicateEntry(err error) *api.Error {
 	return &api.Error{
 		ID:   DUPLICATE_ENTRY_ERROR_ID,
-		Data: mySQLError,
+		Data: err,
 	}
 
 }
 
-var FOREIGN_CONSTRAINT_ERROR_ID = "FOREIGN_CONSTRAINT_ERROR"
+const FOREIGN_CONSTRAINT_ERROR_ID = "FOREIGN_CONSTRAINT_ERROR"
 
-func ForeignConstraintError(mySQLError *mysql.MySQLError) *api.Error {
+func ForeignConstraintError(err error) *api.Error {
 	return &api.Error{
 		ID:   FOREIGN_CONSTRAINT_ERROR_ID,
-		Data: mySQLError,
+		Data: err,
 	}
 }

@@ -1,24 +1,11 @@
 package util
 
+// Selector is a struct that represents a database selector.
 type Selector struct {
 	Table     string
 	Field     string
 	Predicate Predicate
 	Value     any
-}
-
-func NewSelector(
-	table string,
-	field string,
-	predicate Predicate,
-	value any,
-) *Selector {
-	return &Selector{
-		Table:     table,
-		Field:     field,
-		Predicate: predicate,
-		Value:     value,
-	}
 }
 
 type Selectors []Selector

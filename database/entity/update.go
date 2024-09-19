@@ -51,9 +51,15 @@ func checkUpdateResult(
 	if err != nil {
 		mysqlErr, ok := err.(*mysql.MySQLError)
 		if ok {
-			if internal.IsDuplicateEntryError(mysqlErr) {
+			if internal.IsMySQLError(
+				mysqlErr,
+				internal.MySQLDuplicateEntryErrorCode,
+			) {
 				return 0, errors.DuplicateEntry(mysqlErr)
-			} else if internal.IsForeignConstraintError(mysqlErr) {
+			} else if internal.IsMySQLError(
+				mysqlErr,
+				internal.MySQLForeignConstraintErrorCode,
+			) {
 				return 0, errors.ForeignConstraintError(mysqlErr)
 			}
 		}
