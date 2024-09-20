@@ -59,7 +59,7 @@ func NeedAtLeastOneSelectorError() *api.Error {
 }
 
 type PredicateNotAllowedErrorData struct {
-	Predicate predicate.Predicate `json:""`
+	Predicate predicate.Predicate `json:"predicate"`
 }
 
 var PREDICATE_NOT_ALLOWED_ERROR_ID = "PREDICATE_NOT_ALLOWED"

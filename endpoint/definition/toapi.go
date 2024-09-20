@@ -4,7 +4,11 @@ import (
 	"github.com/pakkasys/fluidapi/core/api"
 )
 
-func EndpointDefinitionsToHTTPEndpoints(
+// EndpointDefinitionsToAPIEndpoints converts a list of endpoint definitions to
+// a list of API endpoints
+//
+//   - endpointDefinitions: A list of endpoint definitions to convert
+func EndpointDefinitionsToAPIEndpoints(
 	endpointDefinitions []EndpointDefinition,
 ) []api.Endpoint {
 	endpoints := []api.Endpoint{}
@@ -17,11 +21,11 @@ func EndpointDefinitionsToHTTPEndpoints(
 
 		endpoints = append(
 			endpoints,
-			*api.NewEndpoint(
-				endpointDefinition.URL,
-				endpointDefinition.Method,
-				middlewares,
-			),
+			api.Endpoint{
+				URL:         endpointDefinition.URL,
+				Method:      endpointDefinition.Method,
+				Middlewares: middlewares,
+			},
 		)
 	}
 

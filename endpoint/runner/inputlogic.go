@@ -32,10 +32,10 @@ func GenericEndpointDefinition[I any, O any](
 	expectedErrors []inputlogic.ExpectedError,
 	deps InputLogicDependencies,
 ) *definition.EndpointDefinition {
-	return definition.NewEndpointDefinition(
-		specification.URL(),
-		specification.HTTPMethod(),
-		middleware.
+	return &definition.EndpointDefinition{
+		URL:    specification.URL(),
+		Method: specification.HTTPMethod(),
+		MiddlewareStack: middleware.
 			NewMiddlewareStackBuilder(
 				deps.RequestIDStringFn,
 				deps.ErrorLoggerFn,
@@ -54,7 +54,7 @@ func GenericEndpointDefinition[I any, O any](
 				),
 			).
 			Build(),
-	)
+	}
 }
 
 func GetEndpointDefinition[I IGetInput, O any, E any](
@@ -66,10 +66,10 @@ func GetEndpointDefinition[I IGetInput, O any, E any](
 	expectedErrors []inputlogic.ExpectedError,
 	deps InputLogicDependencies,
 ) *definition.EndpointDefinition {
-	return definition.NewEndpointDefinition(
-		specification.URL(),
-		specification.HTTPMethod(),
-		middleware.
+	return &definition.EndpointDefinition{
+		URL:    specification.URL(),
+		Method: specification.HTTPMethod(),
+		MiddlewareStack: middleware.
 			NewMiddlewareStackBuilder(
 				deps.RequestIDStringFn,
 				deps.ErrorLoggerFn,
@@ -103,7 +103,7 @@ func GetEndpointDefinition[I IGetInput, O any, E any](
 				),
 			).
 			Build(),
-	)
+	}
 }
 
 func UpdateEndpointDefinition[I IUpdateInput, O any](
@@ -114,10 +114,10 @@ func UpdateEndpointDefinition[I IUpdateInput, O any](
 	expectedErrors []inputlogic.ExpectedError,
 	deps InputLogicDependencies,
 ) *definition.EndpointDefinition {
-	return definition.NewEndpointDefinition(
-		specification.URL(),
-		specification.HTTPMethod(),
-		middleware.
+	return &definition.EndpointDefinition{
+		URL:    specification.URL(),
+		Method: specification.HTTPMethod(),
+		MiddlewareStack: middleware.
 			NewMiddlewareStackBuilder(
 				deps.RequestIDStringFn,
 				deps.ErrorLoggerFn,
@@ -150,7 +150,7 @@ func UpdateEndpointDefinition[I IUpdateInput, O any](
 				),
 			).
 			Build(),
-	)
+	}
 }
 
 func DeleteEndpointDefinition[I IDeleteInput, O any, E any](
@@ -161,10 +161,10 @@ func DeleteEndpointDefinition[I IDeleteInput, O any, E any](
 	expectedErrors []inputlogic.ExpectedError,
 	deps InputLogicDependencies,
 ) *definition.EndpointDefinition {
-	return definition.NewEndpointDefinition(
-		specification.URL(),
-		specification.HTTPMethod(),
-		middleware.
+	return &definition.EndpointDefinition{
+		URL:    specification.URL(),
+		Method: specification.HTTPMethod(),
+		MiddlewareStack: middleware.
 			NewMiddlewareStackBuilder(
 				deps.RequestIDStringFn,
 				deps.ErrorLoggerFn,
@@ -197,7 +197,7 @@ func DeleteEndpointDefinition[I IDeleteInput, O any, E any](
 				),
 			).
 			Build(),
-	)
+	}
 }
 
 func selectExpectedErrors(

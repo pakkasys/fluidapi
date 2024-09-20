@@ -17,6 +17,7 @@ type InputSelector struct {
 	Value     any                 `json:"value"`
 }
 
+// String returns a string representation of the selector.
 func (i InputSelector) String() string {
 	return fmt.Sprintf("%s %s %s", i.Field, i.Predicate, i.Value)
 }
@@ -24,6 +25,8 @@ func (i InputSelector) String() string {
 type InputSelectors []InputSelector
 
 // GetByFields returns all selectors with the given fields.
+//
+//   - fields: the fields to search for
 func (i InputSelectors) GetByFields(fields ...string) []InputSelector {
 	selectors := InputSelectors{}
 	for f := range fields {

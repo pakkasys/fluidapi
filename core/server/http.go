@@ -163,7 +163,7 @@ func multiplexEndpoints(
 	endpoints := multiplexedEndpoints{}
 	for i := range httpEndpoints {
 		url := httpEndpoints[i].URL
-		method := httpEndpoints[i].HTTPMethod
+		method := httpEndpoints[i].Method
 		if endpoints[url] == nil {
 			endpoints[url] = make(map[string]http.Handler)
 		}

@@ -70,7 +70,7 @@ func startTestHTTPServer(
 
 // Test case to simulate a graceful shutdown
 func TestHTTPServer_Lifecycle(t *testing.T) {
-	httpEndpoints := []api.Endpoint{{URL: "/test", HTTPMethod: "GET"}}
+	httpEndpoints := []api.Endpoint{{URL: "/test", Method: "GET"}}
 
 	shutdown := startTestHTTPServer(8080, httpEndpoints)
 	defer shutdown()
@@ -89,8 +89,8 @@ func TestHTTPServer_CallNotFoundEndpoint(t *testing.T) {
 	// Define endpoints (no /notfound registered)
 	httpEndpoints := []api.Endpoint{
 		{
-			URL:        "/test",
-			HTTPMethod: "GET",
+			URL:    "/test",
+			Method: "GET",
 			Middlewares: []api.Middleware{
 				func(next http.Handler) http.Handler {
 					return http.HandlerFunc(
@@ -123,8 +123,8 @@ func TestHTTPServer_CallEndpointWithWrongMethod(t *testing.T) {
 	// Define endpoints
 	httpEndpoints := []api.Endpoint{
 		{
-			URL:        "/test",
-			HTTPMethod: "GET",
+			URL:    "/test",
+			Method: "GET",
 			Middlewares: []api.Middleware{
 				func(next http.Handler) http.Handler {
 					return http.HandlerFunc(
@@ -163,8 +163,8 @@ func TestHTTPServer_CallRegisteredEndpoint(t *testing.T) {
 	// Define endpoints
 	httpEndpoints := []api.Endpoint{
 		{
-			URL:        "/test",
-			HTTPMethod: "GET",
+			URL:    "/test",
+			Method: "GET",
 			Middlewares: []api.Middleware{
 				func(next http.Handler) http.Handler {
 					return http.HandlerFunc(
@@ -215,8 +215,8 @@ func TestDefaultHTTPServer(t *testing.T) {
 	port := 8080
 	httpEndpoints := []api.Endpoint{
 		{
-			URL:        "/test",
-			HTTPMethod: "GET",
+			URL:    "/test",
+			Method: "GET",
 			Middlewares: []api.Middleware{
 				func(next http.Handler) http.Handler {
 					return http.HandlerFunc(
@@ -374,12 +374,12 @@ func TestSetupMux(t *testing.T) {
 	endpoints := []api.Endpoint{
 		{
 			URL:         "/test",
-			HTTPMethod:  "GET",
+			Method:      "GET",
 			Middlewares: []api.Middleware{getMiddleware},
 		},
 		{
 			URL:         "/test",
-			HTTPMethod:  "POST",
+			Method:      "POST",
 			Middlewares: []api.Middleware{postMiddleware},
 		},
 	}
@@ -548,8 +548,8 @@ func TestMultiplexEndpoints(t *testing.T) {
 	// Create dummy endpoints with a middleware
 	endpoints := []api.Endpoint{
 		{
-			URL:        "/test",
-			HTTPMethod: "GET",
+			URL:    "/test",
+			Method: "GET",
 			Middlewares: []api.Middleware{
 				testMiddleware,
 			},

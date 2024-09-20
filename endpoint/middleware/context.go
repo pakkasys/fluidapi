@@ -19,10 +19,7 @@ func ContextMiddlewareWrapper() *api.MiddlewareWrapper {
 func ContextMiddleware() api.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			next.ServeHTTP(
-				w,
-				r.WithContext(util.NewContext(r.Context())),
-			)
+			next.ServeHTTP(w, r.WithContext(util.NewContext(r.Context())))
 		})
 	}
 }
