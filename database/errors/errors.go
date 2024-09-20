@@ -11,7 +11,6 @@ func DuplicateEntry(err error) *api.Error {
 		ID:   DUPLICATE_ENTRY_ERROR_ID,
 		Data: err,
 	}
-
 }
 
 const FOREIGN_CONSTRAINT_ERROR_ID = "FOREIGN_CONSTRAINT_ERROR"

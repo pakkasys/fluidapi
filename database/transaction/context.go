@@ -21,11 +21,7 @@ func SetTransactionToContext(ctx context.Context, tx util.Tx) {
 //
 //   - ctx: The context to get the transaction from.
 func GetTransactionFromContext(ctx context.Context) util.Tx {
-	return endpointutil.GetContextValue[util.Tx](
-		ctx,
-		txContextKey,
-		nil,
-	)
+	return endpointutil.GetContextValue[util.Tx](ctx, txContextKey, nil)
 }
 
 // ClearTransactionFromContext clears the transaction from the context.

@@ -3,7 +3,6 @@ package transaction
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/pakkasys/fluidapi/database/util"
 )
@@ -14,20 +13,17 @@ type TransactionalFunc[Result any] func(tx util.Tx) (Result, error)
 
 // ExecuteTransaction executes a TransactionalFunc in a transaction.
 //
-//   - transactionalFunc: The function to execute in a transaction.
-//   - getTxFunc: The function to get a transaction.
+//   - tx: The transaction to use.
+//   - transactionalFn: The function to execute in a transaction.
 func ExecuteTransaction[Result any](
 	tx util.Tx,
-	transactionalFunc TransactionalFunc[Result],
-) (Result, error) {
-	result, txErr := transactionalFunc(tx)
+	transactionalFn TransactionalFunc[Result],
+) (result Result, err error) {
+	result, err = transactionalFn(tx)
 	defer func() {
-		if err := finalizeTransaction(tx, txErr); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to finalize transaction: %v\n", err)
-		}
+		err = finalizeTransaction(tx, err)
 	}()
-
-	return result, txErr
+	return result, err
 }
 
 // ExecuteManagedTransaction executes a TransactionalFunc in a transaction.
@@ -36,28 +32,23 @@ func ExecuteTransaction[Result any](
 // error occurs.
 //
 //   - ctx: The context to use when getting and setting the transaction.
-//   - getTxFunc: The function to get a new transaction.
+//   - newTxFn: The function to create a new transaction with.
 //   - transactionalFunc: The function to execute in a transaction.
 func ExecuteManagedTransaction[Result any](
 	ctx context.Context,
-	getTxFunc func() (util.Tx, error),
+	newTxFn func() (util.Tx, error),
 	transactionalFunc TransactionalFunc[Result],
-) (result Result, txErr error) {
-	tx, isNewTx, txErr := handleGetTransactionFromContext(ctx, getTxFunc)
-	if txErr != nil {
+) (result Result, err error) {
+	tx, isNewTx, err := handleGetTxFromContext(ctx, newTxFn)
+	if err != nil {
 		var zero Result
-		return zero, txErr
+		return zero, err
 	}
 
+	// Finalize the transaction once and after the transactional function
 	if isNewTx {
 		defer func() {
-			if err := finalizeTransaction(tx, txErr); err != nil {
-				fmt.Fprintf(
-					os.Stderr,
-					"Failed to finalize transaction: %v",
-					err,
-				)
-			}
+			err = finalizeTransaction(tx, err)
 			ClearTransactionFromContext(ctx)
 		}()
 	}
@@ -65,16 +56,16 @@ func ExecuteManagedTransaction[Result any](
 	return transactionalFunc(tx)
 }
 
-func handleGetTransactionFromContext(
+func handleGetTxFromContext(
 	ctx context.Context,
-	getTxFunc func() (util.Tx, error),
+	newTxFn func() (util.Tx, error),
 ) (util.Tx, bool, error) {
 	tx := GetTransactionFromContext(ctx)
 	isNewTx := false
 
 	if tx == nil {
 		var err error
-		tx, err = getTxFunc()
+		tx, err = newTxFn()
 		if err != nil {
 			return nil, false, err
 		}
@@ -90,6 +81,8 @@ func finalizeTransaction(tx util.Tx, txErr error) error {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return fmt.Errorf("failed to rollback transaction: %v", rollbackErr)
 		}
+
+		return fmt.Errorf("transaction error: %v", txErr)
 	}
 
 	if err := tx.Commit(); err != nil {

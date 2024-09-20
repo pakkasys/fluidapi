@@ -17,43 +17,28 @@ const (
 
 // ProcessSelectors processes selectors into where clauses and corresponding
 // parameters array.
-//
-//   - selectors: a list of selectors
 func ProcessSelectors(selectors []util.Selector) ([]string, []any) {
 	var whereColumns []string
 	var whereValues []any
-	for i := range selectors {
-		selector := selectors[i]
+	for _, selector := range selectors {
 		col, vals := processSelector(selector)
 		whereColumns = append(whereColumns, col)
 		whereValues = append(whereValues, vals...)
 	}
-
 	return whereColumns, whereValues
 }
 
-func processSelector(
-	selector util.Selector,
-) (string, []any) {
-	switch selector.Predicate {
-	case predicateIn:
+func processSelector(selector util.Selector) (string, []any) {
+	if selector.Predicate == predicateIn {
 		return processInSelector(selector)
-	default:
-		return processDefaultSelector(selector)
 	}
+	return processDefaultSelector(selector)
 }
 
-func processInSelector(
-	selector util.Selector,
-) (string, []any) {
+func processInSelector(selector util.Selector) (string, []any) {
 	value := reflect.ValueOf(selector.Value)
 	if value.Kind() == reflect.Slice {
-		placeholderCount := value.Len()
-		placeholders := createPlaceholders(placeholderCount)
-		values := make([]any, placeholderCount)
-		for i := 0; i < placeholderCount; i++ {
-			values[i] = value.Index(i).Interface()
-		}
+		placeholders, values := createPlaceholdersAndValues(value)
 		column := fmt.Sprintf(
 			"`%s`.`%s` %s (%s)",
 			selector.Table,
@@ -62,71 +47,67 @@ func processInSelector(
 			placeholders,
 		)
 		return column, values
+	}
+	// If value is not a slice, treat as a single value
+	return fmt.Sprintf(
+		"`%s`.`%s` %s (?)",
+		selector.Table,
+		selector.Field,
+		predicateIn,
+	), []any{selector.Value}
+}
+
+func processDefaultSelector(selector util.Selector) (string, []any) {
+	if selector.Value == nil {
+		return processNullSelector(selector)
+	}
+	if selector.Table == "" {
+		return fmt.Sprintf(
+			"`%s` %s ?",
+			selector.Field,
+			selector.Predicate,
+		), []any{selector.Value}
 	} else {
-		// Handle non-slice values as single placeholders
-		placeholders := "?"
-		values := []any{selector.Value}
-		column := fmt.Sprintf(
-			"`%s`.`%s` %s (%s)",
+		return fmt.Sprintf(
+			"`%s`.`%s` %s ?",
 			selector.Table,
 			selector.Field,
-			predicateIn,
-			placeholders,
-		)
-		return column, values
+			selector.Predicate,
+		), []any{selector.Value}
 	}
 }
 
-func processDefaultSelector(
-	selector util.Selector,
-) (string, []any) {
-	// Check if the value is nil to handle NULL cases
-	if selector.Value == nil {
-		if selector.Predicate == "=" {
-			if selector.Table == "" {
-				return fmt.Sprintf(
-					"`%s` %s %s",
-					selector.Field,
-					isClause,
-					sqlNull,
-				), nil
-			} else {
-				return fmt.Sprintf(
-					"`%s`.`%s` %s %s",
-					selector.Table,
-					selector.Field,
-					isClause,
-					sqlNull,
-				), nil
-			}
-		} else if selector.Predicate == "!=" {
-			if selector.Table == "" {
-				return fmt.Sprintf(
-					"`%s` %s %s",
-					selector.Field,
-					isNotClause,
-					sqlNull,
-				), nil
-			} else {
-				return fmt.Sprintf(
-					"`%s`.`%s` %s %s",
-					selector.Table,
-					selector.Field,
-					isNotClause,
-					sqlNull,
-				), nil
-			}
-		}
+func processNullSelector(selector util.Selector) (string, []any) {
+	if selector.Predicate == "=" {
+		return buildNullClause(selector, isClause), nil
 	}
+	if selector.Predicate == "!=" {
+		return buildNullClause(selector, isNotClause), nil
+	}
+	return "", nil
+}
 
-	column := fmt.Sprintf(
-		"`%s`.`%s` %s ?",
+func buildNullClause(selector util.Selector, clause string) string {
+	if selector.Table == "" {
+		return fmt.Sprintf("`%s` %s %s", selector.Field, clause, sqlNull)
+	}
+	return fmt.Sprintf(
+		"`%s`.`%s` %s %s",
 		selector.Table,
 		selector.Field,
-		selector.Predicate,
+		clause,
+		sqlNull,
 	)
-	values := []any{selector.Value}
-	return column, values
+}
+
+func createPlaceholdersAndValues(value reflect.Value) (string, []any) {
+	placeholderCount := value.Len()
+	placeholders := createPlaceholders(placeholderCount)
+	values := make([]any, placeholderCount)
+	for i := 0; i < placeholderCount; i++ {
+		values[i] = value.Index(i).Interface()
+	}
+	return placeholders, values
 }
 
 func createPlaceholders(count int) string {
