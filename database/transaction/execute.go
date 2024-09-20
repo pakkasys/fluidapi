@@ -18,12 +18,14 @@ type TransactionalFunc[Result any] func(tx util.Tx) (Result, error)
 func ExecuteTransaction[Result any](
 	tx util.Tx,
 	transactionalFn TransactionalFunc[Result],
-) (result Result, err error) {
-	result, err = transactionalFn(tx)
+) (result Result, txErr error) {
+	result, txErr = transactionalFn(tx)
 	defer func() {
-		err = finalizeTransaction(tx, err)
+		if err := finalizeTransaction(tx, txErr); err != nil {
+			txErr = err
+		}
 	}()
-	return result, err
+	return result, txErr
 }
 
 // ExecuteManagedTransaction executes a TransactionalFunc in a transaction.
@@ -32,40 +34,41 @@ func ExecuteTransaction[Result any](
 // error occurs.
 //
 //   - ctx: The context to use when getting and setting the transaction.
-//   - newTxFn: The function to create a new transaction with.
-//   - transactionalFunc: The function to execute in a transaction.
+//   - getTxFn: The function to get a new transaction.
+//   - transactionalFn: The function to execute in a transaction.
 func ExecuteManagedTransaction[Result any](
 	ctx context.Context,
-	newTxFn func() (util.Tx, error),
-	transactionalFunc TransactionalFunc[Result],
-) (result Result, err error) {
-	tx, isNewTx, err := handleGetTxFromContext(ctx, newTxFn)
-	if err != nil {
+	getTxFn func() (util.Tx, error),
+	transactionalFn TransactionalFunc[Result],
+) (result Result, txErr error) {
+	tx, isNewTx, txErr := handleGetTxFromContext(ctx, getTxFn)
+	if txErr != nil {
 		var zero Result
-		return zero, err
+		return zero, txErr
 	}
 
-	// Finalize the transaction once and after the transactional function
 	if isNewTx {
 		defer func() {
-			err = finalizeTransaction(tx, err)
+			if err := finalizeTransaction(tx, txErr); err != nil {
+				txErr = err
+			}
 			ClearTransactionFromContext(ctx)
 		}()
 	}
 
-	return transactionalFunc(tx)
+	return transactionalFn(tx)
 }
 
 func handleGetTxFromContext(
 	ctx context.Context,
-	newTxFn func() (util.Tx, error),
+	getTxFunc func() (util.Tx, error),
 ) (util.Tx, bool, error) {
 	tx := GetTransactionFromContext(ctx)
 	isNewTx := false
 
 	if tx == nil {
 		var err error
-		tx, err = newTxFn()
+		tx, err = getTxFunc()
 		if err != nil {
 			return nil, false, err
 		}
@@ -81,8 +84,7 @@ func finalizeTransaction(tx util.Tx, txErr error) error {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return fmt.Errorf("failed to rollback transaction: %v", rollbackErr)
 		}
-
-		return fmt.Errorf("transaction error: %v", txErr)
+		return nil
 	}
 
 	if err := tx.Commit(); err != nil {

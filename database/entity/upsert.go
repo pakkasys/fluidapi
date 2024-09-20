@@ -15,13 +15,13 @@ import (
 //   - entity: The entity to upsert.
 //   - updateProjections: The projections of the entity to update.
 func UpsertEntity[T Inserter](
-	db util.DB,
+	preparer util.Preparer,
 	tableName string,
 	entity T,
 	updateProjections []util.Projection,
 ) (int64, error) {
 	return checkInsertResult(
-		upsert(db, tableName, entity, updateProjections),
+		upsert(preparer, tableName, entity, updateProjections),
 	)
 }
 
@@ -31,13 +31,13 @@ func UpsertEntity[T Inserter](
 //   - tableName: The name of the database table.
 //   - entities: The entities to upsert.
 func UpsertEntities[T Inserter](
-	db util.DB,
+	preparer util.Preparer,
 	tableName string,
 	entities []T,
 	updateProjections []util.Projection,
 ) (int64, error) {
 	return checkInsertResult(
-		upsertMany(db, entities, tableName, updateProjections),
+		upsertMany(preparer, entities, tableName, updateProjections),
 	)
 }
 
@@ -69,7 +69,7 @@ func upsertQuery(
 }
 
 func upsert(
-	db util.DB,
+	preparer util.Preparer,
 	tableName string,
 	inserter Inserter,
 	updateProjections []util.Projection,
@@ -83,7 +83,7 @@ func upsert(
 
 	upsertQuery, values := upsertQuery(inserter, tableName, updateProjections)
 
-	statement, err := db.Prepare(upsertQuery)
+	statement, err := preparer.Prepare(upsertQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func upsertManyQuery[T Inserter](
 }
 
 func upsertMany[T Inserter](
-	db util.DB,
+	preparer util.Preparer,
 	entities []T,
 	tableName string,
 	updateProjections []util.Projection,
@@ -145,7 +145,7 @@ func upsertMany[T Inserter](
 	}
 
 	query, values := upsertManyQuery(entities, tableName, updateProjections)
-	statement, err := db.Prepare(query)
+	statement, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, err
 	}

@@ -13,11 +13,11 @@ import (
 //   - query: The query string.
 //   - parameters: The parameters for the query.
 func RowsQuery(
-	db util.DB,
+	preparer util.Preparer,
 	query string,
 	parameters []any,
 ) (util.Rows, util.Stmt, error) {
-	stmt, err := db.Prepare(query)
+	stmt, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -36,8 +36,12 @@ func RowsQuery(
 //   - db: The database connection.
 //   - query: The query string.
 //   - parameters: The parameters for the query.
-func ExecQuery(db util.DB, query string, parameters []any) (sql.Result, error) {
-	stmt, err := db.Prepare(query)
+func ExecQuery(
+	preparer util.Preparer,
+	query string,
+	parameters []any,
+) (sql.Result, error) {
+	stmt, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, err
 	}

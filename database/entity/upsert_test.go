@@ -32,10 +32,8 @@ func TestUpsertEntity_NormalOperation(t *testing.T) {
 	mockStmt.On("Close").Return(nil)
 	mockResult.On("LastInsertId").Return(int64(0), nil)
 
-	// Call the function being tested
 	_, err := UpsertEntity(mockDB, "user", entity, projections)
 
-	// Assertions
 	assert.NoError(t, err)
 	mockDB.AssertExpectations(t)
 	mockStmt.AssertExpectations(t)
@@ -58,10 +56,8 @@ func TestUpsertEntity_ErrorFromUpsert(t *testing.T) {
 	// Simulate an error in the upsert call
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
 
-	// Call the function being tested
 	_, err := UpsertEntity(mockDB, "user", entity, projections)
 
-	// Assertions
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
 }
@@ -94,10 +90,8 @@ func TestUpsertEntities_NormalOperation(t *testing.T) {
 	mockStmt.On("Close").Return(nil)
 	mockResult.On("LastInsertId").Return(int64(0), nil)
 
-	// Call the function being tested
 	_, err := UpsertEntities(mockDB, "user", entities, projections)
 
-	// Assertions
 	assert.NoError(t, err)
 	mockDB.AssertExpectations(t)
 	mockStmt.AssertExpectations(t)
@@ -108,7 +102,6 @@ func TestUpsertEntities_NormalOperation(t *testing.T) {
 func TestUpsertEntities_EmptyEntities(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
-	// Call the function being tested with an empty list of entities
 	_, err := UpsertEntities(
 		mockDB,
 		"user",
@@ -116,7 +109,6 @@ func TestUpsertEntities_EmptyEntities(t *testing.T) {
 		[]util.Projection{{Column: "name", Alias: "test"}},
 	)
 
-	// Assertions
 	assert.EqualError(t, err, "must provide entities to upsert")
 	mockDB.AssertExpectations(t)
 }
@@ -144,10 +136,8 @@ func TestUpsertEntities_ErrorFromUpsertMany(t *testing.T) {
 	// Simulate an error in the upsertMany call
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
 
-	// Call the function being tested
 	_, err := UpsertEntities(mockDB, "user", entities, projections)
 
-	// Assertions
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
 }
@@ -173,10 +163,8 @@ func TestUpsert_NormalOperation(t *testing.T) {
 	mockStmt.On("Exec", mock.Anything).Return(nil, nil)
 	mockStmt.On("Close").Return(nil)
 
-	// Call the function being tested
 	_, err := upsert(mockDB, "user", entity, projections)
 
-	// Assertions
 	assert.NoError(t, err)
 	mockDB.AssertExpectations(t)
 	mockStmt.AssertExpectations(t)
@@ -190,10 +178,8 @@ func TestUpsert_MissingProjections(t *testing.T) {
 	// Test entity
 	entity := &MockInserter{}
 
-	// Call the function being tested with no update projections
 	_, err := upsert(mockDB, "user", entity, []util.Projection{})
 
-	// Assertions
 	assert.EqualError(t, err, "must provide update projections")
 	mockDB.AssertExpectations(t)
 }
@@ -209,10 +195,8 @@ func TestUpsert_MissingProjectionAlias(t *testing.T) {
 		{Column: "name", Alias: ""},
 	}
 
-	// Call the function being tested
 	_, err := upsert(mockDB, "user", entity, projections)
 
-	// Assertions
 	assert.EqualError(t, err, "must provide update projections alias")
 	mockDB.AssertExpectations(t)
 }
@@ -234,10 +218,8 @@ func TestUpsert_PrepareError(t *testing.T) {
 	// Simulate an error on Prepare
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
 
-	// Call the function being tested
 	_, err := upsert(mockDB, "user", entity, projections)
 
-	// Assertions
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
 }
@@ -263,10 +245,8 @@ func TestUpsert_ExecError(t *testing.T) {
 	mockStmt.On("Exec", mock.Anything).Return(nil, errors.New("exec error"))
 	mockStmt.On("Close").Return(nil)
 
-	// Call the function being tested
 	_, err := upsert(mockDB, "user", entity, projections)
 
-	// Assertions
 	assert.EqualError(t, err, "exec error")
 	mockDB.AssertExpectations(t)
 	mockStmt.AssertExpectations(t)

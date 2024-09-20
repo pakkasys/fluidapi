@@ -22,10 +22,10 @@ type Inserter interface {
 //   - tableName: The name of the database table.
 func CreateEntity[T Inserter](
 	entity T,
-	db util.DB,
+	preparer util.Preparer,
 	tableName string,
 ) (int64, error) {
-	return checkInsertResult(insert(db, entity, tableName))
+	return checkInsertResult(insert(preparer, entity, tableName))
 }
 
 // CreateEntities creates entities in the database.
@@ -35,13 +35,13 @@ func CreateEntity[T Inserter](
 //   - tableName: The name of the database table.
 func CreateEntities[T Inserter](
 	entities []T,
-	db util.DB,
+	preparer util.Preparer,
 	tableName string,
 ) (int64, error) {
 	if len(entities) == 0 {
 		return 0, nil
 	}
-	return checkInsertResult(insertMany(db, entities, tableName))
+	return checkInsertResult(insertMany(preparer, entities, tableName))
 }
 
 func checkInsertResult(result sql.Result, err error) (int64, error) {
@@ -97,13 +97,13 @@ func insertQuery(inserter Inserter, tableName string) (string, []any) {
 }
 
 func insert(
-	db util.DB,
+	preparer util.Preparer,
 	inserter Inserter,
 	tableName string,
 ) (sql.Result, error) {
 	query, values := insertQuery(inserter, tableName)
 
-	statement, err := db.Prepare(query)
+	statement, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -151,13 +151,13 @@ func insertManyQuery[T Inserter](
 }
 
 func insertMany[T Inserter](
-	db util.DB,
+	preparer util.Preparer,
 	entities []T,
 	tableName string,
 ) (sql.Result, error) {
 	query, values := insertManyQuery(entities, tableName)
 
-	statement, err := db.Prepare(query)
+	statement, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, err
 	}

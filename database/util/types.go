@@ -1,13 +1,33 @@
 package util
 
+import (
+	"context"
+	"database/sql"
+	"time"
+)
+
+// Preparer is an interface that allows to prepare a query.
+type Preparer interface {
+	Prepare(query string) (Stmt, error)
+}
+
 // DB is an interface that wraps the basic methods used from sql.DB.
 type DB interface {
-	Prepare(query string) (Stmt, error)
+	Preparer
+	Ping() error
+	SetConnMaxLifetime(d time.Duration)
+	SetConnMaxIdleTime(d time.Duration)
+	SetMaxOpenConns(n int)
+	SetMaxIdleConns(n int)
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (Tx, error)
+	Exec(query string, args ...any) (Result, error)
+	Query(query string, args ...any) (Rows, error)
+	Close() error
 }
 
 // Tx is an interface that wraps the basic methods used from sql.Tx.
 type Tx interface {
-	Prepare(query string) (Stmt, error)
+	Preparer
 	Commit() error
 	Rollback() error
 }

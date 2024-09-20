@@ -11,7 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestExecuteTransaction_Success tests the case where a transaction is successfully executed.
+// TestExecuteTransaction_Success tests the case where a transaction is
+// successfully executed.
 func TestExecuteTransaction_Success(t *testing.T) {
 	mockTx := new(mock.MockTx)
 
@@ -30,13 +31,14 @@ func TestExecuteTransaction_Success(t *testing.T) {
 	mockTx.AssertExpectations(t)
 }
 
-// TestExecuteTransaction_TransactionError tests the case where the transactional function returns an error.
-func TestExecuteTransaction_TransactionError(t *testing.T) {
+// TestExecuteTransaction_TransactionError tests the case where the
+// transactional function returns an error.
+func TestExecuteTransaction_TransactionalFnError(t *testing.T) {
 	mockTx := new(mock.MockTx)
 
 	// Mock the transactional function to return an error
 	transactionalFunc := func(tx util.Tx) (string, error) {
-		return "", errors.New("transaction error")
+		return "", errors.New("application error")
 	}
 
 	// Setup the mock transaction expectations
@@ -45,7 +47,27 @@ func TestExecuteTransaction_TransactionError(t *testing.T) {
 	result, err := ExecuteTransaction(mockTx, transactionalFunc)
 
 	assert.Equal(t, "", result)
-	assert.EqualError(t, err, "transaction error: transaction error")
+	assert.EqualError(t, err, "application error")
+	mockTx.AssertExpectations(t)
+}
+
+// TestExecuteTransaction_TransactionalFnError tests the case where the
+// transactional function returns an error.
+func TestExecuteTransaction_FinalizeError(t *testing.T) {
+	mockTx := new(mock.MockTx)
+
+	// Mock the transactional function to return an error
+	transactionalFunc := func(tx util.Tx) (string, error) {
+		return "", nil
+	}
+
+	// Setup the mock transaction expectations
+	mockTx.On("Commit").Return(errors.New("commit error")).Once()
+
+	result, err := ExecuteTransaction(mockTx, transactionalFunc)
+
+	assert.Equal(t, "", result)
+	assert.EqualError(t, err, "failed to commit transaction: commit error")
 	mockTx.AssertExpectations(t)
 }
 
@@ -96,9 +118,9 @@ func TestExecuteManagedTransaction_GetTxFuncError(t *testing.T) {
 	assert.EqualError(t, err, "failed to create transaction")
 }
 
-// TestExecuteManagedTransaction_TransactionError tests the case where an error
-// occurs in the transactional function.
-func TestExecuteManagedTransaction_TransactionError(t *testing.T) {
+// TestExecuteManagedTransaction_TransactionalFnError tests the case where an
+// error occurs in the transactional function.
+func TestExecuteManagedTransaction_TransactionalFnError(t *testing.T) {
 	mockTx := new(mock.MockTx)
 	ctx := endpointutil.NewContext(context.Background())
 
@@ -109,7 +131,7 @@ func TestExecuteManagedTransaction_TransactionError(t *testing.T) {
 
 	// Mock the transactionalFunc to return an error
 	transactionalFunc := func(tx util.Tx) (string, error) {
-		return "", errors.New("transaction error")
+		return "", errors.New("application error")
 	}
 
 	// Setup the mock transaction expectations
@@ -118,7 +140,7 @@ func TestExecuteManagedTransaction_TransactionError(t *testing.T) {
 	result, err := ExecuteManagedTransaction(ctx, getTxFunc, transactionalFunc)
 
 	assert.Equal(t, "", result)
-	assert.EqualError(t, err, "transaction error: transaction error")
+	assert.EqualError(t, err, "application error")
 	mockTx.AssertExpectations(t)
 }
 
@@ -295,20 +317,6 @@ func TestFinalizeTransaction_CommitError(t *testing.T) {
 	err := finalizeTransaction(mockTx, nil)
 
 	assert.EqualError(t, err, "failed to commit transaction: commit error")
-	mockTx.AssertExpectations(t)
-}
-
-// TestFinalizeTransaction_RollbackOnError tests the case where rollback occurs
-// due to an error.
-func TestFinalizeTransaction_RollbackOnError(t *testing.T) {
-	mockTx := new(mock.MockTx)
-
-	// Setup the mock transaction expectations
-	mockTx.On("Rollback").Return(nil).Once()
-
-	err := finalizeTransaction(mockTx, errors.New("transaction error"))
-
-	assert.EqualError(t, err, "transaction error: transaction error")
 	mockTx.AssertExpectations(t)
 }
 

@@ -92,10 +92,8 @@ func TestExecQuery_NormalOperation(t *testing.T) {
 	mockStmt.On("Exec", parameters).Return(mockResult, nil)
 	mockStmt.On("Close").Return(nil)
 
-	// Call the function being tested
 	result, err := ExecQuery(mockDB, query, parameters)
 
-	// Assertions
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	mockDB.AssertExpectations(t)

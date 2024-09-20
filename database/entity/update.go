@@ -23,7 +23,7 @@ type UpdateOptions struct {
 //   - selectors: The selectors of the entities to update.
 //   - updates: The updates to apply to the entities.
 func UpdateEntities(
-	db util.DB,
+	preparer util.Preparer,
 	tableName string,
 	selectors []util.Selector,
 	updates []UpdateOptions,
@@ -32,7 +32,7 @@ func UpdateEntities(
 		return 0, nil
 	}
 
-	return checkUpdateResult(update(db, tableName, updates, selectors))
+	return checkUpdateResult(update(preparer, tableName, updates, selectors))
 }
 
 func checkUpdateResult(result sql.Result, err error) (int64, error) {
@@ -60,14 +60,14 @@ func checkUpdateResult(result sql.Result, err error) (int64, error) {
 }
 
 func update(
-	db util.DB,
+	preparer util.Preparer,
 	tableName string,
 	updates []UpdateOptions,
 	selectors []util.Selector,
 ) (sql.Result, error) {
 	query, values := updateQuery(tableName, updates, selectors)
 
-	statement, err := db.Prepare(query)
+	statement, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, err
 	}

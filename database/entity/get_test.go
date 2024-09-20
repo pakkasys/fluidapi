@@ -18,8 +18,7 @@ type MockRowScanner[T any] struct {
 }
 
 func (m *MockRowScanner[T]) Scan(row util.Row, entity *T) error {
-	args := m.Called(row, entity)
-	return args.Error(0)
+	return row.Scan(entity)
 }
 
 // MockRowScannerMultiple is a mock implementation of RowScannerMultiple.
@@ -28,8 +27,7 @@ type MockRowScannerMultiple[T any] struct {
 }
 
 func (m *MockRowScannerMultiple[T]) Scan(rows util.Rows, entity *T) error {
-	args := m.Called(rows, entity)
-	return args.Error(0)
+	return rows.Scan(entity)
 }
 
 type TestEntity struct {
@@ -51,16 +49,12 @@ func TestGetEntity_NormalOperation(t *testing.T) {
 	// Setup the mock DB expectations
 	mockDB.On("Prepare", mock.Anything).Return(mockStmt, nil)
 	mockStmt.On("QueryRow", mock.Anything).Return(mockRow)
+	mockRow.On("Scan", []any{&TestEntity{}}).Return(nil).Once()
 	mockStmt.On("Close").Return(nil)
 	mockRow.On("Err").Return(nil)
 
-	// Setup row scanning
-	mockScanner.On("Scan", mockRow, &TestEntity{}).Return(nil).Once()
-
-	// Call the function being tested
 	entity, err := GetEntity(tableName, mockScanner.Scan, mockDB, dbOptions)
 
-	// Assertions
 	assert.NoError(t, err)
 	assert.NotNil(t, entity)
 	mockDB.AssertExpectations(t)
@@ -81,10 +75,8 @@ func TestGetEntity_QueryError(t *testing.T) {
 	// Simulate an error during query execution
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("query error"))
 
-	// Call the function being tested
 	entity, err := GetEntity[TestEntity](tableName, nil, mockDB, dbOptions)
 
-	// Assertions
 	assert.Nil(t, entity)
 	assert.EqualError(t, err, "query error")
 	mockDB.AssertExpectations(t)
@@ -104,14 +96,12 @@ func TestGetEntity_NoRows(t *testing.T) {
 	// Setup the mock DB expectations
 	mockDB.On("Prepare", mock.Anything).Return(mockStmt, nil)
 	mockStmt.On("QueryRow", mock.Anything).Return(mockRow)
+	mockRow.On("Scan", []any{&TestEntity{}}).Return(nil).Once()
 	mockStmt.On("Close").Return(nil)
 	mockRow.On("Err").Return(sql.ErrNoRows).Once()
-	mockScanner.On("Scan", mockRow, &TestEntity{}).Return(nil).Once()
 
-	// Call the function being tested
 	entity, err := GetEntity(tableName, mockScanner.Scan, mockDB, dbOptions)
 
-	// Assertions
 	assert.NoError(t, err)
 	assert.Nil(t, entity) // No entity should be returned
 	mockDB.AssertExpectations(t)
@@ -135,16 +125,12 @@ func TestGetEntity_RowScannerError(t *testing.T) {
 	// Setup the mock DB expectations
 	mockDB.On("Prepare", mock.Anything).Return(mockStmt, nil)
 	mockStmt.On("QueryRow", mock.Anything).Return(mockRow)
+	mockRow.On("Scan", []any{&TestEntity{}}).
+		Return(errors.New("row scanner error")).Once()
 	mockStmt.On("Close").Return(nil)
 
-	// Simulate an error during row scanning
-	mockScanner.On("Scan", mockRow, &TestEntity{}).
-		Return(errors.New("row scanner error")).Once()
-
-	// Call the function being tested
 	entity, err := GetEntity(tableName, mockScanner.Scan, mockDB, dbOptions)
 
-	// Assertions
 	assert.Nil(t, entity)
 	assert.EqualError(t, err, "row scanner error")
 	mockDB.AssertExpectations(t)
@@ -168,11 +154,10 @@ func TestGetEntityWithQuery_NormalOperation(t *testing.T) {
 	// Setup the mock DB expectations
 	mockDB.On("Prepare", query).Return(mockStmt, nil)
 	mockStmt.On("QueryRow", params).Return(mockRow)
+	mockRow.On("Scan", []any{&TestEntity{}}).Return(nil).Once()
 	mockStmt.On("Close").Return(nil)
 	mockRow.On("Err").Return(nil)
-	mockScanner.On("Scan", mockRow, &TestEntity{}).Return(nil).Once()
 
-	// Call the function being tested
 	entity, err := GetEntityWithQuery(
 		"user",
 		mockScanner.Scan,
@@ -181,7 +166,6 @@ func TestGetEntityWithQuery_NormalOperation(t *testing.T) {
 		params,
 	)
 
-	// Assertions
 	assert.NoError(t, err)
 	assert.NotNil(t, entity)
 	mockDB.AssertExpectations(t)
@@ -202,7 +186,6 @@ func TestGetEntityWithQuery_QueryError(t *testing.T) {
 	// Simulate an error during query execution
 	mockDB.On("Prepare", query).Return(nil, errors.New("query error"))
 
-	// Call the function being tested
 	entity, err := GetEntityWithQuery[TestEntity](
 		"user",
 		nil,
@@ -211,7 +194,6 @@ func TestGetEntityWithQuery_QueryError(t *testing.T) {
 		params,
 	)
 
-	// Assertions
 	assert.Nil(t, entity)
 	assert.EqualError(t, err, "query error")
 	mockDB.AssertExpectations(t)
@@ -231,11 +213,10 @@ func TestGetEntityWithQuery_NoRows(t *testing.T) {
 	// Setup the mock DB expectations
 	mockDB.On("Prepare", query).Return(mockStmt, nil)
 	mockStmt.On("QueryRow", params).Return(mockRow)
+	mockRow.On("Scan", []any{&TestEntity{}}).Return(nil).Once()
 	mockStmt.On("Close").Return(nil)
 	mockRow.On("Err").Return(sql.ErrNoRows).Once()
-	mockScanner.On("Scan", mockRow, &TestEntity{}).Return(nil).Once()
 
-	// Call the function being tested
 	entity, err := GetEntityWithQuery(
 		"user",
 		mockScanner.Scan,
@@ -244,7 +225,6 @@ func TestGetEntityWithQuery_NoRows(t *testing.T) {
 		params,
 	)
 
-	// Assertions
 	assert.NoError(t, err)
 	assert.Nil(t, entity) // No entity should be returned
 	mockDB.AssertExpectations(t)
@@ -268,13 +248,10 @@ func TestGetEntityWithQuery_RowScannerError(t *testing.T) {
 	// Setup the mock DB expectations
 	mockDB.On("Prepare", query).Return(mockStmt, nil)
 	mockStmt.On("QueryRow", params).Return(mockRow)
+	mockRow.On("Scan", []any{&TestEntity{}}).
+		Return(errors.New("row scanner error")).Once()
 	mockStmt.On("Close").Return(nil)
 
-	// Simulate an error during row scanning
-	mockScanner.On("Scan", mockRow, &TestEntity{}).
-		Return(errors.New("row scanner error")).Once()
-
-	// Call the function being tested
 	entity, err := GetEntityWithQuery(
 		"user",
 		mockScanner.Scan,
@@ -283,7 +260,6 @@ func TestGetEntityWithQuery_RowScannerError(t *testing.T) {
 		params,
 	)
 
-	// Assertions
 	assert.Nil(t, entity)
 	assert.EqualError(t, err, "row scanner error")
 	mockDB.AssertExpectations(t)
@@ -309,12 +285,10 @@ func TestGetEntities_NormalOperation(t *testing.T) {
 	mockStmt.On("Query", mock.Anything).Return(mockRows, nil)
 	mockStmt.On("Close").Return(nil)
 	mockRows.On("Close").Return(nil)
-	mockRows.On("Next").Return(true).Once()  // Simulate a row read
+	mockRows.On("Next").Return(true).Once() // Simulate a row read
+	mockRows.On("Scan", []any{&TestEntity{}}).Return(nil).Once()
 	mockRows.On("Next").Return(false).Once() // No more rows
 	mockRows.On("Err").Return(nil)
-
-	// Setup row scanning
-	mockScanner.On("Scan", mockRows, &TestEntity{}).Return(nil).Once()
 
 	entities, err := GetEntities(tableName, mockScanner.Scan, mockDB, dbOptions)
 
@@ -393,9 +367,7 @@ func TestGetEntities_RowScannerError(t *testing.T) {
 	mockStmt.On("Close").Return(nil)
 	mockRows.On("Close").Return(nil)
 	mockRows.On("Next").Return(true).Once() // Simulate a row read
-
-	// Simulate an error during row scanning
-	mockScanner.On("Scan", mockRows, &TestEntity{}).
+	mockRows.On("Scan", []any{&TestEntity{}}).
 		Return(errors.New("row scanner error")).Once()
 
 	entities, err := GetEntities(tableName, mockScanner.Scan, mockDB, dbOptions)
@@ -425,12 +397,10 @@ func TestGetEntitiesWithQuery_NormalOperation(t *testing.T) {
 	mockStmt.On("Query", params).Return(mockRows, nil)
 	mockStmt.On("Close").Return(nil)
 	mockRows.On("Close").Return(nil)
-	mockRows.On("Next").Return(true).Once()  // Simulate a row read
+	mockRows.On("Next").Return(true).Once() // Simulate a row read
+	mockRows.On("Scan", []any{&TestEntity{}}).Return(nil).Once()
 	mockRows.On("Next").Return(false).Once() // No more rows
 	mockRows.On("Err").Return(nil)
-
-	// Setup row scanning
-	mockScanner.On("Scan", mockRows, &TestEntity{}).Return(nil).Once()
 
 	entities, err := GetEntitiesWithQuery(
 		"user",
@@ -528,10 +498,10 @@ func TestQueryMultiple_NormalOperation(t *testing.T) {
 	mockStmt.On("Query", params).Return(mockRows, nil)
 	mockStmt.On("Close").Return(nil)
 	mockRows.On("Close").Return(nil)
-	mockRows.On("Next").Return(true).Once()  // Simulate a row read
+	mockRows.On("Next").Return(true).Once() // Simulate a row read
+	mockRows.On("Scan", []any{&TestEntity{}}).Return(nil).Once()
 	mockRows.On("Next").Return(false).Once() // No more rows
 	mockRows.On("Err").Return(nil)
-	mockScanner.On("Scan", mockRows, &TestEntity{}).Return(nil).Once()
 
 	entities, err := queryMultiple(mockDB, query, params, mockScanner.Scan)
 
@@ -581,10 +551,8 @@ func TestQueryMultiple_RowScannerError(t *testing.T) {
 	mockStmt.On("Close").Return(nil)
 	mockRows.On("Close").Return(nil)
 	mockRows.On("Next").Return(true).Once() // Simulate a row read
-
-	// Simulate an error in the row scanner
-	mockScanner.On("Scan", mockRows, &TestEntity{}).
-		Return(errors.New("row scanner error"))
+	mockRows.On("Scan", []any{&TestEntity{}}).
+		Return(errors.New("row scanner error")).Once()
 
 	entities, err := queryMultiple(mockDB, query, params, mockScanner.Scan)
 
@@ -612,11 +580,9 @@ func TestQueryMultiple_RowsErr(t *testing.T) {
 	mockStmt.On("Query", params).Return(mockRows, nil)
 	mockStmt.On("Close").Return(nil)
 	mockRows.On("Close").Return(nil)
-	mockRows.On("Next").Return(true).Once()  // Simulate a row read
+	mockRows.On("Next").Return(true).Once() // Simulate a row read
+	mockRows.On("Scan", []any{&TestEntity{}}).Return(nil).Once()
 	mockRows.On("Next").Return(false).Once() // No more rows
-	mockScanner.On("Scan", mockRows, &TestEntity{}).Return(nil).Once()
-
-	// Simulate an error in rows.Err()
 	mockRows.On("Err").Return(errors.New("rows error"))
 
 	entities, err := queryMultiple(mockDB, query, params, mockScanner.Scan)
@@ -644,9 +610,9 @@ func TestQuerySingle_NormalOperation(t *testing.T) {
 	// Setup the mock DB expectations
 	mockDB.On("Prepare", query).Return(mockStmt, nil)
 	mockStmt.On("QueryRow", params).Return(mockRow)
+	mockRow.On("Scan", []any{&TestEntity{}}).Return(nil).Once()
 	mockStmt.On("Close").Return(nil)
 	mockRow.On("Err").Return(nil)
-	mockScanner.On("Scan", mockRow, &TestEntity{}).Return(nil)
 
 	entity, err := querySingle(mockDB, query, params, mockScanner.Scan)
 
@@ -692,11 +658,10 @@ func TestQuerySingle_RowScannerError(t *testing.T) {
 	// Setup the mock DB expectations
 	mockDB.On("Prepare", query).Return(mockStmt, nil)
 	mockStmt.On("QueryRow", params).Return(mockRow)
-	mockStmt.On("Close").Return(nil)
+	mockRow.On("Scan", []any{&TestEntity{}}).
+		Return(errors.New("row scanner error")).Once()
 
-	// Simulate an error in the row scanner
-	mockScanner.On("Scan", mockRow, &TestEntity{}).
-		Return(errors.New("row scanner error"))
+	mockStmt.On("Close").Return(nil)
 
 	entity, err := querySingle(mockDB, query, params, mockScanner.Scan)
 
@@ -723,10 +688,8 @@ func TestQuerySingle_RowErr(t *testing.T) {
 	// Setup the mock DB expectations
 	mockDB.On("Prepare", query).Return(mockStmt, nil)
 	mockStmt.On("QueryRow", params).Return(mockRow)
+	mockRow.On("Scan", []any{&TestEntity{}}).Return(nil).Once()
 	mockStmt.On("Close").Return(nil)
-
-	// Setup the row scanner to succeed
-	mockScanner.On("Scan", mockRow, &TestEntity{}).Return(nil)
 
 	// Simulate an error returned by row.Err()
 	mockRow.On("Err").Return(errors.New("row error"))
@@ -1167,11 +1130,13 @@ func TestRowsToEntities_NormalOperation(t *testing.T) {
 	mockRowScanner := new(MockRowScannerMultiple[TestEntity])
 
 	// Setup the row scanning behavior
-	mockRows.On("Next").Return(true).Once()  // Simulate the first row read
-	mockRows.On("Next").Return(true).Once()  // Simulate the second row read
+	testEntity := TestEntity{}
+	mockRows.On("Next").Return(true).Once() // Simulate the first row read
+	mockRows.On("Scan", []any{&testEntity}).Return(nil).Once()
+	mockRows.On("Next").Return(true).Once() // Simulate the second row read
+	mockRows.On("Scan", []any{&testEntity}).Return(nil).Once()
 	mockRows.On("Next").Return(false).Once() // No more rows
 	mockRows.On("Err").Return(nil)           // No error in rows
-	mockRowScanner.On("Scan", mockRows, &TestEntity{}).Return(nil).Twice()
 
 	entities, err := rowsToEntities(mockRows, mockRowScanner.Scan)
 
@@ -1206,9 +1171,7 @@ func TestRowsToEntities_RowScannerError(t *testing.T) {
 
 	// Setup the row scanning behavior
 	mockRows.On("Next").Return(true).Once() // Simulate the first row read
-
-	// Simulate an error in the row scanner
-	mockRowScanner.On("Scan", mockRows, &TestEntity{}).
+	mockRows.On("Scan", []any{&TestEntity{}}).
 		Return(errors.New("row scanner error")).Once()
 
 	entities, err := rowsToEntities(mockRows, mockRowScanner.Scan)
@@ -1225,10 +1188,10 @@ func TestRowsToEntities_RowsError(t *testing.T) {
 	mockRowScanner := new(MockRowScannerMultiple[TestEntity])
 
 	// Setup the row scanning behavior
-	mockRows.On("Next").Return(true).Once()  // Simulate the first row read
+	mockRows.On("Next").Return(true).Once() // Simulate the first row read
+	mockRows.On("Scan", []any{&TestEntity{}}).Return(nil).Once()
 	mockRows.On("Next").Return(false).Once() // No more rows
 	mockRows.On("Err").Return(errors.New("rows error")).Once()
-	mockRowScanner.On("Scan", mockRows, &TestEntity{}).Return(nil).Once()
 
 	entities, err := rowsToEntities(mockRows, mockRowScanner.Scan)
 

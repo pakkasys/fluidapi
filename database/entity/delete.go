@@ -22,12 +22,12 @@ type DeleteOptions struct {
 //   - selectors: The selectors for the entities to delete.
 //   - opts: The options for the query.
 func DeleteEntities(
-	db util.DB,
+	preparer util.Preparer,
 	tableName string,
 	selectors []util.Selector,
 	opts *DeleteOptions,
 ) (int64, error) {
-	result, err := delete(db, tableName, selectors, opts)
+	result, err := delete(preparer, tableName, selectors, opts)
 	if err != nil {
 		return 0, err
 	}
@@ -41,7 +41,7 @@ func DeleteEntities(
 }
 
 func delete(
-	db util.DB,
+	preparer util.Preparer,
 	tableName string,
 	selectors []util.Selector,
 	opts *DeleteOptions,
@@ -62,7 +62,7 @@ func delete(
 		writeDeleteOptions(&builder, opts)
 	}
 
-	statement, err := db.Prepare(builder.String())
+	statement, err := preparer.Prepare(builder.String())
 	if err != nil {
 		return nil, err
 	}

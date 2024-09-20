@@ -170,11 +170,11 @@ func TestConnect_Success(t *testing.T) {
 	mockDB.On("SetMaxIdleConns", cfg.MaxIdleConns).Return()
 
 	// Mock factory function to return the mockDB
-	dbFactory := func(driver string, dsn string) (DBInterface, error) {
+	dbFactory := func(driver string, dsn string) (util.DB, error) {
 		return mockDB, nil
 	}
 
-	db, err := Connect(cfg, ConnectOptions{DBFactory: dbFactory})
+	db, err := Connect(cfg, dbFactory)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, db)
@@ -186,11 +186,11 @@ func TestConnect_FailedOpen(t *testing.T) {
 	cfg := NewDefaultTCPConfig("user", "password", "database", "mysql")
 
 	// Mock factory function to return an error
-	dbFactory := func(driver string, dsn string) (DBInterface, error) {
+	dbFactory := func(driver string, dsn string) (util.DB, error) {
 		return nil, errors.New("failed to open database")
 	}
 
-	db, err := Connect(cfg, ConnectOptions{DBFactory: dbFactory})
+	db, err := Connect(cfg, dbFactory)
 
 	assert.Error(t, err)
 	assert.Nil(t, db)
@@ -207,11 +207,11 @@ func TestConnect_FailedPing(t *testing.T) {
 	mockDB.On("SetMaxOpenConns", cfg.MaxOpenConns).Return()
 	mockDB.On("SetMaxIdleConns", cfg.MaxIdleConns).Return()
 
-	dbFactory := func(driver string, dsn string) (DBInterface, error) {
+	dbFactory := func(driver string, dsn string) (util.DB, error) {
 		return mockDB, nil
 	}
 
-	db, err := Connect(cfg, ConnectOptions{DBFactory: dbFactory})
+	db, err := Connect(cfg, dbFactory)
 
 	assert.Error(t, err)
 	assert.Nil(t, db)
@@ -235,11 +235,11 @@ func TestConnect_Unix_Success(t *testing.T) {
 	mockDB.On("SetMaxOpenConns", cfg.MaxOpenConns).Return()
 	mockDB.On("SetMaxIdleConns", cfg.MaxIdleConns).Return()
 
-	dbFactory := func(driver string, dsn string) (DBInterface, error) {
+	dbFactory := func(driver string, dsn string) (util.DB, error) {
 		return mockDB, nil
 	}
 
-	db, err := Connect(cfg, ConnectOptions{DBFactory: dbFactory})
+	db, err := Connect(cfg, dbFactory)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, db)
@@ -256,70 +256,16 @@ func TestConnect_UnsupportedConnectionType(t *testing.T) {
 		DriverName:     "mysql",
 	}
 
-	dbFactory := func(driver string, dsn string) (DBInterface, error) {
+	dbFactory := func(driver string, dsn string) (util.DB, error) {
 		assert.Fail(t, "should not be called")
 		return nil, nil
 	}
 
-	db, err := Connect(cfg, ConnectOptions{DBFactory: dbFactory})
+	db, err := Connect(cfg, dbFactory)
 
 	assert.Error(t, err)
 	assert.Nil(t, db)
 	assert.Equal(t, "unsupported connection type: unsupported", err.Error())
-}
-
-// TestDetermineConnectOpts_Empty tests the case without connection options.
-func TestDetermineConnectOpts_Empty(t *testing.T) {
-	opts := determineConnectOpts(nil)
-
-	assert.NotNil(t, opts)
-	assert.NotNil(t, opts.DBFactory)
-
-	_, err := opts.DBFactory("nonexistent", "user:password@/dbname")
-	assert.EqualError(
-		t,
-		err,
-		"sql: unknown driver \"nonexistent\" (forgotten import?)",
-	)
-}
-
-// TestDetermineConnectOpts_WithOptions tests the case with connection options.
-func TestDetermineConnectOpts_WithOptions(t *testing.T) {
-	mockFactoryCalled := false
-	mockFactory := func(driver string, dsn string) (DBInterface, error) {
-		mockFactoryCalled = true
-		return nil, nil
-	}
-	inputOpts := ConnectOptions{DBFactory: mockFactory}
-
-	opts := determineConnectOpts([]ConnectOptions{inputOpts})
-
-	assert.NotNil(t, opts)
-	assert.NotNil(t, opts.DBFactory)
-
-	_, err := opts.DBFactory("mysql", "user:password@/dbname")
-	assert.NoError(t, err)
-	assert.True(t, mockFactoryCalled, "Expected mock factory to be called")
-}
-
-// TestNewSQLDB_Success tests the scenario where newSQLDB succeeds.
-func TestNewSQLDB_Success(t *testing.T) {
-	sql.Register("mockDriver", &MockDriver{})
-	db, err := newSQLDB("mockDriver", "user:password@/dbname")
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, db)
-}
-
-// TestNewSQLDB_FailedOpen tests the scenario where newSQLDB fails.
-func TestNewSQLDB_FailedOpen(t *testing.T) {
-	// Use an invalid driver name to force an error
-	db, err := newSQLDB("invalid_driver", "user:password@/dbname")
-
-	// Assert
-	assert.Error(t, err)
-	assert.Nil(t, db)
 }
 
 // // TestConfigureConnection tests the configureConnection function.

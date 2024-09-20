@@ -26,10 +26,8 @@ func TestCountEntities_NormalOperation(t *testing.T) {
 	tableName := "test_table"
 	dbOptions := &DBOptionsCount{}
 
-	// Call the function being tested
 	count, err := CountEntities(mockDB, tableName, dbOptions)
 
-	// Assertions
 	assert.NoError(t, err)
 	assert.Equal(t, 0, count) // Adjust as per the test case
 
@@ -51,10 +49,8 @@ func TestCountEntities_PrepareError(t *testing.T) {
 	tableName := "test_table"
 	dbOptions := &DBOptionsCount{}
 
-	// Call the function being tested
 	count, err := CountEntities(mockDB, tableName, dbOptions)
 
-	// Assertions
 	assert.Equal(t, 0, count)
 	assert.EqualError(t, err, "prepare error")
 
@@ -79,10 +75,8 @@ func TestCountEntities_QueryRowError(t *testing.T) {
 	tableName := "test_table"
 	dbOptions := &DBOptionsCount{}
 
-	// Call the function being tested
 	count, err := CountEntities(mockDB, tableName, dbOptions)
 
-	// Assertions
 	assert.Equal(t, 0, count)
 	assert.EqualError(t, err, "query row error")
 

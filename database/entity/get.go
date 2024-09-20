@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/pakkasys/fluidapi/database/internal"
-	"github.com/pakkasys/fluidapi/database/util"
+	util "github.com/pakkasys/fluidapi/database/util"
 	"github.com/pakkasys/fluidapi/endpoint/page"
 )
 
@@ -21,7 +21,7 @@ type GetOptions struct {
 func GetEntity[T any](
 	tableName string,
 	rowScanner RowScanner[T],
-	db util.DB,
+	preparer util.Preparer,
 	dbOptions *GetOptions,
 ) (*T, error) {
 	query, whereValues := buildBaseGetQuery(tableName, dbOptions)
@@ -29,7 +29,7 @@ func GetEntity[T any](
 	return GetEntityWithQuery(
 		tableName,
 		rowScanner,
-		db,
+		preparer,
 		query,
 		whereValues,
 	)
@@ -38,12 +38,12 @@ func GetEntity[T any](
 func GetEntityWithQuery[T any](
 	tableName string,
 	rowScanner RowScanner[T],
-	db util.DB,
+	preparer util.Preparer,
 	query string,
 	parameters []any,
 ) (*T, error) {
 	entity, err := querySingle(
-		db,
+		preparer,
 		query,
 		parameters,
 		rowScanner,
@@ -61,18 +61,15 @@ func GetEntityWithQuery[T any](
 func GetEntities[T any](
 	tableName string,
 	rowScannerMultiple RowScannerMultiple[T],
-	db util.DB,
+	preparer util.Preparer,
 	dbOptions *GetOptions,
 ) ([]T, error) {
-	query, whereValues := buildBaseGetQuery(
-		tableName,
-		dbOptions,
-	)
+	query, whereValues := buildBaseGetQuery(tableName, dbOptions)
 
 	return GetEntitiesWithQuery(
 		tableName,
 		rowScannerMultiple,
-		db,
+		preparer,
 		query,
 		whereValues,
 	)
@@ -81,11 +78,11 @@ func GetEntities[T any](
 func GetEntitiesWithQuery[T any](
 	tableName string,
 	rowScannerMultiple RowScannerMultiple[T],
-	db util.DB,
+	preparer util.Preparer,
 	query string,
 	parameters []any,
 ) ([]T, error) {
-	entities, err := queryMultiple(db, query, parameters, rowScannerMultiple)
+	entities, err := queryMultiple(preparer, query, parameters, rowScannerMultiple)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return []T{}, nil
@@ -96,12 +93,12 @@ func GetEntitiesWithQuery[T any](
 }
 
 func queryMultiple[T any](
-	db util.DB,
+	preparer util.Preparer,
 	query string,
 	parameters []any,
 	rowScannerMultiple RowScannerMultiple[T],
 ) ([]T, error) {
-	rows, statement, err := RowsQuery(db, query, parameters)
+	rows, statement, err := RowsQuery(preparer, query, parameters)
 	if err != nil {
 		return nil, err
 	}
@@ -117,12 +114,12 @@ func queryMultiple[T any](
 }
 
 func querySingle[T any](
-	db util.DB,
+	preparer util.Preparer,
 	query string,
 	params []any,
 	rowScanner RowScanner[T],
 ) (*T, error) {
-	statement, err := db.Prepare(query)
+	statement, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, err
 	}

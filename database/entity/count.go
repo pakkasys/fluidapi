@@ -19,13 +19,13 @@ type DBOptionsCount struct {
 //   - tableName: The name of the database table.
 //   - dbOptions: The options for the query.
 func CountEntities(
-	db util.DB,
+	preparer util.Preparer,
 	tableName string,
 	dbOptions *DBOptionsCount,
 ) (int, error) {
 	query, whereValues := buildBaseCountQuery(tableName, dbOptions)
 
-	statement, err := db.Prepare(query)
+	statement, err := preparer.Prepare(query)
 	if err != nil {
 		return 0, err
 	}
