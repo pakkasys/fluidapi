@@ -6,10 +6,10 @@ import (
 )
 
 var DirectionDatabaseTranslations = map[OrderDirection]util.OrderDirection{
-	DIRECTION_ASCENDING:       util.DIRECTION_ASCENDING,
-	DIRECTION_ASCENDING_LONG:  util.DIRECTION_ASCENDING,
-	DIRECTION_DESCENDING:      util.DIRECTION_DESCENDING,
-	DIRECTION_DESCENDING_LONG: util.DIRECTION_DESCENDING,
+	DIRECTION_ASCENDING:       util.DirectionAscending,
+	DIRECTION_ASCENDING_LONG:  util.DirectionAscending,
+	DIRECTION_DESCENDING:      util.DirectionDescending,
+	DIRECTION_DESCENDING_LONG: util.DirectionDescending,
 }
 
 func ValidateAndTranslateToDatabaseOrders(
@@ -56,11 +56,11 @@ func ToDatabaseOrders(
 
 		newOrders = append(
 			newOrders,
-			*util.NewOrder(
-				translatedField.Table,
-				order.Field,
-				DirectionDatabaseTranslations[order.Direction],
-			),
+			util.Order{
+				Table:     translatedField.Table,
+				Field:     order.Field,
+				Direction: DirectionDatabaseTranslations[order.Direction],
+			},
 		)
 	}
 

@@ -20,7 +20,7 @@ func TestUpdateEntities_NormalOperation(t *testing.T) {
 	mockResult := new(utilmock.MockResult)
 
 	// Test table name, updates, and selectors
-	tableName := "users"
+	tableName := "user"
 	updates := []UpdateOptions{
 		{Field: "name", Value: "Alice"},
 	}
@@ -48,7 +48,7 @@ func TestUpdateEntities_NoUpdates(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
 	// Test table name and selectors
-	tableName := "users"
+	tableName := "user"
 	updates := []UpdateOptions{}
 	selectors := []util.Selector{
 		{Table: "user", Field: "id", Predicate: "=", Value: 1},
@@ -67,7 +67,7 @@ func TestUpdateEntities_Error(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
 	// Test table name, updates, and selectors
-	tableName := "users"
+	tableName := "user"
 	updates := []UpdateOptions{
 		{Field: "name", Value: "Alice"},
 	}
@@ -161,7 +161,7 @@ func TestUpdate_NormalOperation(t *testing.T) {
 	mockResult := new(utilmock.MockResult)
 
 	// Test table name, updates, and selectors
-	tableName := "users"
+	tableName := "user"
 	updates := []UpdateOptions{
 		{Field: "name", Value: "Alice"},
 	}
@@ -189,7 +189,7 @@ func TestUpdate_PrepareError(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
 	// Test table name, updates, and selectors
-	tableName := "users"
+	tableName := "user"
 	updates := []UpdateOptions{
 		{Field: "name", Value: "Alice"},
 	}
@@ -214,7 +214,7 @@ func TestUpdate_ExecError(t *testing.T) {
 	mockStmt := new(utilmock.MockStmt)
 
 	// Test table name, updates, and selectors
-	tableName := "users"
+	tableName := "user"
 	updates := []UpdateOptions{
 		{Field: "name", Value: "Alice"},
 	}
@@ -242,7 +242,7 @@ func TestUpdate_EmptyUpdates(t *testing.T) {
 	mockResult := new(utilmock.MockResult)
 
 	// Test table name and selectors
-	tableName := "users"
+	tableName := "user"
 	updates := []UpdateOptions{}
 	selectors := []util.Selector{
 		{Table: "user", Field: "id", Predicate: "=", Value: 1},
@@ -271,9 +271,9 @@ func TestUpdateQuery_SingleUpdate(t *testing.T) {
 		{Table: "user", Field: "id", Predicate: "=", Value: 1},
 	}
 
-	query, values := updateQuery("users", updates, selectors)
+	query, values := updateQuery("user", updates, selectors)
 
-	expectedQuery := "UPDATE `users` SET name = ? WHERE `user`.`id` = ?"
+	expectedQuery := "UPDATE `user` SET name = ? WHERE `user`.`id` = ?"
 	expectedValues := []any{"Alice", 1}
 
 	assert.Equal(t, expectedQuery, query)
@@ -291,9 +291,9 @@ func TestUpdateQuery_MultipleUpdates(t *testing.T) {
 		{Table: "user", Field: "id", Predicate: "=", Value: 1},
 	}
 
-	query, values := updateQuery("users", updates, selectors)
+	query, values := updateQuery("user", updates, selectors)
 
-	expectedQuery := "UPDATE `users` SET name = ?, age = ? WHERE `user`.`id` = ?"
+	expectedQuery := "UPDATE `user` SET name = ?, age = ? WHERE `user`.`id` = ?"
 	expectedValues := []any{"Alice", 30, 1}
 
 	assert.Equal(t, expectedQuery, query)
@@ -307,9 +307,9 @@ func TestUpdateQuery_NoUpdates(t *testing.T) {
 		{Table: "user", Field: "id", Predicate: "=", Value: 1},
 	}
 
-	query, values := updateQuery("users", updates, selectors)
+	query, values := updateQuery("user", updates, selectors)
 
-	expectedQuery := "UPDATE `users` SET  WHERE `user`.`id` = ?"
+	expectedQuery := "UPDATE `user` SET  WHERE `user`.`id` = ?"
 	expectedValues := []any{1}
 
 	assert.Equal(t, expectedQuery, query)
@@ -324,9 +324,9 @@ func TestUpdateQuery_NoSelectors(t *testing.T) {
 
 	selectors := []util.Selector{} // No selectors
 
-	query, values := updateQuery("users", updates, selectors)
+	query, values := updateQuery("user", updates, selectors)
 
-	expectedQuery := "UPDATE `users` SET name = ?"
+	expectedQuery := "UPDATE `user` SET name = ?"
 	expectedValues := []any{"Alice"}
 
 	assert.Equal(t, expectedQuery, query)
@@ -343,9 +343,9 @@ func TestUpdateQuery_EmptyFields(t *testing.T) {
 		{Table: "", Field: "", Predicate: "=", Value: nil},
 	}
 
-	query, values := updateQuery("users", updates, selectors)
+	query, values := updateQuery("user", updates, selectors)
 
-	expectedQuery := "UPDATE `users` SET  = ? WHERE `` IS NULL"
+	expectedQuery := "UPDATE `user` SET  = ? WHERE `` IS NULL"
 	expectedValues := []any{"Unknown"}
 
 	assert.Equal(t, expectedQuery, query)

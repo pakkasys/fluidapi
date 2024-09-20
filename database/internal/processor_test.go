@@ -24,12 +24,12 @@ func TestProcessSelectors_NoSelectors(t *testing.T) {
 // provided.
 func TestProcessSelectors_SingleSelector(t *testing.T) {
 	selectors := []util.Selector{
-		{Table: "users", Field: "id", Predicate: "=", Value: 1},
+		{Table: "user", Field: "id", Predicate: "=", Value: 1},
 	}
 
 	whereColumns, whereValues := ProcessSelectors(selectors)
 
-	expectedColumns := []string{"`users`.`id` = ?"}
+	expectedColumns := []string{"`user`.`id` = ?"}
 	expectedValues := []any{1}
 
 	assert.Equal(t, expectedColumns, whereColumns)
@@ -40,13 +40,13 @@ func TestProcessSelectors_SingleSelector(t *testing.T) {
 // selectors are provided.
 func TestProcessSelectors_MultipleSelectors(t *testing.T) {
 	selectors := []util.Selector{
-		{Table: "users", Field: "id", Predicate: "=", Value: 1},
-		{Table: "users", Field: "age", Predicate: ">", Value: 18},
+		{Table: "user", Field: "id", Predicate: "=", Value: 1},
+		{Table: "user", Field: "age", Predicate: ">", Value: 18},
 	}
 
 	whereColumns, whereValues := ProcessSelectors(selectors)
 
-	expectedColumns := []string{"`users`.`id` = ?", "`users`.`age` > ?"}
+	expectedColumns := []string{"`user`.`id` = ?", "`user`.`age` > ?"}
 	expectedValues := []any{1, 18}
 
 	assert.Equal(t, expectedColumns, whereColumns)
@@ -57,12 +57,12 @@ func TestProcessSelectors_MultipleSelectors(t *testing.T) {
 // "IN" predicate is provided.
 func TestProcessSelectors_WithInPredicate(t *testing.T) {
 	selectors := []util.Selector{
-		{Table: "users", Field: "id", Predicate: "IN", Value: []int{1, 2, 3}},
+		{Table: "user", Field: "id", Predicate: "IN", Value: []int{1, 2, 3}},
 	}
 
 	whereColumns, whereValues := ProcessSelectors(selectors)
 
-	expectedColumns := []string{"`users`.`id` IN (?,?,?)"}
+	expectedColumns := []string{"`user`.`id` IN (?,?,?)"}
 	expectedValues := []any{1, 2, 3}
 
 	assert.Equal(t, expectedColumns, whereColumns)
@@ -73,12 +73,12 @@ func TestProcessSelectors_WithInPredicate(t *testing.T) {
 // value is provided.
 func TestProcessSelectors_WithNilValue(t *testing.T) {
 	selectors := []util.Selector{
-		{Table: "users", Field: "deleted_at", Predicate: "=", Value: nil},
+		{Table: "user", Field: "deleted_at", Predicate: "=", Value: nil},
 	}
 
 	whereColumns, whereValues := ProcessSelectors(selectors)
 
-	expectedColumns := []string{"`users`.`deleted_at` IS NULL"}
+	expectedColumns := []string{"`user`.`deleted_at` IS NULL"}
 
 	assert.Equal(t, expectedColumns, whereColumns)
 	assert.Empty(t, whereValues) // No values since it's a NULL condition
@@ -88,13 +88,13 @@ func TestProcessSelectors_WithNilValue(t *testing.T) {
 // predicates are provided.
 func TestProcessSelectors_WithDifferentPredicates(t *testing.T) {
 	selectors := []util.Selector{
-		{Table: "users", Field: "name", Predicate: "LIKE", Value: "%Alice%"},
-		{Table: "users", Field: "age", Predicate: "<", Value: 30},
+		{Table: "user", Field: "name", Predicate: "LIKE", Value: "%Alice%"},
+		{Table: "user", Field: "age", Predicate: "<", Value: 30},
 	}
 
 	whereColumns, whereValues := ProcessSelectors(selectors)
 
-	expectedColumns := []string{"`users`.`name` LIKE ?", "`users`.`age` < ?"}
+	expectedColumns := []string{"`user`.`name` LIKE ?", "`user`.`age` < ?"}
 	expectedValues := []any{"%Alice%", 30}
 
 	assert.Equal(t, expectedColumns, whereColumns)

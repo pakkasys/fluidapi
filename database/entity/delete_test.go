@@ -218,11 +218,11 @@ func TestWriteDeleteOptions_WithLimitAndOrders(t *testing.T) {
 
 	// Create a string builder for the SQL query
 	builder := strings.Builder{}
-	builder.WriteString("DELETE FROM `users` WHERE id = 1")
+	builder.WriteString("DELETE FROM `user` WHERE id = 1")
 
 	writeDeleteOptions(&builder, &opts)
 
-	expectedSQL := "DELETE FROM `users` WHERE id = 1 ORDER BY `user`.`name` ASC, `user`.`age` DESC LIMIT 10"
+	expectedSQL := "DELETE FROM `user` WHERE id = 1 ORDER BY `user`.`name` ASC, `user`.`age` DESC LIMIT 10"
 
 	assert.Equal(t, expectedSQL, builder.String())
 }
@@ -238,11 +238,11 @@ func TestWriteDeleteOptions_WithOnlyOrders(t *testing.T) {
 
 	// Create a string builder for the SQL query
 	builder := strings.Builder{}
-	builder.WriteString("DELETE FROM `users` WHERE id = 1")
+	builder.WriteString("DELETE FROM `user` WHERE id = 1")
 
 	writeDeleteOptions(&builder, &opts)
 
-	expectedSQL := "DELETE FROM `users` WHERE id = 1 ORDER BY `user`.`name` ASC"
+	expectedSQL := "DELETE FROM `user` WHERE id = 1 ORDER BY `user`.`name` ASC"
 
 	assert.Equal(t, expectedSQL, builder.String())
 }
@@ -255,11 +255,11 @@ func TestWriteDeleteOptions_WithOnlyLimit(t *testing.T) {
 
 	// Create a string builder for the SQL query
 	builder := strings.Builder{}
-	builder.WriteString("DELETE FROM `users` WHERE id = 1")
+	builder.WriteString("DELETE FROM `user` WHERE id = 1")
 
 	writeDeleteOptions(&builder, &opts)
 
-	expectedSQL := "DELETE FROM `users` WHERE id = 1 LIMIT 5"
+	expectedSQL := "DELETE FROM `user` WHERE id = 1 LIMIT 5"
 
 	assert.Equal(t, expectedSQL, builder.String())
 }
@@ -272,11 +272,11 @@ func TestWriteDeleteOptions_WithNoOptions(t *testing.T) {
 
 	// Create a string builder for the SQL query
 	builder := strings.Builder{}
-	builder.WriteString("DELETE FROM `users` WHERE id = 1")
+	builder.WriteString("DELETE FROM `user` WHERE id = 1")
 
 	writeDeleteOptions(&builder, &opts)
 
-	expectedSQL := "DELETE FROM `users` WHERE id = 1"
+	expectedSQL := "DELETE FROM `user` WHERE id = 1"
 
 	assert.Equal(t, expectedSQL, builder.String())
 }

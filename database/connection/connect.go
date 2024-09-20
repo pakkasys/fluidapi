@@ -67,7 +67,7 @@ func (db *SQLDB) Prepare(query string) (util.Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &util.RealStmt{Stmt: stmt}, nil
+	return &wrappers.RealStmt{Stmt: stmt}, nil
 }
 
 // BeginTx creates a transaction and returns it.
@@ -79,7 +79,7 @@ func (db *SQLDB) BeginTx(
 	if err != nil {
 		return nil, err
 	}
-	return &util.RealTx{Tx: tx}, nil
+	return &wrappers.RealTx{Tx: tx}, nil
 }
 
 // Exec executes a query without returning rows.
@@ -88,7 +88,7 @@ func (db *SQLDB) Exec(query string, args ...any) (util.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &util.RealResult{Result: res}, nil
+	return &wrappers.RealResult{Result: res}, nil
 }
 
 // Query executes a query that returns rows.
@@ -97,7 +97,7 @@ func (db *SQLDB) Query(query string, args ...any) (util.Rows, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &util.RealRows{Rows: rows}, nil
+	return &wrappers.RealRows{Rows: rows}, nil
 }
 
 // ConnectOptions holds the options for the database connection.

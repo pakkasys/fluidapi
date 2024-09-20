@@ -45,7 +45,7 @@ func TestGetEntity_NormalOperation(t *testing.T) {
 	mockScanner := new(MockRowScanner[TestEntity])
 
 	// Test table name and GetOptions
-	tableName := "users"
+	tableName := "user"
 	dbOptions := &GetOptions{}
 
 	// Setup the mock DB expectations
@@ -75,7 +75,7 @@ func TestGetEntity_QueryError(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
 	// Test table name and GetOptions
-	tableName := "users"
+	tableName := "user"
 	dbOptions := &GetOptions{}
 
 	// Simulate an error during query execution
@@ -98,7 +98,7 @@ func TestGetEntity_NoRows(t *testing.T) {
 	mockScanner := new(MockRowScanner[TestEntity])
 
 	// Test table name and GetOptions
-	tableName := "users"
+	tableName := "user"
 	dbOptions := &GetOptions{}
 
 	// Setup the mock DB expectations
@@ -129,7 +129,7 @@ func TestGetEntity_RowScannerError(t *testing.T) {
 	mockScanner := new(MockRowScanner[TestEntity])
 
 	// Test table name and GetOptions
-	tableName := "users"
+	tableName := "user"
 	dbOptions := &GetOptions{}
 
 	// Setup the mock DB expectations
@@ -162,7 +162,7 @@ func TestGetEntityWithQuery_NormalOperation(t *testing.T) {
 	mockScanner := new(MockRowScanner[TestEntity])
 
 	// Test query and parameters
-	query := "SELECT * FROM users WHERE id = ?"
+	query := "SELECT * FROM user WHERE id = ?"
 	params := []any{1}
 
 	// Setup the mock DB expectations
@@ -174,7 +174,7 @@ func TestGetEntityWithQuery_NormalOperation(t *testing.T) {
 
 	// Call the function being tested
 	entity, err := GetEntityWithQuery(
-		"users",
+		"user",
 		mockScanner.Scan,
 		mockDB,
 		query,
@@ -196,7 +196,7 @@ func TestGetEntityWithQuery_QueryError(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
 	// Test query and parameters
-	query := "SELECT * FROM users WHERE id = ?"
+	query := "SELECT * FROM user WHERE id = ?"
 	params := []any{1}
 
 	// Simulate an error during query execution
@@ -204,7 +204,7 @@ func TestGetEntityWithQuery_QueryError(t *testing.T) {
 
 	// Call the function being tested
 	entity, err := GetEntityWithQuery[TestEntity](
-		"users",
+		"user",
 		nil,
 		mockDB,
 		query,
@@ -225,7 +225,7 @@ func TestGetEntityWithQuery_NoRows(t *testing.T) {
 	mockScanner := new(MockRowScanner[TestEntity])
 
 	// Test query and parameters
-	query := "SELECT * FROM users WHERE id = ?"
+	query := "SELECT * FROM user WHERE id = ?"
 	params := []any{1}
 
 	// Setup the mock DB expectations
@@ -237,7 +237,7 @@ func TestGetEntityWithQuery_NoRows(t *testing.T) {
 
 	// Call the function being tested
 	entity, err := GetEntityWithQuery(
-		"users",
+		"user",
 		mockScanner.Scan,
 		mockDB,
 		query,
@@ -262,7 +262,7 @@ func TestGetEntityWithQuery_RowScannerError(t *testing.T) {
 	mockScanner := new(MockRowScanner[TestEntity])
 
 	// Test query and parameters
-	query := "SELECT * FROM users WHERE id = ?"
+	query := "SELECT * FROM user WHERE id = ?"
 	params := []any{1}
 
 	// Setup the mock DB expectations
@@ -276,7 +276,7 @@ func TestGetEntityWithQuery_RowScannerError(t *testing.T) {
 
 	// Call the function being tested
 	entity, err := GetEntityWithQuery(
-		"users",
+		"user",
 		mockScanner.Scan,
 		mockDB,
 		query,
@@ -301,7 +301,7 @@ func TestGetEntities_NormalOperation(t *testing.T) {
 	mockScanner := new(MockRowScannerMultiple[TestEntity])
 
 	// Test query and options
-	tableName := "users"
+	tableName := "user"
 	dbOptions := &GetOptions{}
 
 	// Setup the mock DB expectations
@@ -333,7 +333,7 @@ func TestGetEntities_QueryError(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
 	// Test query and options
-	tableName := "users"
+	tableName := "user"
 	dbOptions := &GetOptions{}
 
 	// Simulate an error during RowsQuery
@@ -354,7 +354,7 @@ func TestGetEntities_NoRows(t *testing.T) {
 	mockScanner := new(MockRowScannerMultiple[TestEntity])
 
 	// Test query and options
-	tableName := "users"
+	tableName := "user"
 	dbOptions := &GetOptions{}
 
 	// Setup the mock DB expectations
@@ -384,7 +384,7 @@ func TestGetEntities_RowScannerError(t *testing.T) {
 	mockScanner := new(MockRowScannerMultiple[TestEntity])
 
 	// Test query and options
-	tableName := "users"
+	tableName := "user"
 	dbOptions := &GetOptions{}
 
 	// Setup the mock DB expectations
@@ -482,7 +482,7 @@ func TestGetEntitiesWithQuery_NoRows(t *testing.T) {
 	mockScanner := new(MockRowScannerMultiple[TestEntity])
 
 	// Test query and parameters
-	query := "SELECT * FROM users WHERE active = ?"
+	query := "SELECT * FROM user WHERE active = ?"
 	params := []any{1}
 
 	// Setup the mock DB expectations
@@ -496,7 +496,7 @@ func TestGetEntitiesWithQuery_NoRows(t *testing.T) {
 	mockRows.On("Err").Return(sql.ErrNoRows).Once()
 
 	entities, err := GetEntitiesWithQuery(
-		"users",
+		"user",
 		mockScanner.Scan,
 		mockDB,
 		query,

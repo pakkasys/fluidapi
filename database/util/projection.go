@@ -5,12 +5,14 @@ import (
 	"strings"
 )
 
+// Projection represents a column in a query.
 type Projection struct {
 	Table  string
 	Column string
 	Alias  string
 }
 
+// String returns the string representation of the Projection
 func (c *Projection) String() string {
 	builder := strings.Builder{}
 

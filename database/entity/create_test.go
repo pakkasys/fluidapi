@@ -55,7 +55,7 @@ func TestCreateEntity_NormalOperation(t *testing.T) {
 	mockResult.On("LastInsertId").Return(int64(1), nil)
 
 	// Call CreateEntity
-	id, err := CreateEntity(inserter, mockDB, "users")
+	id, err := CreateEntity(inserter, mockDB, "user")
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), id)
@@ -78,7 +78,7 @@ func TestCreateEntity_InsertError(t *testing.T) {
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
 
 	// Call CreateEntity
-	_, err := CreateEntity(inserter, mockDB, "users")
+	_, err := CreateEntity(inserter, mockDB, "user")
 
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
@@ -110,7 +110,7 @@ func TestCreateEntities_NormalOperation(t *testing.T) {
 	mockResult.On("LastInsertId").Return(int64(1), nil)
 
 	// Call CreateEntities
-	id, err := CreateEntities(entities, mockDB, "users")
+	id, err := CreateEntities(entities, mockDB, "user")
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), id)
@@ -124,7 +124,7 @@ func TestCreateEntities_EmptyEntities(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
 	// Call CreateEntities with an empty list
-	id, err := CreateEntities([]Inserter{}, mockDB, "users")
+	id, err := CreateEntities([]Inserter{}, mockDB, "user")
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), id)
@@ -152,7 +152,7 @@ func TestCreateEntities_InsertError(t *testing.T) {
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
 
 	// Call CreateEntities
-	_, err := CreateEntities(entities, mockDB, "users")
+	_, err := CreateEntities(entities, mockDB, "user")
 
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
@@ -279,9 +279,9 @@ func TestInsertQuery_NormalOperation(t *testing.T) {
 	inserter.On("GetInserted").
 		Return([]string{"id", "name"}, []any{1, "Alice"})
 
-	query, values := insertQuery(inserter, "users")
+	query, values := insertQuery(inserter, "user")
 
-	expectedQuery := "INSERT INTO `users` (`id`, `name`) VALUES (?, ?)"
+	expectedQuery := "INSERT INTO `user` (`id`, `name`) VALUES (?, ?)"
 	expectedValues := []any{1, "Alice"}
 
 	assert.Equal(t, expectedQuery, query)
@@ -298,9 +298,9 @@ func TestInsertQuery_SingleColumnEntity(t *testing.T) {
 	inserter.On("GetInserted").
 		Return([]string{"id"}, []any{1})
 
-	query, values := insertQuery(inserter, "users")
+	query, values := insertQuery(inserter, "user")
 
-	expectedQuery := "INSERT INTO `users` (`id`) VALUES (?)"
+	expectedQuery := "INSERT INTO `user` (`id`) VALUES (?)"
 	expectedValues := []any{1}
 
 	assert.Equal(t, expectedQuery, query)
@@ -317,10 +317,10 @@ func TestInsertQuery_NoColumns(t *testing.T) {
 	inserter.On("GetInserted").
 		Return([]string{}, []any{})
 
-	query, values := insertQuery(inserter, "users")
+	query, values := insertQuery(inserter, "user")
 
 	// We expect an empty query here because there are no columns
-	expectedQuery := "INSERT INTO `users` () VALUES ()"
+	expectedQuery := "INSERT INTO `user` () VALUES ()"
 	expectedValues := []any{}
 
 	assert.Equal(t, expectedQuery, query)
@@ -343,7 +343,7 @@ func TestInsert_NormalOperation(t *testing.T) {
 	mockStmt.On("Exec", mock.Anything).Return(nil, nil)
 	mockStmt.On("Close").Return(nil)
 
-	_, err := insert(mockDB, inserter, "users")
+	_, err := insert(mockDB, inserter, "user")
 
 	assert.NoError(t, err)
 	mockDB.AssertExpectations(t)
@@ -363,7 +363,7 @@ func TestInsert_PrepareError(t *testing.T) {
 	// Simulate an error on Prepare
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
 
-	_, err := insert(mockDB, inserter, "users")
+	_, err := insert(mockDB, inserter, "user")
 
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
@@ -386,7 +386,7 @@ func TestInsert_ExecError(t *testing.T) {
 	mockStmt.On("Exec", mock.Anything).Return(nil, errors.New("exec error"))
 	mockStmt.On("Close").Return(nil)
 
-	_, err := insert(mockDB, inserter, "users")
+	_, err := insert(mockDB, inserter, "user")
 
 	assert.EqualError(t, err, "exec error")
 	mockDB.AssertExpectations(t)
@@ -408,9 +408,9 @@ func TestInsertManyQuery_NormalOperation(t *testing.T) {
 	entities[1].(*MockInserter).On("GetInserted").
 		Return([]string{"id", "name"}, []any{2, "Bob"})
 
-	query, values := insertManyQuery(entities, "users")
+	query, values := insertManyQuery(entities, "user")
 
-	expectedQuery := "INSERT INTO `users` (`id`, `name`) VALUES (?, ?), (?, ?)"
+	expectedQuery := "INSERT INTO `user` (`id`, `name`) VALUES (?, ?), (?, ?)"
 	expectedValues := []any{1, "Alice", 2, "Bob"}
 
 	assert.Equal(t, expectedQuery, query)
@@ -428,9 +428,9 @@ func TestInsertManyQuery_SingleEntity(t *testing.T) {
 	entities[0].(*MockInserter).On("GetInserted").
 		Return([]string{"id", "name"}, []any{1, "Alice"})
 
-	query, values := insertManyQuery(entities, "users")
+	query, values := insertManyQuery(entities, "user")
 
-	expectedQuery := "INSERT INTO `users` (`id`, `name`) VALUES (?, ?)"
+	expectedQuery := "INSERT INTO `user` (`id`, `name`) VALUES (?, ?)"
 	expectedValues := []any{1, "Alice"}
 
 	assert.Equal(t, expectedQuery, query)
@@ -442,7 +442,7 @@ func TestInsertManyQuery_NoEntities(t *testing.T) {
 	// Test with no entities
 	entities := []Inserter{}
 
-	query, values := insertManyQuery(entities, "users")
+	query, values := insertManyQuery(entities, "user")
 
 	// Expected an empty query and nil values since no entities were provided
 	assert.Equal(t, "", query)
@@ -471,7 +471,7 @@ func TestInsertMany_NormalOperation(t *testing.T) {
 	mockStmt.On("Exec", mock.Anything).Return(nil, nil)
 	mockStmt.On("Close").Return(nil)
 
-	_, err := insertMany(mockDB, entities, "users")
+	_, err := insertMany(mockDB, entities, "user")
 
 	assert.NoError(t, err)
 	mockDB.AssertExpectations(t)
@@ -492,7 +492,7 @@ func TestInsertMany_EmptyEntities(t *testing.T) {
 	mockStmt.On("Close").Return(nil)
 	mockStmt.On("Exec", mock.Anything).Return(nil, nil)
 
-	_, err := insertMany(mockDB, entities, "users")
+	_, err := insertMany(mockDB, entities, "user")
 
 	assert.NoError(t, err)
 	mockDB.AssertExpectations(t)
@@ -517,7 +517,7 @@ func TestInsertMany_PrepareError(t *testing.T) {
 	// Simulate an error on Prepare
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
 
-	_, err := insertMany(mockDB, entities, "users")
+	_, err := insertMany(mockDB, entities, "user")
 
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
@@ -546,7 +546,7 @@ func TestInsertMany_ExecError(t *testing.T) {
 	mockStmt.On("Exec", mock.Anything).Return(nil, errors.New("exec error"))
 	mockStmt.On("Close").Return(nil)
 
-	_, err := insertMany(mockDB, entities, "users")
+	_, err := insertMany(mockDB, entities, "user")
 
 	assert.EqualError(t, err, "exec error")
 	mockDB.AssertExpectations(t)
