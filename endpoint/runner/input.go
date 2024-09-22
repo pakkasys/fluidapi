@@ -23,18 +23,6 @@ type IUpsertInput interface {
 	GetUpsert() bool
 }
 
-type IExtraInput[T any] interface {
-	GetExtra() T
-}
-
 type IDeleteInput interface {
 	GetSelectors() []selector.InputSelector
-}
-
-type IAPIUpdateInput interface {
-	ToAPIUpdates() []update.APIUpdate
-}
-
-type IAPISelectorInput interface {
-	ToAPISelectors() []selector.InputSelector
 }

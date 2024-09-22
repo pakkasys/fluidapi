@@ -4,6 +4,7 @@ import (
 	"github.com/pakkasys/fluidapi/database/entity"
 	"github.com/pakkasys/fluidapi/endpoint/dbfield"
 	"github.com/pakkasys/fluidapi/endpoint/middleware/inputlogic"
+	"github.com/pakkasys/fluidapi/endpoint/validation"
 )
 
 type MatchedUpdate struct {
@@ -20,12 +21,10 @@ func GetDatabaseUpdatesFromUpdates(
 	inputUpdates []InputUpdate,
 	allowedUpdates map[string]APIUpdate,
 	apiFields map[string]dbfield.DBField,
-	validator IValidator,
 ) ([]entity.UpdateOptions, error) {
 	matchedUpdates, err := MatchAndValidateInputUpdates(
 		inputUpdates,
 		allowedUpdates,
-		validator,
 	)
 	if err != nil {
 		return nil, err
@@ -42,7 +41,6 @@ func GetDatabaseUpdatesFromUpdates(
 func MatchAndValidateInputUpdates(
 	inputUpdates []InputUpdate,
 	allowedUpdates map[string]APIUpdate,
-	validator IValidator,
 ) ([]MatchedUpdate, error) {
 	var matchedUpdates []MatchedUpdate
 
@@ -56,6 +54,7 @@ func MatchAndValidateInputUpdates(
 		}
 
 		// Validate the input value
+		validator := validation.NewValidation()
 		if err := validator.ValidateVariable(
 			inputUpdate.Field,
 			inputUpdate.Value,

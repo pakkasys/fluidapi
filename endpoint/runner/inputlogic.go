@@ -8,39 +8,24 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/middleware/inputlogic"
 )
 
-type InputLogicDependencies struct {
-	RequestIDStringFn func() string
-	TraceLoggerFn     func(r *http.Request) func(messages ...any)
-	ErrorLoggerFn     func(r *http.Request) func(messages ...any)
+type Options struct {
+	TraceLoggerFn func(r *http.Request) func(messages ...any)
+	ErrorLoggerFn func(r *http.Request) func(messages ...any)
 }
 
-func NewInputLogicDependencies(
-	requestIDStringFn func() string,
-	traceLoggerFn func(r *http.Request) func(messages ...any),
-	errorLoggerFn func(r *http.Request) func(messages ...any),
-) InputLogicDependencies {
-	return InputLogicDependencies{
-		requestIDStringFn,
-		traceLoggerFn,
-		errorLoggerFn,
-	}
-}
+type StackBuilderFactory func() middleware.StackBuilder
 
 func GenericEndpointDefinition[I any, O any](
 	specification IInputSpecification[I],
 	callback inputlogic.Callback[I, O],
 	expectedErrors []inputlogic.ExpectedError,
-	deps InputLogicDependencies,
+	stackBuilderFactoryFn StackBuilderFactory,
+	opts Options,
 ) *definition.EndpointDefinition {
 	return &definition.EndpointDefinition{
 		URL:    specification.URL(),
 		Method: specification.HTTPMethod(),
-		MiddlewareStack: middleware.
-			NewMiddlewareStackBuilder(
-				deps.RequestIDStringFn,
-				deps.ErrorLoggerFn,
-				deps.TraceLoggerFn,
-			).
+		MiddlewareStack: stackBuilderFactoryFn().
 			MustAddMiddleware(
 				*inputlogic.MiddlewareWrapper(
 					callback,
@@ -49,8 +34,8 @@ func GenericEndpointDefinition[I any, O any](
 					nil,
 					nil,
 					nil,
-					deps.TraceLoggerFn,
-					deps.ErrorLoggerFn,
+					opts.TraceLoggerFn,
+					opts.ErrorLoggerFn,
 				),
 			).
 			Build(),
@@ -64,17 +49,13 @@ func GetEndpointDefinition[I IGetInput, O any, E any](
 	getCountFn GetCountFunc,
 	toOutputFn ToGetEndpointOutput[E, O],
 	expectedErrors []inputlogic.ExpectedError,
-	deps InputLogicDependencies,
+	stackBuilderFactoryFn StackBuilderFactory,
+	opts Options,
 ) *definition.EndpointDefinition {
 	return &definition.EndpointDefinition{
 		URL:    specification.URL(),
 		Method: specification.HTTPMethod(),
-		MiddlewareStack: middleware.
-			NewMiddlewareStackBuilder(
-				deps.RequestIDStringFn,
-				deps.ErrorLoggerFn,
-				deps.TraceLoggerFn,
-			).
+		MiddlewareStack: stackBuilderFactoryFn().
 			MustAddMiddleware(
 				*inputlogic.MiddlewareWrapper(
 					func(
@@ -98,8 +79,8 @@ func GetEndpointDefinition[I IGetInput, O any, E any](
 					nil,
 					nil,
 					nil,
-					deps.TraceLoggerFn,
-					deps.ErrorLoggerFn,
+					opts.TraceLoggerFn,
+					opts.ErrorLoggerFn,
 				),
 			).
 			Build(),
@@ -112,17 +93,13 @@ func UpdateEndpointDefinition[I IUpdateInput, O any](
 	updateEntitiesFn UpdateServiceFunc,
 	toOutputFn ToUpdateEndpointOutput[O],
 	expectedErrors []inputlogic.ExpectedError,
-	deps InputLogicDependencies,
+	stackBuilderFactoryFn StackBuilderFactory,
+	opts Options,
 ) *definition.EndpointDefinition {
 	return &definition.EndpointDefinition{
 		URL:    specification.URL(),
 		Method: specification.HTTPMethod(),
-		MiddlewareStack: middleware.
-			NewMiddlewareStackBuilder(
-				deps.RequestIDStringFn,
-				deps.ErrorLoggerFn,
-				deps.TraceLoggerFn,
-			).
+		MiddlewareStack: stackBuilderFactoryFn().
 			MustAddMiddleware(
 				*inputlogic.MiddlewareWrapper(
 					func(
@@ -145,8 +122,8 @@ func UpdateEndpointDefinition[I IUpdateInput, O any](
 					nil,
 					nil,
 					nil,
-					deps.TraceLoggerFn,
-					deps.ErrorLoggerFn,
+					opts.TraceLoggerFn,
+					opts.ErrorLoggerFn,
 				),
 			).
 			Build(),
@@ -159,17 +136,13 @@ func DeleteEndpointDefinition[I IDeleteInput, O any, E any](
 	deleteEntitiesFn DeleteServiceFunc[E],
 	toOutputFn ToDeleteEndpointOutput[O],
 	expectedErrors []inputlogic.ExpectedError,
-	deps InputLogicDependencies,
+	stackBuilderFactoryFn StackBuilderFactory,
+	opts Options,
 ) *definition.EndpointDefinition {
 	return &definition.EndpointDefinition{
 		URL:    specification.URL(),
 		Method: specification.HTTPMethod(),
-		MiddlewareStack: middleware.
-			NewMiddlewareStackBuilder(
-				deps.RequestIDStringFn,
-				deps.ErrorLoggerFn,
-				deps.TraceLoggerFn,
-			).
+		MiddlewareStack: stackBuilderFactoryFn().
 			MustAddMiddleware(
 				*inputlogic.MiddlewareWrapper(
 					func(
@@ -192,8 +165,8 @@ func DeleteEndpointDefinition[I IDeleteInput, O any, E any](
 					nil,
 					nil,
 					nil,
-					deps.TraceLoggerFn,
-					deps.ErrorLoggerFn,
+					opts.TraceLoggerFn,
+					opts.ErrorLoggerFn,
 				),
 			).
 			Build(),

@@ -7,3 +7,6 @@
 
 - api doc: how to make public 1st tier functionality clear
   -> open up 2nd tier functions to public
+
+- endpoints/crud slices shortening
+- db helpers, entity, connection etc. shortening

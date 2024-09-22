@@ -33,7 +33,7 @@ func WithMethod(method string) Option {
 
 // WithMiddlewareWrappers clones an endpoint definition with the provided
 func WithMiddlewareWrappers(
-	middlewareWrappers middleware.MiddlewareStack,
+	middlewareWrappers middleware.Stack,
 ) Option {
 	return func(e *EndpointDefinition) {
 		e.MiddlewareStack = middlewareWrappers
@@ -44,7 +44,7 @@ func WithMiddlewareWrappers(
 func WithMiddlewareWrappersFunc(
 	middlewareWrappersFunc func(
 		endpointDefinition *EndpointDefinition,
-	) middleware.MiddlewareStack,
+	) middleware.Stack,
 ) Option {
 	return func(e *EndpointDefinition) {
 		e.MiddlewareStack = middlewareWrappersFunc(e)

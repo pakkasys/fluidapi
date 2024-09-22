@@ -8,6 +8,7 @@ import (
 	"github.com/pakkasys/fluidapi/core/api"
 	endpointoutput "github.com/pakkasys/fluidapi/endpoint/output"
 	"github.com/pakkasys/fluidapi/endpoint/util"
+	"github.com/pakkasys/fluidapi/endpoint/validation"
 )
 
 const MiddlewareID = "inputlogic"
@@ -89,7 +90,7 @@ func Middleware[Input any, Output any](
 		objectPicker = &util.ObjectPicker[Input]{}
 	}
 	if validator == nil {
-		validator = util.NewValidation()
+		validator = validation.NewValidation()
 	}
 	allExpectedErrors := slices.Concat(internalExpectedErrors, expectedErrors)
 

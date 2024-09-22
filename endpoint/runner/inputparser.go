@@ -10,7 +10,6 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/page"
 	"github.com/pakkasys/fluidapi/endpoint/selector"
 	"github.com/pakkasys/fluidapi/endpoint/update"
-	"github.com/pakkasys/fluidapi/endpoint/util"
 )
 
 type ParsedGetEndpointInput struct {
@@ -89,7 +88,6 @@ func ParseUpdateEndpointInput[Input any](
 		endpointInput.GetUpdates(),
 		specification.AllowedUpdates(),
 		apiFields,
-		util.NewValidation(),
 	)
 	if err != nil {
 		return nil, err
@@ -172,7 +170,6 @@ func handleDatabaseSelectors(
 	matchedSelectors, err := selector.MatchAndValidateInputSelectors(
 		inputSelectors,
 		allowedSelectors,
-		util.NewValidation(),
 	)
 	if err != nil {
 		return nil, err

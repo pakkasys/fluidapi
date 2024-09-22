@@ -7,6 +7,7 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/dbfield"
 	"github.com/pakkasys/fluidapi/endpoint/middleware/inputlogic"
 	"github.com/pakkasys/fluidapi/endpoint/predicate"
+	"github.com/pakkasys/fluidapi/endpoint/validation"
 )
 
 type MatchedSelector struct {
@@ -23,12 +24,10 @@ func GetDatabaseSelectorsFromSelectors(
 	inputSelectors []InputSelector,
 	allowedSelectors map[string]APISelector,
 	apiFields map[string]dbfield.DBField,
-	validator IValidator,
 ) ([]util.Selector, error) {
 	matchedSelectors, err := MatchAndValidateInputSelectors(
 		inputSelectors,
 		allowedSelectors,
-		validator,
 	)
 	if err != nil {
 		return nil, err
@@ -45,7 +44,6 @@ func GetDatabaseSelectorsFromSelectors(
 func MatchAndValidateInputSelectors(
 	inputSelectors []InputSelector,
 	allowedSelectors map[string]APISelector,
-	validator IValidator,
 ) ([]MatchedSelector, error) {
 	var matchedSelectors []MatchedSelector
 
@@ -59,6 +57,7 @@ func MatchAndValidateInputSelectors(
 		}
 
 		// Validate the input value
+		validator := validation.NewValidation()
 		if err := validator.ValidateVariable(
 			inputSelector.Field,
 			inputSelector.Value,

@@ -8,8 +8,8 @@ import (
 type DataKey int
 
 var (
-	base DataKey    = 0
-	lock sync.Mutex // A Mutex to ensure exclusive access to `base`
+	base DataKey = 0
+	lock sync.Mutex
 
 	mainDataKey = NewDataKey()
 )
@@ -19,19 +19,21 @@ type contextData struct {
 }
 
 // NewDataKey safely increments and returns the next value of base.
-// It uses a Mutex to prevent race conditions.
 func NewDataKey() DataKey {
-	lock.Lock()         // Acquire the lock before accessing `base`
-	defer lock.Unlock() // Release the lock after the function returns
-
+	lock.Lock()
+	defer lock.Unlock()
 	base++
-
 	return base
 }
 
 // NewContext initializes a new context with an empty contextData map.
 func NewContext(fromContext context.Context) context.Context {
 	return context.WithValue(fromContext, mainDataKey, &contextData{})
+}
+
+// IsContextSet checks if the custom context is set in the context.
+func IsContextSet(context context.Context) bool {
+	return HasContextValue(context, mainDataKey)
 }
 
 // HasContextValue checks if a value exists for the provided key within the
