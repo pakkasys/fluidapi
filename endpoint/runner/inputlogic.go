@@ -130,10 +130,10 @@ func UpdateEndpointDefinition[I IUpdateInput, O any](
 	}
 }
 
-func DeleteEndpointDefinition[I IDeleteInput, O any, E any](
+func DeleteEndpointDefinition[I IDeleteInput, O any](
 	specification IDeleteSpecification[I],
 	apiFields APIFields,
-	deleteEntitiesFn DeleteServiceFunc[E],
+	deleteEntitiesFn DeleteServiceFunc,
 	toOutputFn ToDeleteEndpointOutput[O],
 	expectedErrors []inputlogic.ExpectedError,
 	stackBuilderFactoryFn StackBuilderFactory,

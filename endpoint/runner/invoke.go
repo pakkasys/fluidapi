@@ -87,7 +87,7 @@ func UpdateInvoke[EndpointInput IUpdateInput, EndpointOutput any](
 	return toEndpointOutputFunc(count), nil
 }
 
-type DeleteServiceFunc[ServiceOutput any] func(
+type DeleteServiceFunc func(
 	ctx context.Context,
 	databaseSelectors []util.Selector,
 	opts *entity.DeleteOptions,
@@ -97,13 +97,13 @@ type ToDeleteEndpointOutput[EndpointOutput any] func(
 	count int64,
 ) *EndpointOutput
 
-func DeleteInvoke[EndpointInput IDeleteInput, EndpointOutput any, ServiceOutput any](
+func DeleteInvoke[EndpointInput IDeleteInput, EndpointOutput any](
 	writer http.ResponseWriter,
 	request *http.Request,
 	input IDeleteInput,
 	specification IDeleteSpecification[EndpointInput],
 	apiFields APIFields,
-	serviceFunc DeleteServiceFunc[ServiceOutput],
+	serviceFunc DeleteServiceFunc,
 	toEndpointOutputFunc ToDeleteEndpointOutput[EndpointOutput],
 ) (*EndpointOutput, error) {
 	parsedInput, err := ParseDeleteEndpointInput(
