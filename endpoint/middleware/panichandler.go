@@ -14,7 +14,7 @@ import (
 const (
 	PanicHandlerMiddlewareID = "panic_handler"
 
-	maxDumpPartSize = 1024 * 1024
+	maxDumpSize = 1024 * 1024
 )
 
 type requestDumpData struct {
@@ -122,7 +122,7 @@ func createRequestDumpData(
 	rw *util.ResponseWrapper,
 	r *http.Request,
 ) *requestDumpData {
-	requestBody, err := readBodyWithLimit(r.Body, maxDumpPartSize)
+	requestBody, err := readBodyWithLimit(r.Body, maxDumpSize)
 	if err != nil {
 		requestBody = "Error reading request body"
 	}
@@ -138,15 +138,15 @@ func createRequestDumpData(
 			Body    string
 		}{
 			URL:     r.URL.String(),
-			Params:  limitQueryParameters(r.URL.RawQuery, maxDumpPartSize),
-			Headers: limitHeaders(r.Header, maxDumpPartSize),
+			Params:  limitQueryParameters(r.URL.RawQuery, maxDumpSize),
+			Headers: limitHeaders(r.Header, maxDumpSize),
 			Body:    requestBody,
 		},
 		Response: struct {
 			Headers map[string][]string
 			Body    string
 		}{
-			Headers: limitHeaders(responseData.Headers, maxDumpPartSize),
+			Headers: limitHeaders(responseData.Headers, maxDumpSize),
 			Body:    responseData.Body,
 		},
 	}
@@ -163,7 +163,7 @@ func getResponseData(rw *util.ResponseWrapper) responseData {
 
 	return responseData{
 		StatusCode: rw.StatusCode(),
-		Headers:    limitHeaders(rw.Header(), maxDumpPartSize),
+		Headers:    limitHeaders(rw.Header(), maxDumpSize),
 		Body:       string(rw.Body()),
 	}
 }
@@ -191,7 +191,10 @@ func readBodyWithLimit(body io.ReadCloser, maxSize int64) (string, error) {
 	return buf.String(), nil
 }
 
-func limitHeaders(headers map[string][]string, maxHeaderSize int) map[string][]string {
+func limitHeaders(
+	headers map[string][]string,
+	maxHeaderSize int,
+) map[string][]string {
 	limitedHeaders := make(map[string][]string)
 	for key, values := range headers {
 		var limitedValues []string

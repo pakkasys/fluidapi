@@ -38,7 +38,7 @@ func ExecuteTransaction[Result any](
 //   - transactionalFn: The function to execute in a transaction.
 func ExecuteManagedTransaction[Result any](
 	ctx context.Context,
-	getTxFn func() (util.Tx, error),
+	getTxFn func(ctx context.Context) (util.Tx, error),
 	transactionalFn TransactionalFunc[Result],
 ) (result Result, txErr error) {
 	tx, isNewTx, txErr := handleGetTxFromContext(ctx, getTxFn)
@@ -61,14 +61,14 @@ func ExecuteManagedTransaction[Result any](
 
 func handleGetTxFromContext(
 	ctx context.Context,
-	getTxFunc func() (util.Tx, error),
+	getTxFunc func(ctx context.Context) (util.Tx, error),
 ) (util.Tx, bool, error) {
 	tx := GetTransactionFromContext(ctx)
 	isNewTx := false
 
 	if tx == nil {
 		var err error
-		tx, err = getTxFunc()
+		tx, err = getTxFunc(ctx)
 		if err != nil {
 			return nil, false, err
 		}

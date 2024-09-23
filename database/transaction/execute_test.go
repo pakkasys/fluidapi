@@ -78,7 +78,7 @@ func TestExecuteManagedTransaction_SuccessfulTransaction(t *testing.T) {
 	ctx := endpointutil.NewContext(context.Background())
 
 	// Mock the getTxFunc to return the mock transaction
-	getTxFunc := func() (util.Tx, error) {
+	getTxFunc := func(ctx context.Context) (util.Tx, error) {
 		return mockTx, nil
 	}
 
@@ -103,7 +103,7 @@ func TestExecuteManagedTransaction_GetTxFuncError(t *testing.T) {
 	ctx := endpointutil.NewContext(context.Background())
 
 	// Mock the getTxFunc to return an error
-	getTxFunc := func() (util.Tx, error) {
+	getTxFunc := func(ctx context.Context) (util.Tx, error) {
 		return nil, errors.New("failed to create transaction")
 	}
 
@@ -125,7 +125,7 @@ func TestExecuteManagedTransaction_TransactionalFnError(t *testing.T) {
 	ctx := endpointutil.NewContext(context.Background())
 
 	// Mock the getTxFunc to return the mock transaction
-	getTxFunc := func() (util.Tx, error) {
+	getTxFunc := func(ctx context.Context) (util.Tx, error) {
 		return mockTx, nil
 	}
 
@@ -151,7 +151,7 @@ func TestExecuteManagedTransaction_CommitError(t *testing.T) {
 	ctx := endpointutil.NewContext(context.Background())
 
 	// Mock the getTxFunc to return the mock transaction
-	getTxFunc := func() (util.Tx, error) {
+	getTxFunc := func(ctx context.Context) (util.Tx, error) {
 		return mockTx, nil
 	}
 
@@ -198,7 +198,7 @@ func TestExecuteManagedTransaction_ExecuteMultipleTimes(t *testing.T) {
 	ctx := endpointutil.NewContext(context.Background())
 
 	// Mock the getTxFunc to return the mock transaction
-	getTxFunc := func() (util.Tx, error) {
+	getTxFunc := func(ctx context.Context) (util.Tx, error) {
 		return mockTx, nil
 	}
 
@@ -246,7 +246,7 @@ func TestHandleGetTxFromContext_WithNewTx(t *testing.T) {
 	ctx := endpointutil.NewContext(context.Background())
 
 	// Mock the getTxFunc to return the mock transaction
-	getTxFunc := func() (util.Tx, error) {
+	getTxFunc := func(ctx context.Context) (util.Tx, error) {
 		return mockTx, nil
 	}
 
@@ -266,7 +266,7 @@ func TestHandleGetTxFromContext_GetTxError(t *testing.T) {
 	ctx := endpointutil.NewContext(context.Background())
 
 	// Mock the getTxFunc to return an error
-	getTxFunc := func() (util.Tx, error) {
+	getTxFunc := func(ctx context.Context) (util.Tx, error) {
 		return nil, errors.New("failed to create transaction")
 	}
 
@@ -283,7 +283,7 @@ func TestHandleGetTxFromContext_NilTx(t *testing.T) {
 	ctx := endpointutil.NewContext(context.Background())
 
 	// Mock the getTxFunc to return nil transaction with no error
-	getTxFunc := func() (util.Tx, error) {
+	getTxFunc := func(ctx context.Context) (util.Tx, error) {
 		return nil, nil
 	}
 

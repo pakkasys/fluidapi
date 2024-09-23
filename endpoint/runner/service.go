@@ -4,22 +4,18 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pakkasys/fluidapi/database/entity"
 	"github.com/pakkasys/fluidapi/database/util"
-	"github.com/pakkasys/fluidapi/endpoint/page"
 )
 
 type GetServiceFunc[Output any] func(
 	ctx context.Context,
-	databaseSelectors []util.Selector,
-	Orders []util.Order,
-	page *page.InputPage,
-	joins []util.Join,
-	projections []util.Projection,
+	opts entity.GetOptions,
 ) ([]Output, error)
 
 type GetCountFunc func(
 	ctx context.Context,
-	databaseSelectors []util.Selector,
+	selectors []util.Selector,
 	joins []util.Join,
 ) (int, error)
 
@@ -53,11 +49,15 @@ func RunGetService[Output any](
 
 		entities, err := serviceFunc(
 			ctx,
-			parsedEndpoint.DatabaseSelectors,
-			parsedEndpoint.Orders,
-			parsedEndpoint.Page,
-			joins,
-			projections,
+			entity.GetOptions{
+				Options: entity.Options{
+					Selectors:   parsedEndpoint.DatabaseSelectors,
+					Orders:      parsedEndpoint.Orders,
+					Page:        parsedEndpoint.Page,
+					Joins:       joins,
+					Projections: projections,
+				},
+			},
 		)
 		if err != nil {
 			return nil, 0, err

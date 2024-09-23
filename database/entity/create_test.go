@@ -11,16 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockInserter is a mock implementation of the Inserter interface.
-type MockInserter struct {
-	mock.Mock
-}
-
-func (m *MockInserter) GetInserted() (columns []string, values []any) {
-	args := m.Called()
-	return args.Get(0).([]string), args.Get(1).([]any)
-}
-
 // MockSQLResult is a mock implementation of the sql.Result interface.
 type MockSQLResult struct {
 	mock.Mock
@@ -42,11 +32,10 @@ func TestCreateEntity_NormalOperation(t *testing.T) {
 	mockStmt := new(utilmock.MockStmt)
 	mockResult := new(utilmock.MockResult)
 
-	// Mock Inserter for entity
-	inserter := &MockInserter{}
-
-	// Setup the Inserter to return columns and values
-	inserter.On("GetInserted").Return([]string{"id", "name"}, []any{1, "Alice"})
+	// Create an Inserter function
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		return []string{"id", "name"}, []any{1, "Alice"}
+	}
 
 	// Setup the mock DB expectations
 	mockDB.On("Prepare", mock.Anything).Return(mockStmt, nil)
@@ -55,7 +44,8 @@ func TestCreateEntity_NormalOperation(t *testing.T) {
 	mockResult.On("LastInsertId").Return(int64(1), nil)
 
 	// Call CreateEntity
-	id, err := CreateEntity(inserter, mockDB, "user")
+	entity := &TestEntity{ID: 1, Name: "Alice"}
+	id, err := CreateEntity(entity, mockDB, "user", inserter)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), id)
@@ -63,45 +53,39 @@ func TestCreateEntity_NormalOperation(t *testing.T) {
 	mockStmt.AssertExpectations(t)
 }
 
-// TestCreateEntity_InsertError tests the case where the insert function returns
-// an error.
+// TestCreateEntity_InsertError tests the case where the insert function returns an error.
 func TestCreateEntity_InsertError(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
-	// Mock Inserter for entity
-	inserter := &MockInserter{}
-
-	// Setup the Inserter to return columns and values
-	inserter.On("GetInserted").Return([]string{"id", "name"}, []any{1, "Alice"})
+	// Create an Inserter function
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		return []string{"id", "name"}, []any{1, "Alice"}
+	}
 
 	// Simulate an error during Prepare
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
 
 	// Call CreateEntity
-	_, err := CreateEntity(inserter, mockDB, "user")
+	entity := &TestEntity{ID: 1, Name: "Alice"}
+	_, err := CreateEntity(entity, mockDB, "user", inserter)
 
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
 }
 
-// TestCreateEntities_NormalOperation tests the normal operation of
-// CreateEntities with multiple entities.
+// TestCreateEntities_NormalOperation tests the normal operation of CreateEntities with multiple entities.
 func TestCreateEntities_NormalOperation(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 	mockStmt := new(utilmock.MockStmt)
 	mockResult := new(utilmock.MockResult)
 
-	// Mock Inserter for entities
-	entities := []Inserter{
-		&MockInserter{},
-		&MockInserter{},
+	// Create an Inserter function
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		if entity.ID == 1 {
+			return []string{"id", "name"}, []any{1, "Alice"}
+		}
+		return []string{"id", "name"}, []any{2, "Bob"}
 	}
-
-	// Setup the Inserter for each entity
-	entities[0].(*MockInserter).On("GetInserted").
-		Return([]string{"id", "name"}, []any{1, "Alice"})
-	entities[1].(*MockInserter).On("GetInserted").
-		Return([]string{"id", "name"}, []any{2, "Bob"})
 
 	// Setup the mock DB expectations
 	mockDB.On("Prepare", mock.Anything).Return(mockStmt, nil)
@@ -110,7 +94,11 @@ func TestCreateEntities_NormalOperation(t *testing.T) {
 	mockResult.On("LastInsertId").Return(int64(1), nil)
 
 	// Call CreateEntities
-	id, err := CreateEntities(entities, mockDB, "user")
+	entities := []*TestEntity{
+		{ID: 1, Name: "Alice"},
+		{ID: 2, Name: "Bob"},
+	}
+	id, err := CreateEntities(entities, mockDB, "user", inserter)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), id)
@@ -118,41 +106,39 @@ func TestCreateEntities_NormalOperation(t *testing.T) {
 	mockStmt.AssertExpectations(t)
 }
 
-// TestCreateEntities_EmptyEntities tests the case where no entities are passed
-// to CreateEntities.
+// TestCreateEntities_EmptyEntities tests the case where no entities are passed to CreateEntities.
 func TestCreateEntities_EmptyEntities(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
 	// Call CreateEntities with an empty list
-	id, err := CreateEntities([]Inserter{}, mockDB, "user")
+	id, err := CreateEntities([]*TestEntity{}, mockDB, "user", nil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), id)
 	mockDB.AssertExpectations(t)
 }
 
-// TestCreateEntities_InsertError tests the case where an error occurs during
-// insertion.
+// TestCreateEntities_InsertError tests the case where an error occurs during insertion.
 func TestCreateEntities_InsertError(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
-	// Mock Inserter for entities
-	entities := []Inserter{
-		&MockInserter{},
-		&MockInserter{},
+	// Create an Inserter function
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		if entity.ID == 1 {
+			return []string{"id", "name"}, []any{1, "Alice"}
+		}
+		return []string{"id", "name"}, []any{2, "Bob"}
 	}
-
-	// Setup the Inserter for each entity
-	entities[0].(*MockInserter).On("GetInserted").
-		Return([]string{"id", "name"}, []any{1, "Alice"})
-	entities[1].(*MockInserter).On("GetInserted").
-		Return([]string{"id", "name"}, []any{2, "Bob"})
 
 	// Simulate an error during Prepare
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
 
 	// Call CreateEntities
-	_, err := CreateEntities(entities, mockDB, "user")
+	entities := []*TestEntity{
+		{ID: 1, Name: "Alice"},
+		{ID: 2, Name: "Bob"},
+	}
+	_, err := CreateEntities(entities, mockDB, "user", inserter)
 
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
@@ -272,14 +258,16 @@ func TestGetInsertQueryColumnNames_EmptyColumns(t *testing.T) {
 
 // TestInsertQuery_NormalOperation tests insertQuery with a standard entity.
 func TestInsertQuery_NormalOperation(t *testing.T) {
-	// MockInserter that returns two columns and values
-	inserter := &MockInserter{}
+	// Inserter function that returns two columns and values
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		return []string{"id", "name"}, []any{1, "Alice"}
+	}
 
-	// Setup the MockInserter to return specific columns and values
-	inserter.On("GetInserted").
-		Return([]string{"id", "name"}, []any{1, "Alice"})
-
-	query, values := insertQuery(inserter, "user")
+	query, values := insertQuery(
+		&TestEntity{ID: 1, Name: "Alice"},
+		"user",
+		inserter,
+	)
 
 	expectedQuery := "INSERT INTO `user` (`id`, `name`) VALUES (?, ?)"
 	expectedValues := []any{1, "Alice"}
@@ -291,14 +279,12 @@ func TestInsertQuery_NormalOperation(t *testing.T) {
 // TestInsertQuery_SingleColumnEntity tests insertQuery with an entity that has
 // only one column.
 func TestInsertQuery_SingleColumnEntity(t *testing.T) {
-	// MockInserter that returns a single column and value
-	inserter := &MockInserter{}
+	// Inserter function that returns a single column and value
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		return []string{"id"}, []any{1}
+	}
 
-	// Setup the MockInserter to return one column and one value
-	inserter.On("GetInserted").
-		Return([]string{"id"}, []any{1})
-
-	query, values := insertQuery(inserter, "user")
+	query, values := insertQuery(&TestEntity{ID: 1}, "user", inserter)
 
 	expectedQuery := "INSERT INTO `user` (`id`) VALUES (?)"
 	expectedValues := []any{1}
@@ -307,19 +293,15 @@ func TestInsertQuery_SingleColumnEntity(t *testing.T) {
 	assert.Equal(t, expectedValues, values)
 }
 
-// TestInsertQuery_NoColumns tests insertQuery with an entity that has no
-// columns.
+// TestInsertQuery_NoColumns tests insertQuery with an entity that has no columns.
 func TestInsertQuery_NoColumns(t *testing.T) {
-	// MockInserter that returns no columns and no values
-	inserter := &MockInserter{}
+	// Inserter function that returns no columns or values
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		return []string{}, []any{}
+	}
 
-	// Setup the MockInserter to return no columns or values
-	inserter.On("GetInserted").
-		Return([]string{}, []any{})
+	query, values := insertQuery(&TestEntity{}, "user", inserter)
 
-	query, values := insertQuery(inserter, "user")
-
-	// We expect an empty query here because there are no columns
 	expectedQuery := "INSERT INTO `user` () VALUES ()"
 	expectedValues := []any{}
 
@@ -332,18 +314,22 @@ func TestInsert_NormalOperation(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 	mockStmt := new(utilmock.MockStmt)
 
-	// Test entity
-	inserter := &MockInserter{}
-
-	// Setup the MockInserter to return specific columns and values
-	inserter.On("GetInserted").Return([]string{"id", "name"}, []any{1, "Alice"})
+	// Inserter function for the entity
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		return []string{"id", "name"}, []any{1, "Alice"}
+	}
 
 	// Setup the mock DB expectations
 	mockDB.On("Prepare", mock.Anything).Return(mockStmt, nil)
 	mockStmt.On("Exec", mock.Anything).Return(nil, nil)
 	mockStmt.On("Close").Return(nil)
 
-	_, err := insert(mockDB, inserter, "user")
+	_, err := insert(
+		mockDB,
+		&TestEntity{ID: 1, Name: "Alice"},
+		"user",
+		inserter,
+	)
 
 	assert.NoError(t, err)
 	mockDB.AssertExpectations(t)
@@ -354,16 +340,21 @@ func TestInsert_NormalOperation(t *testing.T) {
 func TestInsert_PrepareError(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
-	// Test entity
-	inserter := &MockInserter{}
-
-	// Setup the MockInserter to return specific columns and values
-	inserter.On("GetInserted").Return([]string{"id", "name"}, []any{1, "Alice"})
+	// Inserter function for the entity
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		return []string{"id", "name"}, []any{1, "Alice"}
+	}
 
 	// Simulate an error on Prepare
-	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
+	mockDB.On("Prepare", mock.Anything).
+		Return(nil, errors.New("prepare error"))
 
-	_, err := insert(mockDB, inserter, "user")
+	_, err := insert(
+		mockDB,
+		&TestEntity{ID: 1, Name: "Alice"},
+		"user",
+		inserter,
+	)
 
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
@@ -374,11 +365,10 @@ func TestInsert_ExecError(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 	mockStmt := new(utilmock.MockStmt)
 
-	// Test entity
-	inserter := &MockInserter{}
-
-	// Setup the MockInserter to return specific columns and values
-	inserter.On("GetInserted").Return([]string{"id", "name"}, []any{1, "Alice"})
+	// Inserter function for the entity
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		return []string{"id", "name"}, []any{1, "Alice"}
+	}
 
 	// Setup the mock DB expectations
 	mockDB.On("Prepare", mock.Anything).Return(mockStmt, nil)
@@ -386,7 +376,12 @@ func TestInsert_ExecError(t *testing.T) {
 	mockStmt.On("Exec", mock.Anything).Return(nil, errors.New("exec error"))
 	mockStmt.On("Close").Return(nil)
 
-	_, err := insert(mockDB, inserter, "user")
+	_, err := insert(
+		mockDB,
+		&TestEntity{ID: 1, Name: "Alice"},
+		"user",
+		inserter,
+	)
 
 	assert.EqualError(t, err, "exec error")
 	mockDB.AssertExpectations(t)
@@ -396,19 +391,20 @@ func TestInsert_ExecError(t *testing.T) {
 // TestInsertManyQuery_NormalOperation tests insertManyQuery with multiple
 // entities.
 func TestInsertManyQuery_NormalOperation(t *testing.T) {
-	// Test entities
-	entities := []Inserter{
-		&MockInserter{},
-		&MockInserter{},
+	// Inserter function for multiple entities
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		if entity.ID == 1 {
+			return []string{"id", "name"}, []any{1, "Alice"}
+		}
+		return []string{"id", "name"}, []any{2, "Bob"}
 	}
 
-	// Setup the MockInserter to return specific columns and values
-	entities[0].(*MockInserter).On("GetInserted").
-		Return([]string{"id", "name"}, []any{1, "Alice"})
-	entities[1].(*MockInserter).On("GetInserted").
-		Return([]string{"id", "name"}, []any{2, "Bob"})
+	entities := []*TestEntity{
+		{ID: 1, Name: "Alice"},
+		{ID: 2, Name: "Bob"},
+	}
 
-	query, values := insertManyQuery(entities, "user")
+	query, values := insertManyQuery(entities, "user", inserter)
 
 	expectedQuery := "INSERT INTO `user` (`id`, `name`) VALUES (?, ?), (?, ?)"
 	expectedValues := []any{1, "Alice", 2, "Bob"}
@@ -419,16 +415,16 @@ func TestInsertManyQuery_NormalOperation(t *testing.T) {
 
 // TestInsertManyQuery_SingleEntity tests insertManyQuery with a single entity.
 func TestInsertManyQuery_SingleEntity(t *testing.T) {
-	// Test entity
-	entities := []Inserter{
-		&MockInserter{},
+	// Inserter function for a single entity
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		return []string{"id", "name"}, []any{1, "Alice"}
 	}
 
-	// Setup the MockInserter to return specific columns and values
-	entities[0].(*MockInserter).On("GetInserted").
-		Return([]string{"id", "name"}, []any{1, "Alice"})
+	entities := []*TestEntity{
+		{ID: 1, Name: "Alice"},
+	}
 
-	query, values := insertManyQuery(entities, "user")
+	query, values := insertManyQuery(entities, "user", inserter)
 
 	expectedQuery := "INSERT INTO `user` (`id`, `name`) VALUES (?, ?)"
 	expectedValues := []any{1, "Alice"}
@@ -439,12 +435,10 @@ func TestInsertManyQuery_SingleEntity(t *testing.T) {
 
 // TestInsertManyQuery_NoEntities tests insertManyQuery with no entities.
 func TestInsertManyQuery_NoEntities(t *testing.T) {
-	// Test with no entities
-	entities := []Inserter{}
+	entities := []*TestEntity{}
 
-	query, values := insertManyQuery(entities, "user")
+	query, values := insertManyQuery(entities, "user", nil)
 
-	// Expected an empty query and nil values since no entities were provided
 	assert.Equal(t, "", query)
 	assert.Equal(t, []any(nil), values)
 }
@@ -454,45 +448,43 @@ func TestInsertMany_NormalOperation(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 	mockStmt := new(utilmock.MockStmt)
 
-	// Test entities
-	entities := []Inserter{
-		&MockInserter{},
-		&MockInserter{},
+	// Inserter function for multiple entities
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		if entity.ID == 1 {
+			return []string{"id", "name"}, []any{1, "Alice"}
+		}
+		return []string{"id", "name"}, []any{2, "Bob"}
 	}
 
-	// Setup the MockInserter to return specific columns and values
-	entities[0].(*MockInserter).On("GetInserted").
-		Return([]string{"id", "name"}, []any{1, "Alice"})
-	entities[1].(*MockInserter).On("GetInserted").
-		Return([]string{"id", "name"}, []any{2, "Bob"})
+	entities := []*TestEntity{
+		{ID: 1, Name: "Alice"},
+		{ID: 2, Name: "Bob"},
+	}
 
-	// Setup the mock DB expectations
 	mockDB.On("Prepare", mock.Anything).Return(mockStmt, nil)
 	mockStmt.On("Exec", mock.Anything).Return(nil, nil)
 	mockStmt.On("Close").Return(nil)
 
-	_, err := insertMany(mockDB, entities, "user")
+	_, err := insertMany(mockDB, entities, "user", inserter)
 
 	assert.NoError(t, err)
 	mockDB.AssertExpectations(t)
 	mockStmt.AssertExpectations(t)
 }
 
-// TestInsertMany_EmptyEntities tests the case where the inserted entity list
-// is empty.
+// TestInsertMany_EmptyEntities tests the case where the inserted entity list is
+// empty.
 func TestInsertMany_EmptyEntities(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 	mockStmt := new(utilmock.MockStmt)
 
-	// Test with no entities
-	entities := []Inserter{}
+	entities := []*TestEntity{}
 
-	// Setup the mock DB expectations
 	mockDB.On("Prepare", mock.Anything).Return(mockStmt, nil)
 	mockStmt.On("Close").Return(nil)
 	mockStmt.On("Exec", mock.Anything).Return(nil, nil)
 
-	_, err := insertMany(mockDB, entities, "user")
+	_, err := insertMany(mockDB, entities, "user", nil)
 
 	assert.NoError(t, err)
 	mockDB.AssertExpectations(t)
@@ -502,22 +494,22 @@ func TestInsertMany_EmptyEntities(t *testing.T) {
 func TestInsertMany_PrepareError(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 
-	// Test entities
-	entities := []Inserter{
-		&MockInserter{},
-		&MockInserter{},
+	// Inserter function for multiple entities
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		if entity.ID == 1 {
+			return []string{"id", "name"}, []any{1, "Alice"}
+		}
+		return []string{"id", "name"}, []any{2, "Bob"}
 	}
 
-	// Setup the MockInserter to return specific columns and values
-	entities[0].(*MockInserter).On("GetInserted").
-		Return([]string{"id", "name"}, []any{1, "Alice"})
-	entities[1].(*MockInserter).On("GetInserted").
-		Return([]string{"id", "name"}, []any{2, "Bob"})
+	entities := []*TestEntity{
+		{ID: 1, Name: "Alice"},
+		{ID: 2, Name: "Bob"},
+	}
 
-	// Simulate an error on Prepare
 	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
 
-	_, err := insertMany(mockDB, entities, "user")
+	_, err := insertMany(mockDB, entities, "user", inserter)
 
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
@@ -528,25 +520,25 @@ func TestInsertMany_ExecError(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 	mockStmt := new(utilmock.MockStmt)
 
-	// Test entities
-	entities := []Inserter{
-		&MockInserter{},
-		&MockInserter{},
+	// Inserter function for multiple entities
+	inserter := func(entity *TestEntity) ([]string, []any) {
+		if entity.ID == 1 {
+			return []string{"id", "name"}, []any{1, "Alice"}
+		}
+		return []string{"id", "name"}, []any{2, "Bob"}
 	}
 
-	// Setup the MockInserter to return specific columns and values
-	entities[0].(*MockInserter).On("GetInserted").
-		Return([]string{"id", "name"}, []any{1, "Alice"})
-	entities[1].(*MockInserter).On("GetInserted").
-		Return([]string{"id", "name"}, []any{2, "Bob"})
+	entities := []*TestEntity{
+		{ID: 1, Name: "Alice"},
+		{ID: 2, Name: "Bob"},
+	}
 
-	// Setup the mock DB expectations
 	mockDB.On("Prepare", mock.Anything).Return(mockStmt, nil)
 	// Simulate an error on Exec
 	mockStmt.On("Exec", mock.Anything).Return(nil, errors.New("exec error"))
 	mockStmt.On("Close").Return(nil)
 
-	_, err := insertMany(mockDB, entities, "user")
+	_, err := insertMany(mockDB, entities, "user", inserter)
 
 	assert.EqualError(t, err, "exec error")
 	mockDB.AssertExpectations(t)

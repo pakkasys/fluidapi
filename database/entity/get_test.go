@@ -33,6 +33,7 @@ func (m *MockRowScannerMultiple[T]) Scan(rows util.Rows, entity *T) error {
 type TestEntity struct {
 	ID   int
 	Name string
+	Age  int
 }
 
 // TestGetEntity_NormalOperation tests the normal operation where a single entity is successfully retrieved.

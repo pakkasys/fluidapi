@@ -13,15 +13,17 @@ import (
 //   - db: The database connection.
 //   - tableName: The name of the database table.
 //   - entity: The entity to upsert.
+//   - inserter: The function used to get the columns and values to insert.
 //   - updateProjections: The projections of the entity to update.
-func UpsertEntity[T Inserter](
+func UpsertEntity[T any](
 	preparer util.Preparer,
 	tableName string,
-	entity T,
+	entity *T,
+	inserter Inserter[*T],
 	updateProjections []util.Projection,
 ) (int64, error) {
 	return checkInsertResult(
-		upsert(preparer, tableName, entity, updateProjections),
+		upsert(preparer, tableName, entity, inserter, updateProjections),
 	)
 }
 
@@ -30,23 +32,27 @@ func UpsertEntity[T Inserter](
 //   - db: The database connection.
 //   - tableName: The name of the database table.
 //   - entities: The entities to upsert.
-func UpsertEntities[T Inserter](
+//   - inserter: The function used to get the columns and values to insert.
+//   - updateProjections: The projections of the entities to update.
+func UpsertEntities[T any](
 	preparer util.Preparer,
 	tableName string,
-	entities []T,
+	entities []*T,
+	inserter Inserter[*T],
 	updateProjections []util.Projection,
 ) (int64, error) {
 	return checkInsertResult(
-		upsertMany(preparer, entities, tableName, updateProjections),
+		upsertMany(preparer, entities, tableName, inserter, updateProjections),
 	)
 }
 
-func upsertQuery(
-	inserter Inserter,
+func upsertQuery[T any](
+	entity *T,
 	tableName string,
+	inserter Inserter[*T],
 	updateProjections []util.Projection,
 ) (string, []any) {
-	query, values := insertQuery(inserter, tableName)
+	query, values := insertQuery(entity, tableName, inserter)
 
 	updateParts := make([]string, len(updateProjections))
 	for i, proj := range updateProjections {
@@ -68,10 +74,11 @@ func upsertQuery(
 	return upsertQuery, values
 }
 
-func upsert(
+func upsert[T any](
 	preparer util.Preparer,
 	tableName string,
-	inserter Inserter,
+	entity *T,
+	inserter Inserter[*T],
 	updateProjections []util.Projection,
 ) (sql.Result, error) {
 	if len(updateProjections) == 0 {
@@ -81,7 +88,12 @@ func upsert(
 		return nil, fmt.Errorf("must provide update projections alias")
 	}
 
-	upsertQuery, values := upsertQuery(inserter, tableName, updateProjections)
+	upsertQuery, values := upsertQuery(
+		entity,
+		tableName,
+		inserter,
+		updateProjections,
+	)
 
 	statement, err := preparer.Prepare(upsertQuery)
 	if err != nil {
@@ -97,9 +109,10 @@ func upsert(
 	return result, nil
 }
 
-func upsertManyQuery[T Inserter](
-	entities []T,
+func upsertManyQuery[T any](
+	entities []*T,
 	tableName string,
+	inserter Inserter[*T],
 	updateProjections []util.Projection,
 ) (string, []any) {
 	if len(entities) == 0 {
@@ -115,7 +128,7 @@ func upsertManyQuery[T Inserter](
 		)
 	}
 
-	insertQueryPart, allValues := insertManyQuery(entities, tableName)
+	insertQueryPart, allValues := insertManyQuery(entities, tableName, inserter)
 
 	builder := strings.Builder{}
 	builder.WriteString(insertQueryPart)
@@ -128,10 +141,11 @@ func upsertManyQuery[T Inserter](
 	return upsertQuery, allValues
 }
 
-func upsertMany[T Inserter](
+func upsertMany[T any](
 	preparer util.Preparer,
-	entities []T,
+	entities []*T,
 	tableName string,
+	inserter Inserter[*T],
 	updateProjections []util.Projection,
 ) (sql.Result, error) {
 	if len(entities) == 0 {
@@ -144,7 +158,12 @@ func upsertMany[T Inserter](
 		return nil, fmt.Errorf("must provide update projections alias")
 	}
 
-	query, values := upsertManyQuery(entities, tableName, updateProjections)
+	query, values := upsertManyQuery(
+		entities,
+		tableName,
+		inserter,
+		updateProjections,
+	)
 	statement, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, err

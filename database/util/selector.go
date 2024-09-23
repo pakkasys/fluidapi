@@ -10,7 +10,7 @@ type Selector struct {
 
 type Selectors []Selector
 
-// GetByField returns selector with the given fields.
+// GetByField returns selector with the given field.
 //
 //   - field: the field to search for
 func (s Selectors) GetByField(field string) *Selector {
