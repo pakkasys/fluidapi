@@ -8,7 +8,6 @@ import (
 	"runtime"
 
 	"github.com/pakkasys/fluidapi/core/api"
-	"github.com/pakkasys/fluidapi/endpoint/util"
 )
 
 const (
@@ -16,6 +15,12 @@ const (
 
 	maxDumpSize = 1024 * 1024
 )
+
+type ResponseWrapper interface {
+	StatusCode() int
+	Body() []byte
+	Header() http.Header
+}
 
 type requestDumpData struct {
 	StatusCode int
@@ -78,15 +83,22 @@ func handlePanic(
 	err any,
 	panicHandlerLoggerFn func(r *http.Request) func(messages ...any),
 ) {
+	var rd responseData
+	rw := GetResponseWrapper(r)
+	if rw != nil {
+		rd = responseData{
+			StatusCode: rw.StatusCode,
+			Headers:    limitHeaders(rw.Header(), maxDumpSize),
+			Body:       string(rw.Body),
+		}
+	}
+
 	panicHandlerLoggerFn(r)(
 		"Panic",
 		panicData{
-			Err: err,
-			RequestDump: *createRequestDumpData(
-				GetResponseWrapper(r),
-				r,
-			),
-			StackTrace: stackTraceSlice(),
+			Err:         err,
+			RequestDump: *createRequestDumpData(rd, r),
+			StackTrace:  stackTraceSlice(),
 		},
 	)
 
@@ -119,7 +131,7 @@ func stackTraceSlice() []string {
 }
 
 func createRequestDumpData(
-	rw *util.ResponseWrapper,
+	rd responseData,
 	r *http.Request,
 ) *requestDumpData {
 	requestBody, err := readBodyWithLimit(r.Body, maxDumpSize)
@@ -127,10 +139,8 @@ func createRequestDumpData(
 		requestBody = "Error reading request body"
 	}
 
-	responseData := getResponseData(rw)
-
 	return &requestDumpData{
-		StatusCode: responseData.StatusCode,
+		StatusCode: rd.StatusCode,
 		Request: struct {
 			URL     string
 			Params  string
@@ -146,25 +156,9 @@ func createRequestDumpData(
 			Headers map[string][]string
 			Body    string
 		}{
-			Headers: limitHeaders(responseData.Headers, maxDumpSize),
-			Body:    responseData.Body,
+			Headers: limitHeaders(rd.Headers, maxDumpSize),
+			Body:    rd.Body,
 		},
-	}
-}
-
-func getResponseData(rw *util.ResponseWrapper) responseData {
-	if rw == nil {
-		return responseData{
-			StatusCode: 0,
-			Headers:    nil,
-			Body:       "",
-		}
-	}
-
-	return responseData{
-		StatusCode: rw.StatusCode(),
-		Headers:    limitHeaders(rw.Header(), maxDumpSize),
-		Body:       string(rw.Body()),
 	}
 }
 
@@ -193,16 +187,20 @@ func readBodyWithLimit(body io.ReadCloser, maxSize int64) (string, error) {
 
 func limitHeaders(
 	headers map[string][]string,
-	maxHeaderSize int,
+	maxSize int,
 ) map[string][]string {
 	limitedHeaders := make(map[string][]string)
 	for key, values := range headers {
 		var limitedValues []string
+		if len(values) == 0 {
+			limitedHeaders[key] = values
+			continue
+		}
 		for _, value := range values {
-			if len(value) > maxHeaderSize {
+			if len(value) > maxSize {
 				limitedValues = append(
 					limitedValues,
-					value[:maxHeaderSize]+"... (truncated)",
+					value[:maxSize]+"... (truncated)",
 				)
 			} else {
 				limitedValues = append(limitedValues, value)
@@ -213,9 +211,9 @@ func limitHeaders(
 	return limitedHeaders
 }
 
-func limitQueryParameters(params string, maxParamSize int) string {
-	if len(params) > maxParamSize {
-		return params[:maxParamSize] + "... (truncated)"
+func limitQueryParameters(params string, maxSize int) string {
+	if len(params) > maxSize {
+		return params[:maxSize] + "... (truncated)"
 	}
 	return params
 }
