@@ -19,6 +19,17 @@ type ParsedGetEndpointInput struct {
 	GetCount          bool
 }
 
+type ParsedUpdateEndpointInput struct {
+	DatabaseSelectors []databaseutil.Selector
+	DatabaseUpdates   []entity.UpdateOptions
+	Upsert            bool
+}
+
+type ParsedDeleteEndpointInput struct {
+	DatabaseSelectors []databaseutil.Selector
+	DeleteOpts        *entity.DeleteOptions
+}
+
 func ParseGetEndpointInput[Input any](
 	endpointInput IGetInput,
 	specification IGetSpecification[Input],
@@ -61,12 +72,6 @@ func ParseGetEndpointInput[Input any](
 	}, nil
 }
 
-type ParsedUpdateEndpointInput struct {
-	DatabaseSelectors []databaseutil.Selector
-	DatabaseUpdates   []entity.UpdateOptions
-	Upsert            bool
-}
-
 func ParseUpdateEndpointInput[Input any](
 	endpointInput IUpdateInput,
 	specification IUpdateSpecification[Input],
@@ -107,11 +112,6 @@ func ParseUpdateEndpointInput[Input any](
 		DatabaseUpdates:   databaseUpdates,
 		Upsert:            upsert,
 	}, nil
-}
-
-type ParsedDeleteEndpointInput struct {
-	DatabaseSelectors []databaseutil.Selector
-	DeleteOpts        *entity.DeleteOptions
 }
 
 func ParseDeleteEndpointInput[Input any](
