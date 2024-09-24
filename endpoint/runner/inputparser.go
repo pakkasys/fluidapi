@@ -16,6 +16,8 @@ type ParsedGetEndpointInput struct {
 	Orders            []databaseutil.Order
 	DatabaseSelectors []databaseutil.Selector
 	Page              *page.InputPage
+	Joins             []databaseutil.Join
+	Projections       []databaseutil.Projection
 	GetCount          bool
 }
 

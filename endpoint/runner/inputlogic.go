@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/pakkasys/fluidapi/endpoint/definition"
@@ -42,7 +43,7 @@ func GenericEndpointDefinition[I any, O any](
 	}
 }
 
-func GetEndpointDefinition[I IGetInput, O any, E any](
+func GetEndpointDefinition[I ParseableInput[ParsedGetEndpointInput], O any, E any](
 	specification IGetSpecification[I],
 	apiFields APIFields,
 	getEntitiesFn GetServiceFunc[E],
@@ -63,22 +64,36 @@ func GetEndpointDefinition[I IGetInput, O any, E any](
 						request *http.Request,
 						input *I,
 					) (*O, error) {
-						return GetInvoke(
+						serviceOutput, err := UnifiedInvoke(
 							writer,
 							request,
 							*input,
-							specification,
-							apiFields,
-							getEntitiesFn,
-							getCountFn,
-							toOutputFn,
+							func(
+								ctx context.Context,
+								parsedInput *ParsedGetEndpointInput,
+							) (*GetServiceOutput[E], error) {
+								return RunGetService(
+									ctx,
+									parsedInput,
+									getEntitiesFn,
+									getCountFn,
+								)
+							},
 						)
+						if err != nil {
+							return nil, err
+						}
+
+						return toOutputFn(
+							serviceOutput.Entities,
+							&serviceOutput.Count,
+						), nil
 					},
 					specification.InputFactory(),
 					selectExpectedErrors(expectedErrors, ExpectedErrorsGet),
-					nil,
-					nil,
-					nil,
+					nil, // errorHandler
+					nil, // objectPicker
+					nil, // validator
 					opts.TraceLoggerFn,
 					opts.ErrorLoggerFn,
 				),
@@ -87,7 +102,7 @@ func GetEndpointDefinition[I IGetInput, O any, E any](
 	}
 }
 
-func UpdateEndpointDefinition[I IUpdateInput, O any](
+func UpdateEndpointDefinition[I ParseableInput[ParsedUpdateEndpointInput], O any](
 	specification IUpdateSpecification[I],
 	apiFields APIFields,
 	updateEntitiesFn UpdateServiceFunc,
@@ -107,21 +122,33 @@ func UpdateEndpointDefinition[I IUpdateInput, O any](
 						request *http.Request,
 						input *I,
 					) (*O, error) {
-						return UpdateInvoke(
+						// Use UnifiedInvoke for Update operation
+						serviceOutput, err := UnifiedInvoke(
 							writer,
 							request,
 							*input,
-							specification,
-							apiFields,
-							updateEntitiesFn,
-							toOutputFn,
+							func(ctx context.Context, parsedInput *ParsedUpdateEndpointInput) (*int64, error) {
+								// Call update service function
+								updatedCount, err := updateEntitiesFn(
+									ctx,
+									parsedInput.DatabaseSelectors,
+									parsedInput.DatabaseUpdates,
+								)
+								return &updatedCount, err
+							},
 						)
+						if err != nil {
+							return nil, err
+						}
+
+						// Convert serviceOutput to endpoint output using toOutputFn
+						return toOutputFn(*serviceOutput), nil
 					},
 					specification.InputFactory(),
 					selectExpectedErrors(expectedErrors, ExpectedErrorsUpdate),
-					nil,
-					nil,
-					nil,
+					nil, // errorHandler
+					nil, // objectPicker
+					nil, // validator
 					opts.TraceLoggerFn,
 					opts.ErrorLoggerFn,
 				),
@@ -130,7 +157,7 @@ func UpdateEndpointDefinition[I IUpdateInput, O any](
 	}
 }
 
-func DeleteEndpointDefinition[I IDeleteInput, O any](
+func DeleteEndpointDefinition[I ParseableInput[ParsedDeleteEndpointInput], O any](
 	specification IDeleteSpecification[I],
 	apiFields APIFields,
 	deleteEntitiesFn DeleteServiceFunc,
@@ -150,21 +177,33 @@ func DeleteEndpointDefinition[I IDeleteInput, O any](
 						request *http.Request,
 						input *I,
 					) (*O, error) {
-						return DeleteInvoke(
+						// Use UnifiedInvoke for Delete operation
+						serviceOutput, err := UnifiedInvoke(
 							writer,
 							request,
 							*input,
-							specification,
-							apiFields,
-							deleteEntitiesFn,
-							toOutputFn,
+							func(ctx context.Context, parsedInput *ParsedDeleteEndpointInput) (*int64, error) {
+								// Call delete service function
+								deletedCount, err := deleteEntitiesFn(
+									ctx,
+									parsedInput.DatabaseSelectors,
+									parsedInput.DeleteOpts,
+								)
+								return &deletedCount, err
+							},
 						)
+						if err != nil {
+							return nil, err
+						}
+
+						// Convert serviceOutput to endpoint output using toOutputFn
+						return toOutputFn(*serviceOutput), nil
 					},
 					specification.InputFactory(),
 					selectExpectedErrors(expectedErrors, ExpectedErrorsDelete),
-					nil,
-					nil,
-					nil,
+					nil, // errorHandler
+					nil, // objectPicker
+					nil, // validator
 					opts.TraceLoggerFn,
 					opts.ErrorLoggerFn,
 				),

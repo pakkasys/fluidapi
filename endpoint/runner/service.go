@@ -19,17 +19,20 @@ type GetCountFunc func(
 	joins []util.Join,
 ) (int, error)
 
+type GetServiceOutput[Output any] struct {
+	Entities []Output
+	Count    int
+}
+
 func RunGetService[Output any](
 	ctx context.Context,
 	parsedEndpoint *ParsedGetEndpointInput,
 	serviceFunc GetServiceFunc[Output],
 	getCountFunc GetCountFunc,
-	joins []util.Join,
-	projections []util.Projection,
-) ([]Output, int, error) {
+) (*GetServiceOutput[Output], error) {
 	if parsedEndpoint.GetCount {
 		if getCountFunc == nil {
-			return nil, 0, fmt.Errorf("GetCountFunc is nil")
+			return nil, fmt.Errorf("GetCountFunc is nil")
 		}
 
 		count, err := getCountFunc(
@@ -38,13 +41,15 @@ func RunGetService[Output any](
 			nil,
 		)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 
-		return nil, count, nil
+		return &GetServiceOutput[Output]{
+			Count: count,
+		}, nil
 	} else {
 		if serviceFunc == nil {
-			return nil, 0, fmt.Errorf("GetServiceFunc is nil")
+			return nil, fmt.Errorf("GetServiceFunc is nil")
 		}
 
 		entities, err := serviceFunc(
@@ -54,15 +59,18 @@ func RunGetService[Output any](
 					Selectors:   parsedEndpoint.DatabaseSelectors,
 					Orders:      parsedEndpoint.Orders,
 					Page:        parsedEndpoint.Page,
-					Joins:       joins,
-					Projections: projections,
+					Joins:       parsedEndpoint.Joins,
+					Projections: parsedEndpoint.Projections,
 				},
 			},
 		)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 
-		return entities, len(entities), nil
+		return &GetServiceOutput[Output]{
+			Entities: entities,
+			Count:    len(entities),
+		}, nil
 	}
 }
