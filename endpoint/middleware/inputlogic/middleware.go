@@ -48,15 +48,20 @@ type IValidator interface {
 	GetErrorStrings(err error) []string
 }
 
+type Options[Input any] struct {
+	ErrorHandler  IErrorHandler
+	ObjectPicker  IObjectPicker[Input]
+	Validator     IValidator
+	TraceLoggerFn func(r *http.Request) func(messages ...any)
+	ErrorLoggerFn func(r *http.Request) func(messages ...any)
+}
+
 func MiddlewareWrapper[Input any, Output any](
 	callback Callback[Input, Output],
 	inputFactory func() *Input,
 	expectedErrors []ExpectedError,
-	errorHandler IErrorHandler,
-	objectPicker IObjectPicker[Input],
-	validator IValidator,
-	traceLoggerFn func(r *http.Request) func(messages ...any),
-	errorLoggerFn func(r *http.Request) func(messages ...any),
+	opts Options[Input],
+
 ) *api.MiddlewareWrapper {
 	return api.NewMiddlewareWrapperBuilder().
 		ID(MiddlewareID).
@@ -64,11 +69,11 @@ func MiddlewareWrapper[Input any, Output any](
 			callback,
 			inputFactory,
 			expectedErrors,
-			errorHandler,
-			objectPicker,
-			validator,
-			traceLoggerFn,
-			errorLoggerFn,
+			opts.ErrorHandler,
+			opts.ObjectPicker,
+			opts.Validator,
+			opts.TraceLoggerFn,
+			opts.ErrorLoggerFn,
 		)).
 		Build()
 }

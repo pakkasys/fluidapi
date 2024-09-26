@@ -1,8 +1,6 @@
 package runner
 
 import (
-	"fmt"
-
 	"github.com/pakkasys/fluidapi/database/entity"
 	databaseutil "github.com/pakkasys/fluidapi/database/util"
 	"github.com/pakkasys/fluidapi/endpoint/dbfield"
@@ -12,12 +10,12 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/update"
 )
 
+type APIFields map[string]dbfield.DBField
+
 type ParsedGetEndpointInput struct {
 	Orders            []databaseutil.Order
 	DatabaseSelectors []databaseutil.Selector
 	Page              *page.InputPage
-	Joins             []databaseutil.Join
-	Projections       []databaseutil.Projection
 	GetCount          bool
 }
 
@@ -32,34 +30,38 @@ type ParsedDeleteEndpointInput struct {
 	DeleteOpts        *entity.DeleteOptions
 }
 
-func ParseGetEndpointInput[Input any](
-	endpointInput IGetInput,
-	specification IGetSpecification[Input],
+func ParseGetEndpointInput(
 	apiFields APIFields,
+	selectors []selector.InputSelector,
+	allowedSelectors map[string]selector.APISelector,
+	orders []order.Order,
+	allowedOrderFields []string,
+	inputPage *page.InputPage,
+	maxPageCount int,
+	getCount bool,
 ) (*ParsedGetEndpointInput, error) {
-	orders, err := order.ValidateAndTranslateToDatabaseOrders(
-		endpointInput.GetOrders(),
-		specification.AllowedOrderFields(),
+	dbOrders, err := order.ValidateAndTranslateToDatabaseOrders(
+		orders,
+		allowedOrderFields,
 		apiFields,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	inputPage := endpointInput.GetPage()
 	if inputPage == nil {
 		inputPage = &page.InputPage{
 			Offset: 0,
-			Limit:  specification.MaxPageCount(),
+			Limit:  maxPageCount,
 		}
 	}
-	if err := inputPage.Validate(specification.MaxPageCount()); err != nil {
+	if err := inputPage.Validate(maxPageCount); err != nil {
 		return nil, err
 	}
 
 	databaseSelectors, err := handleDatabaseSelectors(
-		endpointInput.GetSelectors(),
-		specification.AllowedSelectors(),
+		selectors,
+		allowedSelectors,
 		apiFields,
 	)
 	if err != nil {
@@ -67,21 +69,24 @@ func ParseGetEndpointInput[Input any](
 	}
 
 	return &ParsedGetEndpointInput{
-		Orders:            orders,
+		Orders:            dbOrders,
 		DatabaseSelectors: databaseSelectors,
 		Page:              inputPage,
-		GetCount:          endpointInput.GetGetCount(),
+		GetCount:          getCount,
 	}, nil
 }
 
-func ParseUpdateEndpointInput[Input any](
-	endpointInput IUpdateInput,
-	specification IUpdateSpecification[Input],
+func ParseUpdateEndpointInput(
 	apiFields APIFields,
+	selectors []selector.InputSelector,
+	allowedSelectors map[string]selector.APISelector,
+	updates []update.InputUpdate,
+	allowedUpdates map[string]update.APIUpdate,
+	upsert bool,
 ) (*ParsedUpdateEndpointInput, error) {
 	databaseSelectors, err := handleDatabaseSelectors(
-		endpointInput.GetSelectors(),
-		specification.AllowedSelectors(),
+		selectors,
+		allowedSelectors,
 		apiFields,
 	)
 	if err != nil {
@@ -92,8 +97,8 @@ func ParseUpdateEndpointInput[Input any](
 	}
 
 	databaseUpdates, err := update.GetDatabaseUpdatesFromUpdates(
-		endpointInput.GetUpdates(),
-		specification.AllowedUpdates(),
+		updates,
+		allowedUpdates,
 		apiFields,
 	)
 	if err != nil {
@@ -103,12 +108,6 @@ func ParseUpdateEndpointInput[Input any](
 		return nil, update.NeedAtLeastOneUpdateError()
 	}
 
-	var upsert bool
-	upsertInput, ok := endpointInput.(IUpsertInput)
-	if ok {
-		upsert = upsertInput.GetUpsert()
-	}
-
 	return &ParsedUpdateEndpointInput{
 		DatabaseSelectors: databaseSelectors,
 		DatabaseUpdates:   databaseUpdates,
@@ -116,14 +115,17 @@ func ParseUpdateEndpointInput[Input any](
 	}, nil
 }
 
-func ParseDeleteEndpointInput[Input any](
-	endpointInput IDeleteInput,
-	specification IDeleteSpecification[Input],
+func ParseDeleteEndpointInput(
 	apiFields APIFields,
+	selectors []selector.InputSelector,
+	allowedSelectors map[string]selector.APISelector,
+	orders []order.Order,
+	allowedOrderFields []string,
+	limit int,
 ) (*ParsedDeleteEndpointInput, error) {
 	databaseSelectors, err := handleDatabaseSelectors(
-		endpointInput.GetSelectors(),
-		specification.AllowedSelectors(),
+		selectors,
+		allowedSelectors,
 		apiFields,
 	)
 	if err != nil {
@@ -133,34 +135,21 @@ func ParseDeleteEndpointInput[Input any](
 		return nil, selector.NeedAtLeastOneSelectorError()
 	}
 
-	orders := []databaseutil.Order{}
-	ordersObj, ok := endpointInput.(order.IOrderable)
-	if ok {
-		orderableSpec, ok := specification.(IDeleteSpecificationOrderable[Input])
-		if !ok {
-			return nil, fmt.Errorf("delete specification is not orderable")
-		}
-
-		orders, err = order.ValidateAndTranslateToDatabaseOrders(
-			ordersObj.GetOrders(),
-			orderableSpec.AllowedOrderFields(),
-			apiFields,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-	}
-
-	limit := 0
-	limitObj, ok := endpointInput.(ILimitable)
-	if ok {
-		limit = limitObj.GetLimit()
+	dbOrders, err := order.ValidateAndTranslateToDatabaseOrders(
+		orders,
+		allowedOrderFields,
+		apiFields,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	return &ParsedDeleteEndpointInput{
 		DatabaseSelectors: databaseSelectors,
-		DeleteOpts:        &entity.DeleteOptions{Limit: limit, Orders: orders},
+		DeleteOpts: &entity.DeleteOptions{
+			Limit:  limit,
+			Orders: dbOrders,
+		},
 	}, nil
 }
 

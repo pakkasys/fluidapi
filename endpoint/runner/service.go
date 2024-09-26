@@ -8,69 +8,61 @@ import (
 	"github.com/pakkasys/fluidapi/database/util"
 )
 
-type GetServiceFunc[Output any] func(
+type getServiceFunc[Output any] func(
 	ctx context.Context,
 	opts entity.GetOptions,
 ) ([]Output, error)
 
-type GetCountFunc func(
+type getCountFunc func(
 	ctx context.Context,
 	selectors []util.Selector,
 	joins []util.Join,
 ) (int, error)
 
-type GetServiceOutput[Output any] struct {
-	Entities []Output
-	Count    int
-}
-
-func RunGetService[Output any](
+func runGetService[Output any](
 	ctx context.Context,
 	parsedEndpoint *ParsedGetEndpointInput,
-	serviceFunc GetServiceFunc[Output],
-	getCountFunc GetCountFunc,
-) (*GetServiceOutput[Output], error) {
+	serviceFn getServiceFunc[Output],
+	getCountFn getCountFunc,
+	joins []util.Join,
+	projections []util.Projection,
+) ([]Output, int, error) {
 	if parsedEndpoint.GetCount {
-		if getCountFunc == nil {
-			return nil, fmt.Errorf("GetCountFunc is nil")
+		if getCountFn == nil {
+			return nil, 0, fmt.Errorf("GetCountFunc is nil")
 		}
 
-		count, err := getCountFunc(
+		count, err := getCountFn(
 			ctx,
 			parsedEndpoint.DatabaseSelectors,
 			nil,
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
-		return &GetServiceOutput[Output]{
-			Count: count,
-		}, nil
+		return nil, count, nil
 	} else {
-		if serviceFunc == nil {
-			return nil, fmt.Errorf("GetServiceFunc is nil")
+		if serviceFn == nil {
+			return nil, 0, fmt.Errorf("GetServiceFunc is nil")
 		}
 
-		entities, err := serviceFunc(
+		entities, err := serviceFn(
 			ctx,
 			entity.GetOptions{
 				Options: entity.Options{
 					Selectors:   parsedEndpoint.DatabaseSelectors,
 					Orders:      parsedEndpoint.Orders,
 					Page:        parsedEndpoint.Page,
-					Joins:       parsedEndpoint.Joins,
-					Projections: parsedEndpoint.Projections,
+					Joins:       joins,
+					Projections: projections,
 				},
 			},
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
-		return &GetServiceOutput[Output]{
-			Entities: entities,
-			Count:    len(entities),
-		}, nil
+		return entities, len(entities), nil
 	}
 }
