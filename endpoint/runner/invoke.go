@@ -41,8 +41,8 @@ func GetInvoke[I ParseableInput[ParsedGetEndpointInput], O any, E any](
 	writer http.ResponseWriter,
 	request *http.Request,
 	input I,
-	serviceFn getServiceFunc[E],
-	getCountFn getCountFunc,
+	serviceFn GetServiceFunc[E],
+	getCountFn GetCountFunc,
 	toEndpointOutputFn ToGetEndpointOutput[E, O],
 ) (*O, error) {
 	parsedInput, err := input.Parse()

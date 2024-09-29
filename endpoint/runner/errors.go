@@ -11,7 +11,7 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/update"
 )
 
-var ExpectedErrorsCreate []inputlogic.ExpectedError = []inputlogic.ExpectedError{
+var CreateErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 	{
 		ErrorID:       errors.DUPLICATE_ENTRY_ERROR_ID,
 		StatusCode:    http.StatusBadRequest,
@@ -24,7 +24,7 @@ var ExpectedErrorsCreate []inputlogic.ExpectedError = []inputlogic.ExpectedError
 	},
 }
 
-var ExpectedErrorsGet []inputlogic.ExpectedError = []inputlogic.ExpectedError{
+var GetErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 	{
 		ErrorID:       selector.INVALID_PREDICATE_ERROR_ID,
 		StatusCode:    http.StatusBadRequest,
@@ -52,7 +52,7 @@ var ExpectedErrorsGet []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 	},
 }
 
-var ExpectedErrorsUpdate []inputlogic.ExpectedError = []inputlogic.ExpectedError{
+var UpdateErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 	{
 		ErrorID:       selector.INVALID_PREDICATE_ERROR_ID,
 		StatusCode:    http.StatusBadRequest,
@@ -100,7 +100,7 @@ var ExpectedErrorsUpdate []inputlogic.ExpectedError = []inputlogic.ExpectedError
 	},
 }
 
-var ExpectedErrorsDelete []inputlogic.ExpectedError = []inputlogic.ExpectedError{
+var DeleteErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 	{
 		ErrorID:       selector.INVALID_PREDICATE_ERROR_ID,
 		StatusCode:    http.StatusBadRequest,

@@ -32,6 +32,7 @@ func WithMethod(method string) Option {
 }
 
 // WithMiddlewareWrappers clones an endpoint definition with the provided
+// middleware wrappers
 func WithMiddlewareWrappers(
 	middlewareWrappers middleware.Stack,
 ) Option {
@@ -41,6 +42,7 @@ func WithMiddlewareWrappers(
 }
 
 // WithMiddlewareWrappersFunc clones an endpoint definition with the provided
+// middleware wrappers
 func WithMiddlewareWrappersFunc(
 	middlewareWrappersFunc func(
 		endpointDefinition *EndpointDefinition,

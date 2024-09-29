@@ -64,8 +64,8 @@ func GenericEndpointDefinition[I any, O any, W any](
 
 func GetEndpointDefinition[I ParseableInput[ParsedGetEndpointInput], O any, E any, W any](
 	specification InputSpecification[I],
-	getEntitiesFn getServiceFunc[E],
-	getCountFn getCountFunc,
+	getEntitiesFn GetServiceFunc[E],
+	getCountFn GetCountFunc,
 	toOutputFn ToGetEndpointOutput[E, O],
 	expectedErrors []inputlogic.ExpectedError,
 	stackBuilderFactoryFn StackBuilderFactory,

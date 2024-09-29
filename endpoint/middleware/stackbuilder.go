@@ -6,5 +6,5 @@ import (
 
 type StackBuilder interface {
 	Build() Stack
-	MustAddMiddleware(wrapper api.MiddlewareWrapper) StackBuilder
+	MustAddMiddleware(wrapper ...api.MiddlewareWrapper) StackBuilder
 }

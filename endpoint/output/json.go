@@ -42,6 +42,9 @@ func HandleSendError[I any, O any](
 // APIPayload returns the payload of the API response if there are no errors.
 // Otherwise, it returns nil.
 func APIPayload[I any, O any](output *client.Response[I, Output[O]]) *O {
+	if output == nil {
+		return nil
+	}
 	if APIError(output) != nil {
 		return nil
 	}
@@ -55,6 +58,9 @@ func APIPayload[I any, O any](output *client.Response[I, Output[O]]) *O {
 func APIError[I any, O any](
 	output *client.Response[I, Output[O]],
 ) *api.Error {
+	if output == nil {
+		return nil
+	}
 	if output.Output == nil {
 		return nil
 	}

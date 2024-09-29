@@ -8,20 +8,17 @@ type Stack []api.MiddlewareWrapper
 //
 //   - id: The ID of the middleware to insert after.
 //   - wrapper: The middleware wrapper to insert.
-func (ms *Stack) InsertAfterID(
-	id string,
-	wrapper api.MiddlewareWrapper,
-) bool {
-	for i, mw := range *ms {
+func (s *Stack) InsertAfterID(id string, wrapper api.MiddlewareWrapper) bool {
+	for i, mw := range *s {
 		if mw.ID == id {
-			if i == len(*ms)-1 {
-				*ms = append(*ms, wrapper)
+			if i == len(*s)-1 {
+				*s = append(*s, wrapper)
 			} else {
-				*ms = append(
-					(*ms)[:i+1],
+				*s = append(
+					(*s)[:i+1],
 					append(
 						[]api.MiddlewareWrapper{wrapper},
-						(*ms)[i+1:]...,
+						(*s)[i+1:]...,
 					)...,
 				)
 			}

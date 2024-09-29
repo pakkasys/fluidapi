@@ -8,12 +8,12 @@ import (
 	"github.com/pakkasys/fluidapi/database/util"
 )
 
-type getServiceFunc[Output any] func(
+type GetServiceFunc[Output any] func(
 	ctx context.Context,
 	opts entity.GetOptions,
 ) ([]Output, error)
 
-type getCountFunc func(
+type GetCountFunc func(
 	ctx context.Context,
 	selectors []util.Selector,
 	joins []util.Join,
@@ -22,8 +22,8 @@ type getCountFunc func(
 func runGetService[Output any](
 	ctx context.Context,
 	parsedEndpoint *ParsedGetEndpointInput,
-	serviceFn getServiceFunc[Output],
-	getCountFn getCountFunc,
+	serviceFn GetServiceFunc[Output],
+	getCountFn GetCountFunc,
 	joins []util.Join,
 	projections []util.Projection,
 ) ([]Output, int, error) {

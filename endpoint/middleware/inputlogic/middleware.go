@@ -27,9 +27,9 @@ var internalExpectedErrors []ExpectedError = []ExpectedError{
 }
 
 type Callback[Input any, Output any] func(
-	writer http.ResponseWriter,
-	request *http.Request,
-	input *Input,
+	wrappers http.ResponseWriter,
+	r *http.Request,
+	i *Input,
 ) (*Output, error)
 
 type IErrorHandler interface {
