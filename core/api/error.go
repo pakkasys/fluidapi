@@ -1,5 +1,13 @@
 package api
 
+// APIError represents an error returned by the API.
+type APIError interface {
+	Error() string
+	GetID() string
+	GetData() any
+	GetMessage() string
+}
+
 // Error represents a JSON marshalable custom error type with an ID and optional
 // data.
 type Error[T any] struct {
@@ -37,4 +45,19 @@ func (e *Error[T]) Error() string {
 		return e.ID + ": " + e.Message
 	}
 	return e.ID
+}
+
+// GetID returns the ID of the error.
+func (e *Error[T]) GetID() string {
+	return e.ID
+}
+
+// GetData returns the data of the error.
+func (e *Error[T]) GetData() any {
+	return e.Data
+}
+
+// GetMessage returns the message of the error.
+func (e *Error[T]) GetMessage() string {
+	return e.Message
 }

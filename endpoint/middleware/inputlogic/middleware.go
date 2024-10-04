@@ -1,6 +1,7 @@
 package inputlogic
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
 
@@ -41,8 +42,8 @@ type IObjectPicker[T any] interface {
 }
 
 type ILogger interface {
-	Tracef(message string, params ...any)
-	Errorf(message string, params ...any)
+	Trace(message ...any)
+	Error(message ...any)
 }
 
 // IOutputHandler represents an interface for processing and sending output
@@ -172,12 +173,12 @@ func handleError(
 	statusCode, outError := ErrorHandler{}.Handle(handleError, expectedErrors)
 
 	if loggerFn != nil {
-		loggerFn(r).Tracef(
+		loggerFn(r).Trace(fmt.Sprintf(
 			"Error handler, status code: %d, callback error: %s, output error: %s",
 			statusCode,
 			handleError,
 			outError,
-		)
+		))
 	}
 
 	handleOutput(w, r, nil, outError, statusCode, outputHandler, loggerFn)
@@ -195,7 +196,7 @@ func handleInput[Input ValidatedInput](
 		return nil, err
 	}
 	if loggerFn != nil {
-		loggerFn(r).Tracef("Picked object: %v", *input)
+		loggerFn(r).Trace("Picked object", *input)
 	}
 
 	validationErrors := (*input).Validate()
@@ -221,10 +222,10 @@ func handleOutput(
 
 	if err != nil {
 		if loggerFn != nil {
-			loggerFn(r).Errorf(
+			loggerFn(r).Error(fmt.Sprintf(
 				"Error processing output: %s",
 				err,
-			)
+			))
 		}
 		w.WriteHeader(http.StatusInternalServerError)
 		return

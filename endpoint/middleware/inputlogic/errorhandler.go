@@ -27,7 +27,7 @@ func (e ErrorHandler) Handle(
 	handleError error,
 	expectedErrors []ExpectedError,
 ) (int, *api.Error[any]) {
-	apiError, ok := handleError.(*api.Error[any])
+	apiError, ok := handleError.(api.APIError)
 	if !ok {
 		return http.StatusInternalServerError, InternalServerError
 	}
@@ -35,11 +35,10 @@ func (e ErrorHandler) Handle(
 }
 
 func (e *ErrorHandler) handleAPIError(
-	apiError *api.Error[any],
+	apiError api.APIError,
 	expectedErrors []ExpectedError,
 ) (int, *api.Error[any]) {
 	expectedError := e.getExpectedError(apiError, expectedErrors)
-
 	if expectedError == nil {
 		return http.StatusInternalServerError, InternalServerError
 	}
@@ -47,11 +46,11 @@ func (e *ErrorHandler) handleAPIError(
 }
 
 func (e *ErrorHandler) getExpectedError(
-	apiError *api.Error[any],
+	apiError api.APIError,
 	expectedErrors []ExpectedError,
 ) *ExpectedError {
 	for i := range expectedErrors {
-		if apiError.ID == expectedErrors[i].ID {
+		if apiError.GetID() == expectedErrors[i].ID {
 			return &expectedErrors[i]
 		}
 	}
@@ -59,7 +58,7 @@ func (e *ErrorHandler) getExpectedError(
 }
 
 func (expectedError *ExpectedError) maskAPIError(
-	apiError *api.Error[any],
+	apiError api.APIError,
 ) (int, *api.Error[any]) {
 	var useErrorID string
 	if expectedError.MaskedID != nil {
@@ -70,7 +69,7 @@ func (expectedError *ExpectedError) maskAPIError(
 
 	var useData any
 	if expectedError.PublicData {
-		useData = apiError.Data
+		useData = apiError.GetData()
 	} else {
 		useData = nil
 	}

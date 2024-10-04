@@ -42,12 +42,12 @@ type MockLogger struct {
 	mock.Mock
 }
 
-func (m *MockLogger) Tracef(message string, params ...any) {
-	m.Called(message, params)
+func (m *MockLogger) Trace(messages ...any) {
+	m.Called(messages)
 }
 
-func (m *MockLogger) Errorf(message string, params ...any) {
-	m.Called(message, params)
+func (m *MockLogger) Error(messages ...any) {
+	m.Called(messages)
 }
 
 // MockValidatedInput is a mock implementation of the ValidatedInput interface.
