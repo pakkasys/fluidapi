@@ -42,9 +42,9 @@ func TestErrorHandler_Handle_ExpectedAPIError(t *testing.T) {
 
 	expectedErrors := []ExpectedError{
 		{
-			ErrorID:       "EXPECTED_ERROR",
-			StatusCode:    http.StatusBadRequest,
-			DataIsVisible: true,
+			ID:         "EXPECTED_ERROR",
+			Status:     http.StatusBadRequest,
+			PublicData: true,
 		},
 	}
 
@@ -65,10 +65,10 @@ func TestErrorHandler_Handle_ExpectedAPIError_MaskedID(t *testing.T) {
 	maskedErrorID := "MASKED_ERROR"
 	expectedErrors := []ExpectedError{
 		{
-			ErrorID:       "EXPECTED_ERROR",
-			MaskedErrorID: &maskedErrorID,
-			StatusCode:    http.StatusForbidden,
-			DataIsVisible: false,
+			ID:         "EXPECTED_ERROR",
+			MaskedID:   &maskedErrorID,
+			Status:     http.StatusForbidden,
+			PublicData: false,
 		},
 	}
 
@@ -96,13 +96,13 @@ func TestErrorHandler_GetExpectedError_Found(t *testing.T) {
 	err := api.NewError[any]("ERROR_ID")
 
 	expectedErrors := []ExpectedError{
-		{ErrorID: "ERROR_ID"},
+		{ID: "ERROR_ID"},
 	}
 
 	expectedError := handler.getExpectedError(err, expectedErrors)
 
 	assert.NotNil(t, expectedError)
-	assert.Equal(t, "ERROR_ID", expectedError.ErrorID)
+	assert.Equal(t, "ERROR_ID", expectedError.ID)
 }
 
 func TestErrorHandler_GetExpectedError_NotFound(t *testing.T) {
@@ -111,7 +111,7 @@ func TestErrorHandler_GetExpectedError_NotFound(t *testing.T) {
 	err := api.NewError[any]("ERROR_ID")
 
 	expectedErrors := []ExpectedError{
-		{ErrorID: "OTHER_ERROR_ID"},
+		{ID: "OTHER_ERROR_ID"},
 	}
 
 	expectedError := handler.getExpectedError(err, expectedErrors)
@@ -124,9 +124,9 @@ func TestExpectedError_MaskAPIError_DataVisible(t *testing.T) {
 	err.Data = "Error details"
 
 	expectedError := &ExpectedError{
-		ErrorID:       "ERROR_ID",
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
+		ID:         "ERROR_ID",
+		Status:     http.StatusBadRequest,
+		PublicData: true,
 	}
 
 	statusCode, apiErr := expectedError.maskAPIError(err)
@@ -142,10 +142,10 @@ func TestExpectedError_MaskAPIError_DataNotVisible(t *testing.T) {
 
 	maskedID := "MASKED_ID"
 	expectedError := &ExpectedError{
-		ErrorID:       "ERROR_ID",
-		MaskedErrorID: &maskedID,
-		StatusCode:    http.StatusUnauthorized,
-		DataIsVisible: false,
+		ID:         "ERROR_ID",
+		MaskedID:   &maskedID,
+		Status:     http.StatusUnauthorized,
+		PublicData: false,
 	}
 
 	statusCode, apiErr := expectedError.maskAPIError(err)

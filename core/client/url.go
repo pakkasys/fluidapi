@@ -45,11 +45,16 @@ func (s *minSlice) toSlice() []any {
 	return slice
 }
 
+// TODO: Test order preservation
 // Decodes URL from the following syntax:
 // someKey=value
 // someStruct.field=value
 // someSlice[0]=value
 // someStruct[0].key=value
+//
+// It will preserve the order of the fields in the struct.
+//
+//   - values: URL values
 func DecodeURL(values url.Values) (map[string]any, error) {
 	urlData := make(map[string]any)
 	depth := 0
@@ -76,12 +81,19 @@ func convertMinSlicesToRegularSlices(data map[string]any) {
 	}
 }
 
+// TODO: Test order preservation
 // Encodes URL into the following syntax:
 // someKey=value
 // someStruct.field=value
 // someSlice[0]=value
 // someStruct[0].key=value
+//
+// It will preserve the order of the fields in the struct.
 // It will return an error if a json tag is not found for a struct field.
+//
+//   - values: URL values
+//   - fieldTag: json tag of the struct field
+//   - v: value of the struct field
 func EncodeURL(values *url.Values, fieldTag string, v reflect.Value) error {
 	return encodeValue(values, fieldTag, v)
 }

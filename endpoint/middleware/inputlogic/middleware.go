@@ -7,21 +7,15 @@ import (
 
 	"github.com/pakkasys/fluidapi/core/api"
 	endpointoutput "github.com/pakkasys/fluidapi/endpoint/output"
-	"github.com/pakkasys/fluidapi/endpoint/util"
 )
 
 const MiddlewareID = "inputlogic"
 
 var internalExpectedErrors []ExpectedError = []ExpectedError{
 	{
-		ErrorID:       util.InvalidInputError.ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: false,
-	},
-	{
-		ErrorID:       ValidationError.ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
+		ID:         ValidationError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
 	},
 }
 
@@ -81,7 +75,7 @@ func Middleware[Input ValidatedInput, Output any](
 	errorLoggerFn func(r *http.Request) func(messages ...any),
 ) api.Middleware {
 	if objectPicker == nil {
-		objectPicker = &util.ObjectPicker[Input]{}
+		panic("object picker cannot be nil")
 	}
 	allExpectedErrors := slices.Concat(internalExpectedErrors, expectedErrors)
 

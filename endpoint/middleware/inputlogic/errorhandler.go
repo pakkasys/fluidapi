@@ -14,10 +14,10 @@ type ErrorHandler struct{}
 // ExpectedError represents an expected error configuration.
 // It defines how to handle specific errors that are anticipated.
 type ExpectedError struct {
-	ErrorID       string  // The ID of the expected error.
-	MaskedErrorID *string // An optional ID to mask the original error ID in the response.
-	StatusCode    int     // The HTTP status code to return for this error.
-	DataIsVisible bool    // Whether to include the error data in the response.
+	ID         string  // The ID of the expected error.
+	MaskedID   *string // An optional ID to mask the original error ID in the response.
+	Status     int     // The HTTP status code to return for this error.
+	PublicData bool    // Whether to include the error data in the response.
 }
 
 // Handle processes an error and returns the corresponding HTTP status code and
@@ -51,7 +51,7 @@ func (e *ErrorHandler) getExpectedError(
 	expectedErrors []ExpectedError,
 ) *ExpectedError {
 	for i := range expectedErrors {
-		if apiError.ID == expectedErrors[i].ErrorID {
+		if apiError.ID == expectedErrors[i].ID {
 			return &expectedErrors[i]
 		}
 	}
@@ -62,18 +62,18 @@ func (expectedError *ExpectedError) maskAPIError(
 	apiError *api.Error[any],
 ) (int, *api.Error[any]) {
 	var useErrorID string
-	if expectedError.MaskedErrorID != nil {
-		useErrorID = *expectedError.MaskedErrorID
+	if expectedError.MaskedID != nil {
+		useErrorID = *expectedError.MaskedID
 	} else {
-		useErrorID = expectedError.ErrorID
+		useErrorID = expectedError.ID
 	}
 
 	var useData any
-	if expectedError.DataIsVisible {
+	if expectedError.PublicData {
 		useData = apiError.Data
 	} else {
 		useData = nil
 	}
 
-	return expectedError.StatusCode, &api.Error[any]{ID: useErrorID, Data: useData}
+	return expectedError.Status, &api.Error[any]{ID: useErrorID, Data: useData}
 }
