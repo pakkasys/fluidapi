@@ -51,10 +51,10 @@ type panicData struct {
 func PanicHandlerMiddlewareWrapper(
 	loggerFn func(r *http.Request) func(messages ...any),
 ) *api.MiddlewareWrapper {
-	return api.NewMiddlewareWrapperBuilder().
-		ID(PanicHandlerMiddlewareID).
-		Middleware(PanicHandlerMiddleware(loggerFn)).
-		Build()
+	return &api.MiddlewareWrapper{
+		ID:         PanicHandlerMiddlewareID,
+		Middleware: PanicHandlerMiddleware(loggerFn),
+	}
 }
 
 func PanicHandlerMiddleware(

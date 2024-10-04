@@ -33,12 +33,14 @@ func CORSMiddlewareWrapper(
 	allowedMethods []string,
 	allowedHeaders []string,
 ) *api.MiddlewareWrapper {
-	return api.NewMiddlewareWrapperBuilder().
-		ID(CORSMiddlewareID).
-		Middleware(
-			CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders),
-		).
-		Build()
+	return &api.MiddlewareWrapper{
+		ID: CORSMiddlewareID,
+		Middleware: CORSMiddleware(
+			allowedOrigins,
+			allowedMethods,
+			allowedHeaders,
+		),
+	}
 }
 
 // CORSMiddleware creates a new CORS middleware

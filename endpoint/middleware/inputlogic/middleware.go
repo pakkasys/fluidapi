@@ -47,7 +47,6 @@ type IObjectPicker[T any] interface {
 }
 
 type Options[Input any] struct {
-	ErrorHandler  IErrorHandler
 	ObjectPicker  IObjectPicker[Input]
 	TraceLoggerFn func(r *http.Request) func(messages ...any)
 	ErrorLoggerFn func(r *http.Request) func(messages ...any)
@@ -59,32 +58,28 @@ func MiddlewareWrapper[Input ValidatedInput, Output any](
 	expectedErrors []ExpectedError,
 	opts Options[Input],
 ) *api.MiddlewareWrapper {
-	return api.NewMiddlewareWrapperBuilder().
-		ID(MiddlewareID).
-		Middleware(Middleware(
+	return &api.MiddlewareWrapper{
+		ID: MiddlewareID,
+		Middleware: Middleware(
 			callback,
 			inputFactory,
 			expectedErrors,
-			opts.ErrorHandler,
 			opts.ObjectPicker,
 			opts.TraceLoggerFn,
 			opts.ErrorLoggerFn,
-		)).
-		Build()
+		),
+		Inputs: []any{*inputFactory()},
+	}
 }
 
 func Middleware[Input ValidatedInput, Output any](
 	callback Callback[Input, Output],
 	inputFactory func() *Input,
 	expectedErrors []ExpectedError,
-	errorHandler IErrorHandler,
 	objectPicker IObjectPicker[Input],
 	traceLoggerFn func(r *http.Request) func(messages ...any),
 	errorLoggerFn func(r *http.Request) func(messages ...any),
 ) api.Middleware {
-	if errorHandler == nil {
-		errorHandler = &ErrorHandler{}
-	}
 	if objectPicker == nil {
 		objectPicker = &util.ObjectPicker[Input]{}
 	}
@@ -104,7 +99,7 @@ func Middleware[Input ValidatedInput, Output any](
 
 			var outputError error
 			if callbackError != nil {
-				statusCode, outputError = errorHandler.Handle(
+				statusCode, outputError = ErrorHandler{}.Handle(
 					callbackError,
 					allExpectedErrors,
 				)

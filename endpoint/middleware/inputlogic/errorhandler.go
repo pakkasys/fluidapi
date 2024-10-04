@@ -23,7 +23,7 @@ type ExpectedError struct {
 // Handle processes an error and returns the corresponding HTTP status code and
 // API error. It checks if the error is an *api.Error[any] and handles it
 // accordingly.
-func (e *ErrorHandler) Handle(
+func (e ErrorHandler) Handle(
 	handleError error,
 	expectedErrors []ExpectedError,
 ) (int, *api.Error[any]) {

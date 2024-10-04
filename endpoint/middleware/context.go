@@ -12,10 +12,10 @@ const ContextMiddlewareID = "context"
 
 // ContextMiddlewareWrapper is the middleware wrapper for the context middleware
 func ContextMiddlewareWrapper() *api.MiddlewareWrapper {
-	return api.NewMiddlewareWrapperBuilder().
-		ID(ContextMiddlewareID).
-		Middleware(ContextMiddleware()).
-		Build()
+	return &api.MiddlewareWrapper{
+		ID:         ContextMiddlewareID,
+		Middleware: ContextMiddleware(),
+	}
 }
 
 // ContextMiddleware is the middleware for the context middleware

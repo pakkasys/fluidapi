@@ -15,10 +15,10 @@ var (
 )
 
 func ResponseWrapperMiddlewareWrapper() *api.MiddlewareWrapper {
-	return api.NewMiddlewareWrapperBuilder().
-		ID(ResponseWrapperMiddlewareID).
-		Middleware(ResponseWrapperMiddleware()).
-		Build()
+	return &api.MiddlewareWrapper{
+		ID:         ResponseWrapperMiddlewareID,
+		Middleware: ResponseWrapperMiddleware(),
+	}
 }
 
 func ResponseWrapperMiddleware() api.Middleware {

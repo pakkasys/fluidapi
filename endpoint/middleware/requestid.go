@@ -26,10 +26,10 @@ type RequestMetadata struct {
 func RequestIDMiddlewareWrapper(
 	requestIDFn func() string,
 ) *api.MiddlewareWrapper {
-	return api.NewMiddlewareWrapperBuilder().
-		ID(RequestIDMiddlewareID).
-		Middleware(RequestIDMiddleware(requestIDFn)).
-		Build()
+	return &api.MiddlewareWrapper{
+		ID:         RequestIDMiddlewareID,
+		Middleware: RequestIDMiddleware(requestIDFn),
+	}
 }
 
 func RequestIDMiddleware(requestIDFn func() string) api.Middleware {

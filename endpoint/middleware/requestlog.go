@@ -20,10 +20,10 @@ type requestLog struct {
 func RequestLogMiddlewareWrapper(
 	requestLoggerFn func(r *http.Request) func(messages ...any),
 ) *api.MiddlewareWrapper {
-	return api.NewMiddlewareWrapperBuilder().
-		ID(RequestLogMiddlewareID).
-		Middleware(RequestLogMiddleware(requestLoggerFn)).
-		Build()
+	return &api.MiddlewareWrapper{
+		ID:         RequestLogMiddlewareID,
+		Middleware: RequestLogMiddleware(requestLoggerFn),
+	}
 }
 
 func RequestLogMiddleware(
