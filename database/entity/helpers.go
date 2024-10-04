@@ -13,13 +13,13 @@ type UpsertOptions struct {
 	UpdateProjection []util.Projection
 }
 
-// UpdateOptions contains a list of update options.
-type UpdateOptionList []UpdateOptions
+// Updates contains a list of updates.
+type Updates []Update
 
 // GetByField returns update with the given field.
 //
 //   - field: the field to search for
-func (s UpdateOptionList) GetByField(field string) *UpdateOptions {
+func (s Updates) GetByField(field string) *Update {
 	for j := range s {
 		if s[j].Field == field {
 			return &s[j]
@@ -33,7 +33,7 @@ type UpdateHandler struct {
 	// Timestamp field indicating when the entity was last updated
 	UpdatedField string
 	// Function that returns a new UpdateOptions for the timestamp field
-	GetUpdateOptionsFn func() UpdateOptions
+	GetUpdateOptionsFn func() Update
 }
 
 // TXHelpers is a convenience struct for working with transactions.
@@ -73,6 +73,8 @@ type EntityHelpers[T any] struct {
 	EntityNotFoundFn func() error
 	// UpdateHandler is an optional handler for entity updates
 	UpdateHandler *UpdateHandler
+	// SQLUtil is a utility for working with SQL
+	SQLUtil SQLUtil
 }
 
 // CreateEntity is a generic function for creating or upserting an entity.
@@ -92,12 +94,19 @@ func (e *EntityHelpers[T]) CreateEntity(
 			object,
 			e.InserterFn,
 			opts.UpdateProjection,
+			e.SQLUtil,
 		)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		_, err := CreateEntity(object, preparer, e.TableName, e.InserterFn)
+		_, err := CreateEntity(
+			object,
+			preparer,
+			e.TableName,
+			e.InserterFn,
+			e.SQLUtil,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -143,12 +152,19 @@ func (e *EntityHelpers[T]) CreateEntities(
 			entities,
 			e.InserterFn,
 			opts.UpdateProjection,
+			e.SQLUtil,
 		)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		_, err := CreateEntities(entities, preparer, e.TableName, e.InserterFn)
+		_, err := CreateEntities(
+			entities,
+			preparer,
+			e.TableName,
+			e.InserterFn,
+			e.SQLUtil,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -216,6 +232,34 @@ func (e *EntityHelpers[T]) GetEntityWithManagedTransaction(
 	)
 }
 
+// GetEntities is a generic function for getting multiple entities.
+//
+//   - preparer: The preparer used to prepare the query.
+//   - opts: The options struct for getting the entities.
+func (e *EntityHelpers[T]) GetEntities(
+	preparer util.Preparer,
+	opts GetOptions,
+) ([]T, error) {
+	return GetEntities(e.TableName, e.ScanRowsFn, preparer, &opts)
+}
+
+// GetEntitiesWithManagedTransaction wraps entity get in a transaction.
+//
+//   - ctx: The context to use when getting and setting the transaction.
+//   - opts: The options struct for getting the entities.
+func (e *EntityHelpers[T]) GetEntitiesWithManagedTransaction(
+	ctx context.Context,
+	opts GetOptions,
+) ([]T, error) {
+	return transaction.ExecuteManagedTransaction(
+		ctx,
+		e.GetTxFn,
+		func(tx util.Tx) ([]T, error) {
+			return e.GetEntities(tx, opts)
+		},
+	)
+}
+
 // GetEntityCount is a generic function for getting the count of entities.
 //
 //   - preparer: The preparer used to prepare the query.
@@ -255,35 +299,7 @@ func (e *EntityHelpers[T]) GetEntityCountWithManagedTransaction(
 	)
 }
 
-// GetEntities is a generic function for getting multiple entities.
-//
-//   - preparer: The preparer used to prepare the query.
-//   - opts: The options struct for getting the entities.
-func (e *EntityHelpers[T]) GetEntities(
-	preparer util.Preparer,
-	opts GetOptions,
-) ([]T, error) {
-	return GetEntities(e.TableName, e.ScanRowsFn, preparer, &opts)
-}
-
-// GetEntitiesWithManagedTransaction wraps entity get in a transaction.
-//
-//   - ctx: The context to use when getting and setting the transaction.
-//   - opts: The options struct for getting the entities.
-func (e *EntityHelpers[T]) GetEntitiesWithManagedTransaction(
-	ctx context.Context,
-	opts GetOptions,
-) ([]T, error) {
-	return transaction.ExecuteManagedTransaction(
-		ctx,
-		e.GetTxFn,
-		func(tx util.Tx) ([]T, error) {
-			return e.GetEntities(tx, opts)
-		},
-	)
-}
-
-// UpdateEntitiesWithExecutor updates entities and returns the number of updated
+// UpdateEntities updates entities and returns the number of updated
 // rows. If update options are set they will be used to update the "updated"
 // timestamp field only if that field update options is not explicitly set.
 //
@@ -293,7 +309,7 @@ func (e *EntityHelpers[T]) GetEntitiesWithManagedTransaction(
 func (e *EntityHelpers[T]) UpdateEntities(
 	preparer util.Preparer,
 	selectors []util.Selector,
-	updates UpdateOptionList,
+	updates Updates,
 ) (int64, error) {
 	if e.UpdateHandler != nil {
 		update := updates.GetByField(e.UpdateHandler.UpdatedField)
@@ -303,7 +319,13 @@ func (e *EntityHelpers[T]) UpdateEntities(
 		}
 	}
 
-	return UpdateEntities(preparer, e.TableName, selectors, updates)
+	return UpdateEntities(
+		preparer,
+		e.TableName,
+		selectors,
+		updates,
+		e.SQLUtil,
+	)
 }
 
 // UpdateEntitiesWithManagedTransaction wraps entity update in a transaction.
@@ -314,7 +336,7 @@ func (e *EntityHelpers[T]) UpdateEntities(
 func (e *EntityHelpers[T]) UpdateEntitiesWithManagedTransaction(
 	ctx context.Context,
 	selectors []util.Selector,
-	updates []UpdateOptions,
+	updates []Update,
 ) (int64, error) {
 	return transaction.ExecuteManagedTransaction(
 		ctx,
@@ -325,8 +347,25 @@ func (e *EntityHelpers[T]) UpdateEntitiesWithManagedTransaction(
 	)
 }
 
-// DeleteEntitiesWithExecutor deletes entities and returns the number of deleted
-// rows.
+// DeleteEntities is a generic function for deleting multiple entities.
+//
+//   - preparer: The preparer used to prepare the query.
+//   - opts: The options struct for getting the entity.
+func (e *EntityHelpers[T]) DeleteEntities(
+	preparer util.Preparer,
+	selectors []util.Selector,
+	opts *DeleteOptions,
+) (int64, error) {
+	count, err := DeleteEntities(preparer, e.TableName, selectors, opts)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// DeleteEntitiesWithManagedTransaction deletes entities and returns the number
+// of deleted rows.
 //
 //   - ctx: The context to use when getting and setting the transaction.
 //   - selectors: The selectors for the query.
@@ -340,7 +379,7 @@ func (e *EntityHelpers[T]) DeleteEntitiesWithManagedTransaction(
 		ctx,
 		e.GetTxFn,
 		func(tx util.Tx) (int64, error) {
-			return DeleteEntities(tx, e.TableName, selectors, opts)
+			return e.DeleteEntities(tx, selectors, opts)
 		},
 	)
 }

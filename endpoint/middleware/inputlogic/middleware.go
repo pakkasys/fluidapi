@@ -8,7 +8,6 @@ import (
 	"github.com/pakkasys/fluidapi/core/api"
 	endpointoutput "github.com/pakkasys/fluidapi/endpoint/output"
 	"github.com/pakkasys/fluidapi/endpoint/util"
-	"github.com/pakkasys/fluidapi/endpoint/validation"
 )
 
 const MiddlewareID = "inputlogic"
@@ -32,36 +31,30 @@ type Callback[Input any, Output any] func(
 	i *Input,
 ) (*Output, error)
 
+type ValidatedInput interface {
+	Validate() []FieldError
+}
+
 type IErrorHandler interface {
-	Handle(
-		handleError error,
-		expectedErrors []ExpectedError,
-	) (int, *api.Error)
+	Handle(handleError error, expectedErrors []ExpectedError) (int, *api.Error)
 }
 
 type IObjectPicker[T any] interface {
 	PickObject(r *http.Request, w http.ResponseWriter, obj T) (*T, error)
 }
 
-type IValidator interface {
-	ValidateStruct(obj any) error
-	GetErrorStrings(err error) []string
-}
-
 type Options[Input any] struct {
 	ErrorHandler  IErrorHandler
 	ObjectPicker  IObjectPicker[Input]
-	Validator     IValidator
 	TraceLoggerFn func(r *http.Request) func(messages ...any)
 	ErrorLoggerFn func(r *http.Request) func(messages ...any)
 }
 
-func MiddlewareWrapper[Input any, Output any](
+func MiddlewareWrapper[Input ValidatedInput, Output any](
 	callback Callback[Input, Output],
 	inputFactory func() *Input,
 	expectedErrors []ExpectedError,
 	opts Options[Input],
-
 ) *api.MiddlewareWrapper {
 	return api.NewMiddlewareWrapperBuilder().
 		ID(MiddlewareID).
@@ -71,20 +64,18 @@ func MiddlewareWrapper[Input any, Output any](
 			expectedErrors,
 			opts.ErrorHandler,
 			opts.ObjectPicker,
-			opts.Validator,
 			opts.TraceLoggerFn,
 			opts.ErrorLoggerFn,
 		)).
 		Build()
 }
 
-func Middleware[Input any, Output any](
+func Middleware[Input ValidatedInput, Output any](
 	callback Callback[Input, Output],
 	inputFactory func() *Input,
 	expectedErrors []ExpectedError,
 	errorHandler IErrorHandler,
 	objectPicker IObjectPicker[Input],
-	validator IValidator,
 	traceLoggerFn func(r *http.Request) func(messages ...any),
 	errorLoggerFn func(r *http.Request) func(messages ...any),
 ) api.Middleware {
@@ -93,9 +84,6 @@ func Middleware[Input any, Output any](
 	}
 	if objectPicker == nil {
 		objectPicker = &util.ObjectPicker[Input]{}
-	}
-	if validator == nil {
-		validator = validation.NewValidation()
 	}
 	allExpectedErrors := slices.Concat(internalExpectedErrors, expectedErrors)
 
@@ -107,7 +95,6 @@ func Middleware[Input any, Output any](
 				callback,
 				*inputFactory(),
 				objectPicker,
-				validator,
 				traceLoggerFn,
 			)
 			statusCode := http.StatusOK
@@ -146,13 +133,12 @@ func Middleware[Input any, Output any](
 	}
 }
 
-func handleInputAndRunCallback[Input any, Output any](
+func handleInputAndRunCallback[Input ValidatedInput, Output any](
 	w http.ResponseWriter,
 	r *http.Request,
 	callback Callback[Input, Output],
 	inputObject Input,
 	objectPicker IObjectPicker[Input],
-	validator IValidator,
 	traceLoggerFn func(r *http.Request) func(messages ...any),
 ) (*Output, error) {
 	input, err := objectPicker.PickObject(r, w, inputObject)
@@ -163,8 +149,10 @@ func handleInputAndRunCallback[Input any, Output any](
 		traceLoggerFn(r)("Picked object", input)
 	}
 
-	if err := validator.ValidateStruct(input); err != nil {
-		return nil, ValidationError(validator.GetErrorStrings(err))
+	validationErrors := (*input).Validate()
+	if len(validationErrors) > 0 {
+		validationError := ValidationError(validationErrors)
+		return nil, validationError
 	}
 
 	return callback(w, r, input)

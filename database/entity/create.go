@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pakkasys/fluidapi/database/errors"
-	"github.com/pakkasys/fluidapi/database/internal"
 	"github.com/pakkasys/fluidapi/database/util"
 )
 
@@ -24,8 +22,10 @@ func CreateEntity[T any](
 	preparer util.Preparer,
 	tableName string,
 	inserter Inserter[*T],
+	sqlUtil SQLUtil,
 ) (int64, error) {
-	return checkInsertResult(insert(preparer, entity, tableName, inserter))
+	res, err := insert(preparer, entity, tableName, inserter)
+	return checkInsertResult(res, err, sqlUtil)
 }
 
 // CreateEntities creates entities in the database.
@@ -39,32 +39,27 @@ func CreateEntities[T any](
 	preparer util.Preparer,
 	tableName string,
 	inserter Inserter[*T],
+	sqlUtil SQLUtil,
 ) (int64, error) {
 	if len(entities) == 0 {
 		return 0, nil
 	}
-	return checkInsertResult(insertMany(
+	res, err := insertMany(
 		preparer,
 		entities,
 		tableName,
 		inserter,
-	))
+	)
+	return checkInsertResult(res, err, sqlUtil)
 }
 
-func checkInsertResult(result sql.Result, err error) (int64, error) {
+func checkInsertResult(
+	result sql.Result,
+	err error,
+	sqlUtil SQLUtil,
+) (int64, error) {
 	if err != nil {
-		if internal.IsMySQLError(
-			err,
-			internal.MySQLDuplicateEntryErrorCode,
-		) {
-			return 0, errors.DuplicateEntry(err)
-		} else if internal.IsMySQLError(
-			err,
-			internal.MySQLForeignConstraintErrorCode,
-		) {
-			return 0, errors.ForeignConstraintError(err)
-		}
-		return 0, err
+		return 0, sqlUtil.CheckDBError(err)
 	}
 
 	id, err := result.LastInsertId()

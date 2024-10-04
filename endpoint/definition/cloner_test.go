@@ -23,7 +23,7 @@ func TestCloneEndpointDefinition(t *testing.T) {
 		original,
 		WithURL("/new-url"),
 		WithMethod("POST"),
-		WithMiddlewareWrappers(
+		WithMiddlewareStack(
 			middleware.Stack{{ID: "new-middleware"}},
 		),
 	)
@@ -70,7 +70,7 @@ func TestWithMiddlewareWrappers(t *testing.T) {
 		MiddlewareStack: middleware.Stack{{ID: "auth"}},
 	}
 	newMiddleware := middleware.Stack{{ID: "logging"}}
-	option := WithMiddlewareWrappers(newMiddleware)
+	option := WithMiddlewareStack(newMiddleware)
 	option(original)
 
 	assert.Equal(

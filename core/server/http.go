@@ -94,17 +94,20 @@ func setupMux(
 	endpoints := multiplexEndpoints(httpEndpoints, loggerErrorFn)
 
 	for url := range endpoints {
+		log.Printf("Registering URL: %s %v", url, mapKeys(endpoints[url]))
 		iterUrl := url
-		log.Printf("Registering URL: %s %v", url, mapKeys(endpoints[iterUrl]))
 		mux.Handle(
 			iterUrl,
 			createEndpointHandler(
 				endpoints[iterUrl],
 				iterUrl,
 				loggerInfoFn,
-				loggerErrorFn),
+				loggerErrorFn,
+			),
 		)
 	}
+
+	mux.Handle("/", createNotFoundHandler(loggerInfoFn))
 
 	return mux
 }
@@ -122,10 +125,10 @@ func createEndpointHandler(
 		}
 		if loggerErrorFn != nil {
 			loggerInfoFn(r)(fmt.Sprintf(
-				"Method not allowed: %q, URL: %s",
-				r.Method,
-				iterUrl,
-			))
+				"Method not allowed: %s (%v)",
+				r.URL,
+				r.Method),
+			)
 		}
 		http.Error(
 			w,
@@ -139,7 +142,7 @@ func createNotFoundHandler(
 	loggerInfoFn func(r *http.Request) func(messages ...any),
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		loggerInfoFn(r)(fmt.Sprintf("Not found: %s", r.URL))
+		loggerInfoFn(r)(fmt.Sprintf("Not found: %s (%v)", r.URL, r.Method))
 		http.Error(
 			w,
 			http.StatusText(http.StatusNotFound),

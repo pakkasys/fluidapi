@@ -4,8 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	databaseerrors "github.com/pakkasys/fluidapi/database/errors"
-	"github.com/pakkasys/fluidapi/database/internal"
+	entitymock "github.com/pakkasys/fluidapi/database/entity/mock"
 	utilmock "github.com/pakkasys/fluidapi/database/util/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -31,6 +30,7 @@ func TestCreateEntity_NormalOperation(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 	mockStmt := new(utilmock.MockStmt)
 	mockResult := new(utilmock.MockResult)
+	mockSQLUtil := new(entitymock.MockSQLUtil)
 
 	// Create an Inserter function
 	inserter := func(entity *TestEntity) ([]string, []any) {
@@ -45,17 +45,20 @@ func TestCreateEntity_NormalOperation(t *testing.T) {
 
 	// Call CreateEntity
 	entity := &TestEntity{ID: 1, Name: "Alice"}
-	id, err := CreateEntity(entity, mockDB, "user", inserter)
+	id, err := CreateEntity(entity, mockDB, "user", inserter, mockSQLUtil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), id)
 	mockDB.AssertExpectations(t)
 	mockStmt.AssertExpectations(t)
+	mockResult.AssertExpectations(t)
 }
 
-// TestCreateEntity_InsertError tests the case where the insert function returns an error.
+// TestCreateEntity_InsertError tests the case where the insert function returns
+// an error.
 func TestCreateEntity_InsertError(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
+	mockSQLUtil := new(entitymock.MockSQLUtil)
 
 	// Create an Inserter function
 	inserter := func(entity *TestEntity) ([]string, []any) {
@@ -63,21 +66,27 @@ func TestCreateEntity_InsertError(t *testing.T) {
 	}
 
 	// Simulate an error during Prepare
-	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
+	mockDB.On("Prepare", mock.Anything).
+		Return(nil, errors.New("prepare error"))
+	mockSQLUtil.On("CheckDBError", mock.Anything).
+		Return(errors.New("prepare error"))
 
 	// Call CreateEntity
 	entity := &TestEntity{ID: 1, Name: "Alice"}
-	_, err := CreateEntity(entity, mockDB, "user", inserter)
+	_, err := CreateEntity(entity, mockDB, "user", inserter, mockSQLUtil)
 
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
+	mockSQLUtil.AssertExpectations(t)
 }
 
-// TestCreateEntities_NormalOperation tests the normal operation of CreateEntities with multiple entities.
+// TestCreateEntities_NormalOperation tests the normal operation of
+// CreateEntities with multiple entities.
 func TestCreateEntities_NormalOperation(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 	mockStmt := new(utilmock.MockStmt)
 	mockResult := new(utilmock.MockResult)
+	mockSQLUtil := new(entitymock.MockSQLUtil)
 
 	// Create an Inserter function
 	inserter := func(entity *TestEntity) ([]string, []any) {
@@ -98,29 +107,34 @@ func TestCreateEntities_NormalOperation(t *testing.T) {
 		{ID: 1, Name: "Alice"},
 		{ID: 2, Name: "Bob"},
 	}
-	id, err := CreateEntities(entities, mockDB, "user", inserter)
+	id, err := CreateEntities(entities, mockDB, "user", inserter, mockSQLUtil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), id)
 	mockDB.AssertExpectations(t)
 	mockStmt.AssertExpectations(t)
+	mockResult.AssertExpectations(t)
 }
 
-// TestCreateEntities_EmptyEntities tests the case where no entities are passed to CreateEntities.
+// TestCreateEntities_EmptyEntities tests the case where no entities are passed
+// to CreateEntities.
 func TestCreateEntities_EmptyEntities(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
+	mockSQLUtil := new(entitymock.MockSQLUtil)
 
 	// Call CreateEntities with an empty list
-	id, err := CreateEntities([]*TestEntity{}, mockDB, "user", nil)
+	id, err := CreateEntities([]*TestEntity{}, mockDB, "user", nil, mockSQLUtil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), id)
 	mockDB.AssertExpectations(t)
 }
 
-// TestCreateEntities_InsertError tests the case where an error occurs during insertion.
+// TestCreateEntities_InsertError tests the case where an error occurs during
+// insertion.
 func TestCreateEntities_InsertError(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
+	mockSQLUtil := new(entitymock.MockSQLUtil)
 
 	// Create an Inserter function
 	inserter := func(entity *TestEntity) ([]string, []any) {
@@ -131,84 +145,63 @@ func TestCreateEntities_InsertError(t *testing.T) {
 	}
 
 	// Simulate an error during Prepare
-	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
+	mockDB.On("Prepare", mock.Anything).
+		Return(nil, errors.New("prepare error"))
+	mockSQLUtil.On("CheckDBError", mock.Anything).
+		Return(errors.New("prepare error"))
 
 	// Call CreateEntities
 	entities := []*TestEntity{
 		{ID: 1, Name: "Alice"},
 		{ID: 2, Name: "Bob"},
 	}
-	_, err := CreateEntities(entities, mockDB, "user", inserter)
+	_, err := CreateEntities(entities, mockDB, "user", inserter, mockSQLUtil)
 
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
+	mockSQLUtil.AssertExpectations(t)
 }
 
 // TestCheckInsertResult_NoError tests the case where there is no error and the
 // result returns an ID.
 func TestCheckInsertResult_NoError(t *testing.T) {
+	mockSQLUtil := new(entitymock.MockSQLUtil)
+
 	mockResult := new(MockSQLResult)
 	mockResult.On("LastInsertId").Return(int64(123), nil)
 
-	id, err := checkInsertResult(mockResult, nil)
+	id, err := checkInsertResult(mockResult, nil, mockSQLUtil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(123), id)
 	mockResult.AssertExpectations(t)
 }
 
-// TestCheckInsertResult_DuplicateEntryError tests the case where there is a
-// duplicate entry error.
-func TestCheckInsertResult_DuplicateEntryError(t *testing.T) {
-	// Create a custom MySQLError simulating a duplicate entry
-	mysqlErr := internal.NewMySQLError(
-		uint16(internal.MySQLDuplicateEntryErrorCode),
-		"duplicate entry",
-	)
-
-	_, err := checkInsertResult(nil, mysqlErr)
-
-	assert.Error(t, err)
-	assert.EqualError(t, err, databaseerrors.DUPLICATE_ENTRY_ERROR_ID)
-
-}
-
-// TestCheckInsertResult_ForeignKeyConstraintError tests the case where there is
-// a foreign key constraint error.
-func TestCheckInsertResult_ForeignKeyConstraintError(t *testing.T) {
-	// Create a custom MySQLError simulating a foreign key constraint failure
-	mysqlErr := internal.NewMySQLError(
-		uint16(internal.MySQLForeignConstraintErrorCode),
-		"foreign key constraint fails",
-	)
-
-	_, err := checkInsertResult(nil, mysqlErr)
-
-	assert.Error(t, err)
-	assert.EqualError(t, err, databaseerrors.FOREIGN_CONSTRAINT_ERROR_ID)
-}
-
 // TestCheckInsertResult_GeneralError tests the case where a general error is
 // passed.
 func TestCheckInsertResult_GeneralError(t *testing.T) {
+	mockSQLUtil := new(entitymock.MockSQLUtil)
+
 	// Simulate a general error
 	generalErr := errors.New("some other error")
+	mockSQLUtil.On("CheckDBError", generalErr).Return(generalErr)
 
-	_, err := checkInsertResult(nil, generalErr)
+	_, err := checkInsertResult(nil, generalErr, mockSQLUtil)
 
 	assert.EqualError(t, err, "some other error")
+	mockSQLUtil.AssertExpectations(t)
 }
 
 // TestCheckInsertResult_LastInsertIdError tests the case where getting the last
 // insert ID returns an error.
 func TestCheckInsertResult_LastInsertIdError(t *testing.T) {
 	mockResult := new(MockSQLResult)
-	mockResult.On("LastInsertId").Return(
-		int64(0),
-		errors.New("last insert ID error"),
-	)
+	mockSQLUtil := new(entitymock.MockSQLUtil)
 
-	_, err := checkInsertResult(mockResult, nil)
+	mockResult.On("LastInsertId").
+		Return(int64(0), errors.New("last insert ID error"))
+
+	_, err := checkInsertResult(mockResult, nil, mockSQLUtil)
 
 	assert.EqualError(t, err, "last insert ID error")
 	mockResult.AssertExpectations(t)
@@ -293,7 +286,8 @@ func TestInsertQuery_SingleColumnEntity(t *testing.T) {
 	assert.Equal(t, expectedValues, values)
 }
 
-// TestInsertQuery_NoColumns tests insertQuery with an entity that has no columns.
+// TestInsertQuery_NoColumns tests insertQuery with an entity that has no
+// columns.
 func TestInsertQuery_NoColumns(t *testing.T) {
 	// Inserter function that returns no columns or values
 	inserter := func(entity *TestEntity) ([]string, []any) {

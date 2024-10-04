@@ -19,13 +19,14 @@ func ExecuteTransaction[Result any](
 	tx util.Tx,
 	transactionalFn TransactionalFunc[Result],
 ) (result Result, txErr error) {
-	result, txErr = transactionalFn(tx)
 	defer func() {
 		if err := finalizeTransaction(tx, txErr); err != nil {
 			txErr = err
+			var zero Result
+			result = zero
 		}
 	}()
-	return result, txErr
+	return transactionalFn(tx)
 }
 
 // ExecuteManagedTransaction executes a TransactionalFunc in a transaction.
@@ -51,6 +52,8 @@ func ExecuteManagedTransaction[Result any](
 		defer func() {
 			if err := finalizeTransaction(tx, txErr); err != nil {
 				txErr = err
+				var zero Result
+				result = zero
 			}
 			ClearTransactionFromContext(ctx)
 		}()

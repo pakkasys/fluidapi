@@ -36,8 +36,14 @@ type Config struct {
 	DSNFormat       string         // Custom DSN format
 }
 
-// NewDefaultTCPConfig returns a Config with default settings for TCP connections.
-func NewDefaultTCPConfig(user, password, database, driverName string) *Config {
+// NewDefaultTCPConfig returns a Config with default settings for TCP
+// connections.
+func NewDefaultTCPConfig(
+	user string,
+	password string,
+	database string,
+	driverName string,
+) *Config {
 	return &Config{
 		User:            user,
 		Password:        password,
@@ -50,12 +56,21 @@ func NewDefaultTCPConfig(user, password, database, driverName string) *Config {
 		MaxOpenConns:    25,
 		MaxIdleConns:    5,
 		DriverName:      driverName,
-		DSNFormat:       "%s:%s@tcp(%s:%d)/%s?parseTime=true&%s",
+		// TODO: Check if this is generic or driver specific
+		DSNFormat: "%s:%s@tcp(%s:%d)/%s?parseTime=true&%s",
 	}
 }
 
-// NewDefaultUnixConfig returns a Config with default settings for Unix socket connections.
-func NewDefaultUnixConfig(user, password, database, socketDirectory, socketName, driverName string) *Config {
+// NewDefaultUnixConfig returns a Config with default settings for Unix socket
+// connections.
+func NewDefaultUnixConfig(
+	user string,
+	password string,
+	database string,
+	socketDirectory string,
+	socketName string,
+	driverName string,
+) *Config {
 	return &Config{
 		User:            user,
 		Password:        password,
@@ -72,7 +87,8 @@ func NewDefaultUnixConfig(user, password, database, socketDirectory, socketName,
 	}
 }
 
-// Connect establishes a connection to the database using the provided configuration.
+// Connect establishes a connection to the database using the provided
+// configuration.
 func Connect(cfg *Config, dbFactory DBFactory) (util.DB, error) {
 	var dsn string
 	switch cfg.ConnectionType {
@@ -97,7 +113,10 @@ func Connect(cfg *Config, dbFactory DBFactory) (util.DB, error) {
 			cfg.Parameters,
 		)
 	default:
-		return nil, fmt.Errorf("unsupported connection type: %s", cfg.ConnectionType)
+		return nil, fmt.Errorf(
+			"unsupported connection type: %s",
+			cfg.ConnectionType,
+		)
 	}
 
 	db, err := dbFactory(cfg.DriverName, dsn)

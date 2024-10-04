@@ -52,12 +52,7 @@ func Send[Input any, Output any](
 		requestData.Body = parsedInput.Body
 	}
 
-	sendResult, err := useOpts.Sender(
-		host,
-		url,
-		method,
-		&requestData,
-	)
+	sendResult, err := useOpts.Sender(host, url, method, &requestData)
 	if err != nil {
 		return nil, err
 	}
@@ -72,25 +67,25 @@ func Send[Input any, Output any](
 func determineSendOpt[Payload any](
 	opts []HandlerOpts[Payload],
 ) *HandlerOpts[Payload] {
-	if len(opts) == 0 {
-		return &HandlerOpts[Payload]{
-			InputParser: parseInput,
-			Sender: func(
-				host string,
-				url string,
-				method string,
-				inputData *RequestData,
-			) (*SendResult[Payload], error) {
-				return processAndSend[Payload](
-					&http.Client{},
-					host,
-					url,
-					method,
-					inputData,
-				)
-			},
-		}
-	} else {
+	if len(opts) != 0 {
 		return &opts[0]
+	}
+
+	return &HandlerOpts[Payload]{
+		InputParser: parseInput,
+		Sender: func(
+			host string,
+			url string,
+			method string,
+			inputData *RequestData,
+		) (*SendResult[Payload], error) {
+			return processAndSend[Payload](
+				&http.Client{},
+				host,
+				url,
+				method,
+				inputData,
+			)
+		},
 	}
 }

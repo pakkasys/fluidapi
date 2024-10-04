@@ -165,7 +165,7 @@ func TestExecuteManagedTransaction_CommitError(t *testing.T) {
 
 	result, err := ExecuteManagedTransaction(ctx, getTxFunc, transactionalFunc)
 
-	assert.Equal(t, "success", result)
+	assert.Equal(t, "", result)
 	assert.EqualError(t, err, "failed to commit transaction: commit error")
 	mockTx.AssertExpectations(t)
 }

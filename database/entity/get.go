@@ -40,12 +40,12 @@ func GetEntityWithQuery[T any](
 	rowScanner RowScanner[T],
 	preparer util.Preparer,
 	query string,
-	parameters []any,
+	params []any,
 ) (*T, error) {
 	entity, err := querySingle(
 		preparer,
 		query,
-		parameters,
+		params,
 		rowScanner,
 	)
 	if err != nil {
@@ -66,13 +66,15 @@ func GetEntities[T any](
 ) ([]T, error) {
 	query, whereValues := buildBaseGetQuery(tableName, dbOptions)
 
-	return GetEntitiesWithQuery(
+	ent, e := GetEntitiesWithQuery(
 		tableName,
 		rowScannerMultiple,
 		preparer,
 		query,
 		whereValues,
 	)
+
+	return ent, e
 }
 
 func GetEntitiesWithQuery[T any](
@@ -80,9 +82,9 @@ func GetEntitiesWithQuery[T any](
 	rowScannerMultiple RowScannerMultiple[T],
 	preparer util.Preparer,
 	query string,
-	parameters []any,
+	params []any,
 ) ([]T, error) {
-	entities, err := queryMultiple(preparer, query, parameters, rowScannerMultiple)
+	entities, err := queryMultiple(preparer, query, params, rowScannerMultiple)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return []T{}, nil
@@ -95,10 +97,10 @@ func GetEntitiesWithQuery[T any](
 func queryMultiple[T any](
 	preparer util.Preparer,
 	query string,
-	parameters []any,
+	params []any,
 	rowScannerMultiple RowScannerMultiple[T],
 ) ([]T, error) {
-	rows, statement, err := RowsQuery(preparer, query, parameters)
+	rows, statement, err := RowsQuery(preparer, query, params)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +259,6 @@ func rowsToEntities[T any](
 	}
 
 	var entities []T
-
 	for rows.Next() {
 		var entity T
 		err := rowScannerMultiple(rows, &entity)
@@ -266,7 +267,6 @@ func rowsToEntities[T any](
 		}
 		entities = append(entities, entity)
 	}
-
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}

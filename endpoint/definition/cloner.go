@@ -31,13 +31,13 @@ func WithMethod(method string) Option {
 	}
 }
 
-// WithMiddlewareWrappers clones an endpoint definition with the provided
-// middleware wrappers
-func WithMiddlewareWrappers(
-	middlewareWrappers middleware.Stack,
+// WithMiddlewareStack clones an endpoint definition with the provided
+// middleware stack.
+func WithMiddlewareStack(
+	stack middleware.Stack,
 ) Option {
 	return func(e *EndpointDefinition) {
-		e.MiddlewareStack = middlewareWrappers
+		e.MiddlewareStack = stack
 	}
 }
 

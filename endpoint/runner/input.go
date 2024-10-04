@@ -10,13 +10,13 @@ import (
 type IGetInput interface {
 	GetOrders() []order.Order
 	GetPage() *page.InputPage
-	GetSelectors() []selector.InputSelector
+	GetSelectors() []selector.Selector
 	GetGetCount() bool
 }
 
 type IUpdateInput interface {
-	GetSelectors() []selector.InputSelector
-	GetUpdates() []update.InputUpdate
+	GetSelectors() []selector.Selector
+	GetUpdates() []update.Update
 }
 
 type IUpsertInput interface {
@@ -24,5 +24,5 @@ type IUpsertInput interface {
 }
 
 type IDeleteInput interface {
-	GetSelectors() []selector.InputSelector
+	GetSelectors() []selector.Selector
 }

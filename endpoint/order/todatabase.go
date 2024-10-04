@@ -6,10 +6,10 @@ import (
 )
 
 var DirectionDatabaseTranslations = map[OrderDirection]util.OrderDirection{
-	DIRECTION_ASCENDING:       util.DirectionAscending,
-	DIRECTION_ASCENDING_LONG:  util.DirectionAscending,
-	DIRECTION_DESCENDING:      util.DirectionDescending,
-	DIRECTION_DESCENDING_LONG: util.DirectionDescending,
+	DIRECTION_ASCENDING:       util.OrderAsc,
+	DIRECTION_ASCENDING_LONG:  util.OrderAsc,
+	DIRECTION_DESCENDING:      util.OrderDesc,
+	DIRECTION_DESCENDING_LONG: util.OrderDesc,
 }
 
 func ValidateAndTranslateToDatabaseOrders(

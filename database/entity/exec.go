@@ -7,7 +7,7 @@ import (
 )
 
 // RowsQuery runs a row returning query. The returned rows and stmt objects must
-// be closed by the caller.
+// be closed by the caller after successful query execution.
 //
 //   - db: The database connection.
 //   - query: The query string.

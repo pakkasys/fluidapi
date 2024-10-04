@@ -6,29 +6,26 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/predicate"
 )
 
-type APISelector struct {
+// Selector represents a data selector.
+type Selector struct {
 	AllowedPredicates []predicate.Predicate
-	Validation        string
-}
-
-type InputSelector struct {
-	Field     string              `json:"field"`
-	Predicate predicate.Predicate `json:"predicate"`
-	Value     any                 `json:"value"`
+	Field             string
+	Predicate         predicate.Predicate
+	Value             any
 }
 
 // String returns a string representation of the selector.
-func (i InputSelector) String() string {
-	return fmt.Sprintf("%s %s %s", i.Field, i.Predicate, i.Value)
+func (i Selector) String() string {
+	return fmt.Sprintf("%s %s %v", i.Field, i.Predicate, i.Value)
 }
 
-type InputSelectors []InputSelector
+type APISelectors []Selector
 
 // GetByFields returns all selectors with the given fields.
 //
 //   - fields: the fields to search for
-func (i InputSelectors) GetByFields(fields ...string) []InputSelector {
-	selectors := InputSelectors{}
+func (i APISelectors) GetByFields(fields ...string) []Selector {
+	selectors := APISelectors{}
 	for f := range fields {
 		for j := range i {
 			if i[j].Field == fields[f] {

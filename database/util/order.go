@@ -3,8 +3,8 @@ package util
 type OrderDirection string
 
 const (
-	DirectionAscending  OrderDirection = "ASC"
-	DirectionDescending OrderDirection = "DESC"
+	OrderAsc  OrderDirection = "ASC"
+	OrderDesc OrderDirection = "DESC"
 )
 
 // Order is used to specify the order of the result set.

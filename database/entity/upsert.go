@@ -21,10 +21,10 @@ func UpsertEntity[T any](
 	entity *T,
 	inserter Inserter[*T],
 	updateProjections []util.Projection,
+	sqlUtil SQLUtil,
 ) (int64, error) {
-	return checkInsertResult(
-		upsert(preparer, tableName, entity, inserter, updateProjections),
-	)
+	res, err := upsert(preparer, tableName, entity, inserter, updateProjections)
+	return checkInsertResult(res, err, sqlUtil)
 }
 
 // UpsertEntities upserts a multiple entities.
@@ -40,10 +40,16 @@ func UpsertEntities[T any](
 	entities []*T,
 	inserter Inserter[*T],
 	updateProjections []util.Projection,
+	sqlUtil SQLUtil,
 ) (int64, error) {
-	return checkInsertResult(
-		upsertMany(preparer, entities, tableName, inserter, updateProjections),
+	res, err := upsertMany(
+		preparer,
+		entities,
+		tableName,
+		inserter,
+		updateProjections,
 	)
+	return checkInsertResult(res, err, sqlUtil)
 }
 
 func upsertQuery[T any](

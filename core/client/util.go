@@ -151,7 +151,9 @@ func responseToPayload[T any](r *http.Response, output *T) (*T, error) {
 	}
 
 	if err := json.Unmarshal(body, output); err != nil {
-		return nil, fmt.Errorf("JSON unmarshal error: %v", err)
+		return nil, fmt.Errorf(
+			"JSON unmarshal error: %v, body: %s", err, string(body),
+		)
 	}
 
 	return output, nil

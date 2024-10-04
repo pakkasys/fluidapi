@@ -4,8 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	databaseerrors "github.com/pakkasys/fluidapi/database/errors"
-	"github.com/pakkasys/fluidapi/database/internal"
+	entitymock "github.com/pakkasys/fluidapi/database/entity/mock"
 	"github.com/pakkasys/fluidapi/database/util"
 	utilmock "github.com/pakkasys/fluidapi/database/util/mock"
 	"github.com/stretchr/testify/assert"
@@ -18,10 +17,11 @@ func TestUpdateEntities_NormalOperation(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 	mockStmt := new(utilmock.MockStmt)
 	mockResult := new(utilmock.MockResult)
+	mockSQLUtil := new(entitymock.MockSQLUtil)
 
 	// Test table name, updates, and selectors
 	tableName := "user"
-	updates := []UpdateOptions{
+	updates := []Update{
 		{Field: "name", Value: "Alice"},
 	}
 	selectors := []util.Selector{
@@ -34,7 +34,8 @@ func TestUpdateEntities_NormalOperation(t *testing.T) {
 	mockStmt.On("Close").Return(nil)
 	mockResult.On("RowsAffected").Return(int64(1), nil)
 
-	rowsAffected, err := UpdateEntities(mockDB, tableName, selectors, updates)
+	rowsAffected, err :=
+		UpdateEntities(mockDB, tableName, selectors, updates, mockSQLUtil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), rowsAffected)
@@ -46,15 +47,17 @@ func TestUpdateEntities_NormalOperation(t *testing.T) {
 // TestUpdateEntities_NoUpdates tests the case where no updates are provided.
 func TestUpdateEntities_NoUpdates(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
+	mockSQLUtil := new(entitymock.MockSQLUtil)
 
 	// Test table name and selectors
 	tableName := "user"
-	updates := []UpdateOptions{}
+	updates := []Update{}
 	selectors := []util.Selector{
 		{Table: "user", Field: "id", Predicate: "=", Value: 1},
 	}
 
-	rowsAffected, err := UpdateEntities(mockDB, tableName, selectors, updates)
+	rowsAffected, err :=
+		UpdateEntities(mockDB, tableName, selectors, updates, mockSQLUtil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), rowsAffected)
@@ -65,10 +68,11 @@ func TestUpdateEntities_NoUpdates(t *testing.T) {
 // update process.
 func TestUpdateEntities_Error(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
+	mockSQLUtil := new(entitymock.MockSQLUtil)
 
 	// Test table name, updates, and selectors
 	tableName := "user"
-	updates := []UpdateOptions{
+	updates := []Update{
 		{Field: "name", Value: "Alice"},
 	}
 	selectors := []util.Selector{
@@ -76,78 +80,62 @@ func TestUpdateEntities_Error(t *testing.T) {
 	}
 
 	// Simulate an error during Prepare
-	mockDB.On("Prepare", mock.Anything).Return(nil, errors.New("prepare error"))
+	mockDB.On("Prepare", mock.Anything).
+		Return(nil, errors.New("prepare error"))
+	mockSQLUtil.On("CheckDBError", mock.Anything).
+		Return(errors.New("prepare error"))
 
-	rowsAffected, err := UpdateEntities(mockDB, tableName, selectors, updates)
+	rowsAffected, err :=
+		UpdateEntities(mockDB, tableName, selectors, updates, mockSQLUtil)
 
 	assert.Equal(t, int64(0), rowsAffected)
 	assert.EqualError(t, err, "prepare error")
 	mockDB.AssertExpectations(t)
+	mockSQLUtil.AssertExpectations(t)
 }
 
 // TestCheckUpdateResult_NormalOperation tests the normal operation where rows
 // are affected.
 func TestCheckUpdateResult_NormalOperation(t *testing.T) {
 	mockResult := new(utilmock.MockResult)
+	mockSQLUtil := new(entitymock.MockSQLUtil)
 
 	// Setup mock expectations
 	mockResult.On("RowsAffected").Return(int64(1), nil)
 
-	rowsAffected, err := checkUpdateResult(mockResult, nil)
+	rowsAffected, err := checkUpdateResult(mockResult, nil, mockSQLUtil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), rowsAffected)
 	mockResult.AssertExpectations(t)
 }
 
-// TestCheckUpdateResult_MySQLDuplicateEntryError tests the case where a MySQL
-// duplicate entry error occurs.
-func TestCheckUpdateResult_MySQLDuplicateEntryError(t *testing.T) {
-	mysqlErr := internal.NewMySQLError(
-		uint16(internal.MySQLDuplicateEntryErrorCode),
-		"",
-	)
-
-	rowsAffected, err := checkUpdateResult(nil, mysqlErr)
-
-	assert.Equal(t, int64(0), rowsAffected)
-	assert.EqualError(t, err, databaseerrors.DUPLICATE_ENTRY_ERROR_ID)
-}
-
-// TestCheckUpdateResult_MySQLForeignConstraintError tests the case where a
-// MySQL foreign constraint error occurs.
-func TestCheckUpdateResult_MySQLForeignConstraintError(t *testing.T) {
-	mysqlErr := internal.NewMySQLError(
-		uint16(internal.MySQLForeignConstraintErrorCode),
-		"",
-	)
-	rowsAffected, err := checkUpdateResult(nil, mysqlErr)
-
-	assert.Equal(t, int64(0), rowsAffected)
-	assert.EqualError(t, err, databaseerrors.FOREIGN_CONSTRAINT_ERROR_ID)
-}
-
 // TestCheckUpdateResult_OtherError tests the case where a non-MySQL error
 // occurs.
 func TestCheckUpdateResult_OtherError(t *testing.T) {
-	otherErr := errors.New("some other error")
+	mockSQLUtil := new(entitymock.MockSQLUtil)
 
-	rowsAffected, err := checkUpdateResult(nil, otherErr)
+	otherErr := errors.New("some other error")
+	mockSQLUtil.On("CheckDBError", otherErr).Return(otherErr)
+
+	rowsAffected, err := checkUpdateResult(nil, otherErr, mockSQLUtil)
 
 	assert.Equal(t, int64(0), rowsAffected)
 	assert.EqualError(t, err, "some other error")
+	mockSQLUtil.AssertExpectations(t)
 }
 
 // TestCheckUpdateResult_RowsAffectedError tests the case where an error occurs
 // when retrieving rows affected.
 func TestCheckUpdateResult_RowsAffectedError(t *testing.T) {
 	mockResult := new(utilmock.MockResult)
+	mockSQLUtil := new(entitymock.MockSQLUtil)
 
 	// Simulate an error when retrieving RowsAffected
 	mockResult.On("RowsAffected").
 		Return(int64(0), errors.New("rows affected error"))
 
-	rowsAffected, err := checkUpdateResult(mockResult, nil)
+	rowsAffected, err := checkUpdateResult(mockResult, nil, mockSQLUtil)
 
 	assert.Equal(t, int64(0), rowsAffected)
 	assert.EqualError(t, err, "rows affected error")
@@ -162,7 +150,7 @@ func TestUpdate_NormalOperation(t *testing.T) {
 
 	// Test table name, updates, and selectors
 	tableName := "user"
-	updates := []UpdateOptions{
+	updates := []Update{
 		{Field: "name", Value: "Alice"},
 	}
 	selectors := []util.Selector{
@@ -190,7 +178,7 @@ func TestUpdate_PrepareError(t *testing.T) {
 
 	// Test table name, updates, and selectors
 	tableName := "user"
-	updates := []UpdateOptions{
+	updates := []Update{
 		{Field: "name", Value: "Alice"},
 	}
 	selectors := []util.Selector{
@@ -215,7 +203,7 @@ func TestUpdate_ExecError(t *testing.T) {
 
 	// Test table name, updates, and selectors
 	tableName := "user"
-	updates := []UpdateOptions{
+	updates := []Update{
 		{Field: "name", Value: "Alice"},
 	}
 	selectors := []util.Selector{
@@ -243,7 +231,7 @@ func TestUpdate_EmptyUpdates(t *testing.T) {
 
 	// Test table name and selectors
 	tableName := "user"
-	updates := []UpdateOptions{}
+	updates := []Update{}
 	selectors := []util.Selector{
 		{Table: "user", Field: "id", Predicate: "=", Value: 1},
 	}
@@ -264,7 +252,7 @@ func TestUpdate_EmptyUpdates(t *testing.T) {
 // TestUpdateQuery_SingleUpdate tests the case where a single update is
 // provided.
 func TestUpdateQuery_SingleUpdate(t *testing.T) {
-	updates := []UpdateOptions{
+	updates := []Update{
 		{Field: "name", Value: "Alice"},
 	}
 	selectors := []util.Selector{
@@ -283,7 +271,7 @@ func TestUpdateQuery_SingleUpdate(t *testing.T) {
 // TestUpdateQuery_MultipleUpdates tests the case where multiple updates are
 // provided.
 func TestUpdateQuery_MultipleUpdates(t *testing.T) {
-	updates := []UpdateOptions{
+	updates := []Update{
 		{Field: "name", Value: "Alice"},
 		{Field: "age", Value: 30},
 	}
@@ -302,7 +290,7 @@ func TestUpdateQuery_MultipleUpdates(t *testing.T) {
 
 // TestUpdateQuery_NoUpdates tests the case where no updates are provided.
 func TestUpdateQuery_NoUpdates(t *testing.T) {
-	updates := []UpdateOptions{}
+	updates := []Update{}
 	selectors := []util.Selector{
 		{Table: "user", Field: "id", Predicate: "=", Value: 1},
 	}
@@ -318,7 +306,7 @@ func TestUpdateQuery_NoUpdates(t *testing.T) {
 
 // TestUpdateQuery_NoSelectors tests the case where no selectors are provided.
 func TestUpdateQuery_NoSelectors(t *testing.T) {
-	updates := []UpdateOptions{
+	updates := []Update{
 		{Field: "name", Value: "Alice"},
 	}
 
@@ -336,7 +324,7 @@ func TestUpdateQuery_NoSelectors(t *testing.T) {
 // TestUpdateQuery_EmptyFields tests the case where updates and selectors have
 // empty fields.
 func TestUpdateQuery_EmptyFields(t *testing.T) {
-	updates := []UpdateOptions{
+	updates := []Update{
 		{Field: "", Value: "Unknown"},
 	}
 	selectors := []util.Selector{
@@ -388,7 +376,7 @@ func TestGetWhereClause_MultipleConditions(t *testing.T) {
 // TestGetSetClause_SingleUpdate tests the case where a single update is
 // provided.
 func TestGetSetClause_SingleUpdate(t *testing.T) {
-	updates := []UpdateOptions{
+	updates := []Update{
 		{Field: "name", Value: "Alice"},
 	}
 
@@ -404,7 +392,7 @@ func TestGetSetClause_SingleUpdate(t *testing.T) {
 // TestGetSetClause_MultipleUpdates tests the case where multiple updates are
 // provided.
 func TestGetSetClause_MultipleUpdates(t *testing.T) {
-	updates := []UpdateOptions{
+	updates := []Update{
 		{Field: "name", Value: "Alice"},
 		{Field: "age", Value: 30},
 	}
@@ -420,7 +408,7 @@ func TestGetSetClause_MultipleUpdates(t *testing.T) {
 
 // TestGetSetClause_NoUpdates tests the case where no updates are provided.
 func TestGetSetClause_NoUpdates(t *testing.T) {
-	updates := []UpdateOptions{}
+	updates := []Update{}
 
 	setClause, values := getSetClause(updates)
 
@@ -434,7 +422,7 @@ func TestGetSetClause_NoUpdates(t *testing.T) {
 // TestGetSetClause_EmptyField tests the case where an update has an empty
 // field.
 func TestGetSetClause_EmptyField(t *testing.T) {
-	updates := []UpdateOptions{
+	updates := []Update{
 		{Field: "", Value: "Unknown"},
 	}
 

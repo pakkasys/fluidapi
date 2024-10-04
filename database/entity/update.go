@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pakkasys/fluidapi/database/errors"
 	"github.com/pakkasys/fluidapi/database/internal"
 	"github.com/pakkasys/fluidapi/database/util"
 )
 
-// UpdateOptions is the options struct for entity update queries.
-type UpdateOptions struct {
+// Update is the options struct for entity update queries.
+type Update struct {
 	Field string
 	Value any
 }
@@ -26,29 +25,23 @@ func UpdateEntities(
 	preparer util.Preparer,
 	tableName string,
 	selectors []util.Selector,
-	updates []UpdateOptions,
+	updates []Update,
+	sqlUtil SQLUtil,
 ) (int64, error) {
 	if len(updates) == 0 {
 		return 0, nil
 	}
-
-	return checkUpdateResult(update(preparer, tableName, updates, selectors))
+	res, err := update(preparer, tableName, updates, selectors)
+	return checkUpdateResult(res, err, sqlUtil)
 }
 
-func checkUpdateResult(result sql.Result, err error) (int64, error) {
+func checkUpdateResult(
+	result sql.Result,
+	err error,
+	sqlUtil SQLUtil,
+) (int64, error) {
 	if err != nil {
-		if internal.IsMySQLError(
-			err,
-			internal.MySQLDuplicateEntryErrorCode,
-		) {
-			return 0, errors.DuplicateEntry(err)
-		} else if internal.IsMySQLError(
-			err,
-			internal.MySQLForeignConstraintErrorCode,
-		) {
-			return 0, errors.ForeignConstraintError(err)
-		}
-		return 0, err
+		return 0, sqlUtil.CheckDBError(err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -62,7 +55,7 @@ func checkUpdateResult(result sql.Result, err error) (int64, error) {
 func update(
 	preparer util.Preparer,
 	tableName string,
-	updates []UpdateOptions,
+	updates []Update,
 	selectors []util.Selector,
 ) (sql.Result, error) {
 	query, values := updateQuery(tableName, updates, selectors)
@@ -83,7 +76,7 @@ func update(
 
 func updateQuery(
 	tableName string,
-	updates []UpdateOptions,
+	updates []Update,
 	selectors []util.Selector,
 ) (string, []any) {
 	whereColumns, whereValues := internal.ProcessSelectors(selectors)
@@ -112,7 +105,7 @@ func getWhereClause(whereColumns []string) string {
 	return whereClause
 }
 
-func getSetClause(updates []UpdateOptions) (string, []any) {
+func getSetClause(updates []Update) (string, []any) {
 	setClauseParts := make([]string, len(updates))
 	values := make([]any, len(updates))
 

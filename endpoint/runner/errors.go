@@ -79,11 +79,6 @@ var UpdateErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       update.INVALID_UPDATE_FIELD_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
-	},
-	{
 		ErrorID:       order.INVALID_ORDER_FIELD_ERROR_ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,

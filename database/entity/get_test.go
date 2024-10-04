@@ -36,7 +36,8 @@ type TestEntity struct {
 	Age  int
 }
 
-// TestGetEntity_NormalOperation tests the normal operation where a single entity is successfully retrieved.
+// TestGetEntity_NormalOperation tests the normal operation where a single
+// entity is successfully retrieved.
 func TestGetEntity_NormalOperation(t *testing.T) {
 	mockDB := new(utilmock.MockDB)
 	mockStmt := new(utilmock.MockStmt)

@@ -62,7 +62,7 @@ func (e *ErrorHandler) handleAPIError(
 	expectedError := e.getExpectedError(*apiError, expectedErrors)
 
 	if expectedError == nil {
-		return http.StatusInternalServerError, nil
+		return http.StatusInternalServerError, InternalServerError()
 	} else {
 		var useErrorID string
 		if expectedError.MaskedErrorID != "" {

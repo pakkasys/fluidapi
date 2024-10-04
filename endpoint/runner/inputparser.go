@@ -14,26 +14,25 @@ type APIFields map[string]dbfield.DBField
 
 type ParsedGetEndpointInput struct {
 	Orders            []databaseutil.Order
-	DatabaseSelectors []databaseutil.Selector
+	DatabaseSelectors databaseutil.Selectors
 	Page              *page.InputPage
 	GetCount          bool
 }
 
 type ParsedUpdateEndpointInput struct {
-	DatabaseSelectors []databaseutil.Selector
-	DatabaseUpdates   []entity.UpdateOptions
+	DatabaseSelectors databaseutil.Selectors
+	DatabaseUpdates   []entity.Update
 	Upsert            bool
 }
 
 type ParsedDeleteEndpointInput struct {
-	DatabaseSelectors []databaseutil.Selector
+	DatabaseSelectors databaseutil.Selectors
 	DeleteOpts        *entity.DeleteOptions
 }
 
 func ParseGetEndpointInput(
 	apiFields APIFields,
-	selectors []selector.InputSelector,
-	allowedSelectors map[string]selector.APISelector,
+	selectors []selector.Selector,
 	orders []order.Order,
 	allowedOrderFields []string,
 	inputPage *page.InputPage,
@@ -59,18 +58,14 @@ func ParseGetEndpointInput(
 		return nil, err
 	}
 
-	databaseSelectors, err := handleDatabaseSelectors(
-		selectors,
-		allowedSelectors,
-		apiFields,
-	)
+	dbSelectors, err := selector.ToDBSelectors(selectors, apiFields)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ParsedGetEndpointInput{
 		Orders:            dbOrders,
-		DatabaseSelectors: databaseSelectors,
+		DatabaseSelectors: dbSelectors,
 		Page:              inputPage,
 		GetCount:          getCount,
 	}, nil
@@ -78,60 +73,45 @@ func ParseGetEndpointInput(
 
 func ParseUpdateEndpointInput(
 	apiFields APIFields,
-	selectors []selector.InputSelector,
-	allowedSelectors map[string]selector.APISelector,
-	updates []update.InputUpdate,
-	allowedUpdates map[string]update.APIUpdate,
+	selectors []selector.Selector,
+	updates []update.Update,
 	upsert bool,
 ) (*ParsedUpdateEndpointInput, error) {
-	databaseSelectors, err := handleDatabaseSelectors(
-		selectors,
-		allowedSelectors,
-		apiFields,
-	)
+	dbSelectors, err := selector.ToDBSelectors(selectors, apiFields)
 	if err != nil {
 		return nil, err
 	}
-	if len(databaseSelectors) == 0 {
+	if len(dbSelectors) == 0 {
 		return nil, selector.NeedAtLeastOneSelectorError()
 	}
 
-	databaseUpdates, err := update.GetDatabaseUpdatesFromUpdates(
-		updates,
-		allowedUpdates,
-		apiFields,
-	)
+	dbUpdates, err := update.ToDBUpdates(updates, apiFields)
 	if err != nil {
 		return nil, err
 	}
-	if len(databaseSelectors) == 0 {
+	if len(dbSelectors) == 0 {
 		return nil, update.NeedAtLeastOneUpdateError()
 	}
 
 	return &ParsedUpdateEndpointInput{
-		DatabaseSelectors: databaseSelectors,
-		DatabaseUpdates:   databaseUpdates,
+		DatabaseSelectors: dbSelectors,
+		DatabaseUpdates:   dbUpdates,
 		Upsert:            upsert,
 	}, nil
 }
 
 func ParseDeleteEndpointInput(
 	apiFields APIFields,
-	selectors []selector.InputSelector,
-	allowedSelectors map[string]selector.APISelector,
+	selectors []selector.Selector,
 	orders []order.Order,
 	allowedOrderFields []string,
 	limit int,
 ) (*ParsedDeleteEndpointInput, error) {
-	databaseSelectors, err := handleDatabaseSelectors(
-		selectors,
-		allowedSelectors,
-		apiFields,
-	)
+	dbSelectors, err := selector.ToDBSelectors(selectors, apiFields)
 	if err != nil {
 		return nil, err
 	}
-	if len(databaseSelectors) == 0 {
+	if len(dbSelectors) == 0 {
 		return nil, selector.NeedAtLeastOneSelectorError()
 	}
 
@@ -145,34 +125,10 @@ func ParseDeleteEndpointInput(
 	}
 
 	return &ParsedDeleteEndpointInput{
-		DatabaseSelectors: databaseSelectors,
+		DatabaseSelectors: dbSelectors,
 		DeleteOpts: &entity.DeleteOptions{
 			Limit:  limit,
 			Orders: dbOrders,
 		},
 	}, nil
-}
-
-func handleDatabaseSelectors(
-	inputSelectors []selector.InputSelector,
-	allowedSelectors map[string]selector.APISelector,
-	apiFields map[string]dbfield.DBField,
-) ([]databaseutil.Selector, error) {
-	matchedSelectors, err := selector.MatchAndValidateInputSelectors(
-		inputSelectors,
-		allowedSelectors,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	databaseSelectors, err := selector.ToDatabaseSelectors(
-		apiFields,
-		matchedSelectors,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return databaseSelectors, nil
 }

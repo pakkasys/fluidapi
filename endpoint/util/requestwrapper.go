@@ -6,21 +6,21 @@ import (
 	"net/http"
 )
 
-// RequestWrapper wraps an http.Request, capturing its URL, headers, and body
-// for inspection and potentially modification.
+// RequestWrapper wraps an http.Request, capturing its information for
+// inspection and modification.
 type RequestWrapper struct {
-	*http.Request        // Embedding *http.Request
-	BodyContent   []byte // Captured body content for potential reuse
+	*http.Request        // Embedded *http.Request
+	BodyContent   []byte // Captured body
 }
 
-// NewRequestWrapper creates a new instance of RequestWrapper, capturing the body.
+// NewRequestWrapper creates a new instance of RequestWrapper and captures the
+// body content.
 func NewRequestWrapper(r *http.Request) (*RequestWrapper, error) {
-	// Capture the body content without disrupting the original request.
+	// Capture the body content so that it can be read multiple times
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		return nil, err // Return error if reading the body fails
+		return nil, err
 	}
-	// Restore the body to the original request to ensure it can be read again later.
 	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	return &RequestWrapper{
@@ -29,12 +29,12 @@ func NewRequestWrapper(r *http.Request) (*RequestWrapper, error) {
 	}, nil
 }
 
-// GetBodyContent provides a way to read the captured body content multiple times.
+// GetBodyContent provides a way to read the captured body.
 func (rw *RequestWrapper) GetBodyContent() []byte {
 	return rw.BodyContent
 }
 
-// Replicate the original GetBody method behavior for HTTP/2:
+// GetBody provides a way to read the captured body.
 func (rw *RequestWrapper) GetBody() (func() (io.ReadCloser, error), error) {
 	return func() (io.ReadCloser, error) {
 		return io.NopCloser(bytes.NewBuffer(rw.BodyContent)), nil

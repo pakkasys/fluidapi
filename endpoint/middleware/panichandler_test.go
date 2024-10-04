@@ -190,7 +190,7 @@ func TestHandlePanic_WithNonNilResponseData(t *testing.T) {
 	rw := util.NewResponseWrapper(w)
 
 	req = req.WithContext(util.NewContext(req.Context()))
-	SetResponseWrapper(req, rw)
+	setResponseWrapper(req, rw)
 	rw.Body = []byte("test body")
 
 	err := "test panic"

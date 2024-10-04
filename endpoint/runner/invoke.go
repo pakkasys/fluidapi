@@ -5,13 +5,20 @@ import (
 
 	"github.com/pakkasys/fluidapi/database/entity"
 	"github.com/pakkasys/fluidapi/database/util"
+	"github.com/pakkasys/fluidapi/endpoint/middleware/inputlogic"
 
 	"net/http"
 )
 
+type ValidatedInput interface {
+	Validate() []inputlogic.FieldError
+}
+
 type ParseableInput[Output any] interface {
+	ValidatedInput
 	Parse() (*Output, error)
 }
+
 type ToGetEndpointOutput[ServiceOutput any, EndpointOutput any] func(
 	froms []ServiceOutput,
 	count *int,
@@ -20,7 +27,7 @@ type ToGetEndpointOutput[ServiceOutput any, EndpointOutput any] func(
 type UpdateServiceFunc func(
 	ctx context.Context,
 	databaseSelectors []util.Selector,
-	databaseUpdates []entity.UpdateOptions,
+	databaseUpdates []entity.Update,
 ) (int64, error)
 
 type ToUpdateEndpointOutput[EndpointOutput any] func(

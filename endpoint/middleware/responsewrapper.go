@@ -36,16 +36,12 @@ func ResponseWrapperMiddleware() api.Middleware {
 				return
 			}
 
-			SetRequestWrapper(r, requestWrapper)
-			SetResponseWrapper(r, responseWrapper)
+			setRequestWrapper(r, requestWrapper)
+			setResponseWrapper(r, responseWrapper)
 
 			next.ServeHTTP(responseWrapper, requestWrapper.Request)
 		})
 	}
-}
-
-func SetResponseWrapper(r *http.Request, rw *util.ResponseWrapper) {
-	util.SetContextValue(r.Context(), responseDataKey, rw)
 }
 
 func GetResponseWrapper(r *http.Request) *util.ResponseWrapper {
@@ -56,14 +52,18 @@ func GetResponseWrapper(r *http.Request) *util.ResponseWrapper {
 	)
 }
 
-func SetRequestWrapper(r *http.Request, rw *util.RequestWrapper) {
-	util.SetContextValue(r.Context(), requestDataKey, rw)
-}
-
 func GetRequestWrapper(r *http.Request) *util.RequestWrapper {
 	return util.GetContextValue[*util.RequestWrapper](
 		r.Context(),
 		requestDataKey,
 		nil,
 	)
+}
+
+func setResponseWrapper(r *http.Request, rw *util.ResponseWrapper) {
+	util.SetContextValue(r.Context(), responseDataKey, rw)
+}
+
+func setRequestWrapper(r *http.Request, rw *util.RequestWrapper) {
+	util.SetContextValue(r.Context(), requestDataKey, rw)
 }

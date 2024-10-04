@@ -3,13 +3,19 @@ package runner
 import (
 	"net/http"
 
+	"github.com/pakkasys/fluidapi/core/api"
 	"github.com/pakkasys/fluidapi/core/client"
 	"github.com/pakkasys/fluidapi/endpoint/definition"
 	"github.com/pakkasys/fluidapi/endpoint/middleware"
 	"github.com/pakkasys/fluidapi/endpoint/middleware/inputlogic"
 )
 
-type StackBuilderFactory func() middleware.StackBuilder
+type StackBuilder interface {
+	Build() middleware.Stack
+	MustAddMiddleware(wrapper ...api.MiddlewareWrapper) StackBuilder
+}
+
+type StackBuilderFactory func() StackBuilder
 
 type SendFunc[I any, W any] func(
 	input *I,
@@ -27,7 +33,7 @@ type Endpoint[I any, O any, W any] struct {
 	Client     *Client[I, O, W]
 }
 
-func GenericEndpointDefinition[I any, O any, W any](
+func GenericEndpointDefinition[I ValidatedInput, O any, W any](
 	specification InputSpecification[I],
 	callback inputlogic.Callback[I, O],
 	expectedErrors []inputlogic.ExpectedError,
