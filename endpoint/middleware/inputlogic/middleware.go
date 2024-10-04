@@ -1,7 +1,6 @@
 package inputlogic
 
 import (
-	"fmt"
 	"net/http"
 	"slices"
 
@@ -49,6 +48,11 @@ type IObjectPicker[T any] interface {
 	PickObject(r *http.Request, w http.ResponseWriter, obj T) (*T, error)
 }
 
+type ILogger interface {
+	Tracef(message string, params ...any)
+	Errorf(message string, params ...any)
+}
+
 // IOutputHandler represents an interface for processing and sending output
 // based on the request context.
 type IOutputHandler interface {
@@ -68,10 +72,8 @@ type Options[Input any] struct {
 	ObjectPicker IObjectPicker[Input]
 	// Handles output processing.
 	OutputHandler IOutputHandler
-	// Function for tracing log messages.
-	TraceLoggerFn func(r *http.Request) func(messages ...any)
-	// Function for error log messages.
-	ErrorLoggerFn func(r *http.Request) func(messages ...any)
+	// Gets an instance of the logger.
+	Logger func(*http.Request) ILogger
 }
 
 // MiddlewareWrapper wraps the callback and creates a MiddlewareWrapper
@@ -93,8 +95,7 @@ func MiddlewareWrapper[Input ValidatedInput, Output any](
 			expectedErrors,
 			opts.ObjectPicker,
 			opts.OutputHandler,
-			opts.TraceLoggerFn,
-			opts.ErrorLoggerFn,
+			opts.Logger,
 		),
 		Inputs: []any{*inputFactory()},
 	}
@@ -122,8 +123,7 @@ func Middleware[Input ValidatedInput, Output any](
 	expectedErrors []ExpectedError,
 	objectPicker IObjectPicker[Input],
 	outputHandler IOutputHandler,
-	traceLoggerFn func(r *http.Request) func(messages ...any),
-	errorLoggerFn func(r *http.Request) func(messages ...any),
+	logger func(*http.Request) ILogger,
 ) api.Middleware {
 	if objectPicker == nil {
 		panic("object picker cannot be nil")
@@ -143,7 +143,7 @@ func Middleware[Input ValidatedInput, Output any](
 				callback,
 				*inputFactory(),
 				objectPicker,
-				traceLoggerFn,
+				logger,
 			)
 			statusCode := http.StatusOK
 
@@ -154,23 +154,23 @@ func Middleware[Input ValidatedInput, Output any](
 					callbackError,
 					allExpectedErrors,
 				)
-				if traceLoggerFn != nil {
-					traceLoggerFn(r)(fmt.Sprintf(
+				if logger != nil {
+					logger(r).Tracef(
 						"Error handler, status code: %d, callback error: %s, output error: %s",
 						statusCode,
 						callbackError,
 						outError,
-					))
+					)
 				}
 			}
 
 			err := outputHandler.ProcessOutput(w, r, out, outError, statusCode)
 			if err != nil {
-				if errorLoggerFn != nil {
-					errorLoggerFn(r)(fmt.Sprintf(
+				if logger != nil {
+					logger(r).Errorf(
 						"Error processing output: %s",
 						err,
-					))
+					)
 				}
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -189,14 +189,14 @@ func handleInputAndRunCallback[Input ValidatedInput, Output any](
 	callback Callback[Input, Output],
 	inputObject Input,
 	objectPicker IObjectPicker[Input],
-	traceLoggerFn func(r *http.Request) func(messages ...any),
+	logger func(*http.Request) ILogger,
 ) (*Output, error) {
 	input, err := objectPicker.PickObject(r, w, inputObject)
 	if err != nil {
 		return nil, err
 	}
-	if traceLoggerFn != nil {
-		traceLoggerFn(r)("Picked object", input)
+	if logger != nil {
+		logger(r).Tracef("Picked object", input)
 	}
 
 	// Validate the input.
