@@ -34,14 +34,6 @@ type ValidatedInput interface {
 	Validate() []FieldError
 }
 
-// IErrorHandler represents an interface for handling errors.
-type IErrorHandler interface {
-	Handle(
-		handleError error,
-		expectedErrors []ExpectedError,
-	) (int, *api.Error[any])
-}
-
 // IObjectPicker represents an interface for picking objects from an HTTP
 // request.
 type IObjectPicker[T any] interface {
@@ -123,7 +115,7 @@ func Middleware[Input ValidatedInput, Output any](
 	expectedErrors []ExpectedError,
 	objectPicker IObjectPicker[Input],
 	outputHandler IOutputHandler,
-	logger func(*http.Request) ILogger,
+	loggerFn func(*http.Request) ILogger,
 ) api.Middleware {
 	if objectPicker == nil {
 		panic("object picker cannot be nil")
@@ -132,83 +124,109 @@ func Middleware[Input ValidatedInput, Output any](
 		panic("output handler cannot be nil")
 	}
 
-	allExpectedErrors := slices.Concat(internalExpectedErrors, expectedErrors)
+	allErrors := slices.Concat(internalExpectedErrors, expectedErrors)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Handle the input and execute the callback.
-			out, callbackError := handleInputAndRunCallback(
+			input, err := handleInput(
 				w,
 				r,
-				callback,
 				*inputFactory(),
 				objectPicker,
-				logger,
+				loggerFn,
 			)
-			statusCode := http.StatusOK
-
-			// Handle any callback errors.
-			var outError error
-			if callbackError != nil {
-				statusCode, outError = ErrorHandler{}.Handle(
-					callbackError,
-					allExpectedErrors,
-				)
-				if logger != nil {
-					logger(r).Tracef(
-						"Error handler, status code: %d, callback error: %s, output error: %s",
-						statusCode,
-						callbackError,
-						outError,
-					)
-				}
-			}
-
-			err := outputHandler.ProcessOutput(w, r, out, outError, statusCode)
 			if err != nil {
-				if logger != nil {
-					logger(r).Errorf(
-						"Error processing output: %s",
-						err,
-					)
-				}
-				w.WriteHeader(http.StatusInternalServerError)
+				handleError(w, r, err, outputHandler, allErrors, loggerFn)
 				return
 			}
+
+			out, err := callback(w, r, input)
+			if err != nil {
+				handleError(w, r, err, outputHandler, allErrors, loggerFn)
+				return
+			}
+
+			handleOutput(
+				w,
+				r,
+				out,
+				nil,
+				http.StatusOK,
+				outputHandler,
+				loggerFn,
+			)
 
 			next.ServeHTTP(w, r)
 		})
 	}
 }
 
-// handleInputAndRunCallback handles the input by picking the object from the
-// request, validating it, and executing the callback if validation succeeds.
-func handleInputAndRunCallback[Input ValidatedInput, Output any](
+func handleError(
 	w http.ResponseWriter,
 	r *http.Request,
-	callback Callback[Input, Output],
+	handleError error,
+	outputHandler IOutputHandler,
+	expectedErrors []ExpectedError,
+	loggerFn func(*http.Request) ILogger,
+) {
+	statusCode, outError := ErrorHandler{}.Handle(handleError, expectedErrors)
+
+	if loggerFn != nil {
+		loggerFn(r).Tracef(
+			"Error handler, status code: %d, callback error: %s, output error: %s",
+			statusCode,
+			handleError,
+			outError,
+		)
+	}
+
+	handleOutput(w, r, nil, outError, statusCode, outputHandler, loggerFn)
+}
+
+func handleInput[Input ValidatedInput](
+	w http.ResponseWriter,
+	r *http.Request,
 	inputObject Input,
 	objectPicker IObjectPicker[Input],
-	logger func(*http.Request) ILogger,
-) (*Output, error) {
+	loggerFn func(*http.Request) ILogger,
+) (*Input, error) {
 	input, err := objectPicker.PickObject(r, w, inputObject)
 	if err != nil {
 		return nil, err
 	}
-	if logger != nil {
-		logger(r).Tracef("Picked object", input)
+	if loggerFn != nil {
+		loggerFn(r).Tracef("Picked object: %v", *input)
 	}
 
-	// Validate the input.
 	validationErrors := (*input).Validate()
 	if len(validationErrors) > 0 {
-		validationError := ValidationError.WithData(
-			ValidationErrorData{
-				Errors: validationErrors,
-			},
-		)
-		return nil, validationError
+		return nil, ValidationError.WithData(ValidationErrorData{
+			Errors: validationErrors,
+		})
 	}
 
-	return callback(w, r, input)
+	return input, nil
+}
+
+func handleOutput(
+	w http.ResponseWriter,
+	r *http.Request,
+	output any,
+	outputError error,
+	statusCode int,
+	outputHandler IOutputHandler,
+	loggerFn func(*http.Request) ILogger,
+) {
+	err := outputHandler.ProcessOutput(w, r, output, outputError, statusCode)
+
+	if err != nil {
+		if loggerFn != nil {
+			loggerFn(r).Errorf(
+				"Error processing output: %s",
+				err,
+			)
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
