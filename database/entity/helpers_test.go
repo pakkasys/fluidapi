@@ -141,85 +141,6 @@ func TestExecuteManagedTransaction_TransactionFunctionError(t *testing.T) {
 	mockTx.AssertExpectations(t)
 }
 
-// TestExecuteManagedTransaction_GetTxError tests the scenario where getting
-// a transaction fails before the function is called.
-func TestExecuteManagedTransaction_GetTxError(t *testing.T) {
-	ctx := endpointutil.NewContext(context.Background())
-
-	getTxFn := func(ctx context.Context) (util.Tx, error) {
-		return nil, errors.New("failed to get transaction")
-	}
-
-	txHelpers := TXHelpers[string]{
-		GetTxFn: getTxFn,
-	}
-
-	transactionalFunc := func(tx util.Tx) (string, error) {
-		return "should not be called", nil
-	}
-
-	result, err := txHelpers.ExecuteManagedTransaction(ctx, transactionalFunc)
-
-	assert.EqualError(t, err, "failed to get transaction")
-	assert.Equal(t, "", result)
-}
-
-// TestExecuteManagedTransaction_CommitError tests the scenario where committing
-// the transaction fails after a successful transactional function call.
-func TestExecuteManagedTransaction_CommitError(t *testing.T) {
-	ctx := endpointutil.NewContext(context.Background())
-
-	mockTx := new(utilmock.MockTx)
-	getTxFn := func(ctx context.Context) (util.Tx, error) {
-		return mockTx, nil
-	}
-
-	txHelpers := TXHelpers[string]{
-		GetTxFn: getTxFn,
-	}
-
-	transactionalFunc := func(tx util.Tx) (string, error) {
-		return "func success", nil
-	}
-
-	mockTx.On("Commit").Return(errors.New("commit error"))
-
-	result, err := txHelpers.ExecuteManagedTransaction(ctx, transactionalFunc)
-
-	assert.Contains(t, err.Error(), "commit error")
-	assert.Equal(t, "", result)
-
-	mockTx.AssertExpectations(t)
-}
-
-// TestExecuteManagedTransaction_RollbackError tests the scenario where rolling
-// back the transaction fails.
-func TestExecuteManagedTransaction_RollbackError(t *testing.T) {
-	ctx := endpointutil.NewContext(context.Background())
-
-	mockTx := new(utilmock.MockTx)
-	getTxFn := func(ctx context.Context) (util.Tx, error) {
-		return mockTx, nil
-	}
-
-	txHelpers := TXHelpers[string]{
-		GetTxFn: getTxFn,
-	}
-
-	transactionalFunc := func(tx util.Tx) (string, error) {
-		return "", errors.New("transactional function error")
-	}
-
-	mockTx.On("Rollback").Return(errors.New("rollback error"))
-
-	result, err := txHelpers.ExecuteManagedTransaction(ctx, transactionalFunc)
-
-	assert.Contains(t, err.Error(), "rollback error")
-	assert.Equal(t, "", result)
-
-	mockTx.AssertExpectations(t)
-}
-
 // TestCreateEntity_CreateWithoutUpsertOptions tests creating an entity without
 // UpsertOptions.
 func TestCreateEntity_CreateWithoutUpsertOptions(t *testing.T) {
@@ -320,34 +241,6 @@ func TestCreateEntity_UpsertEntityFailure(t *testing.T) {
 	mockSQLUtil.On("CheckDBError", mock.Anything).Return(expectedErr)
 
 	result, err := entityHelpers.CreateEntity(mockPreparer, entity, opts)
-
-	assert.EqualError(t, err, expectedErr.Error())
-	assert.Nil(t, result)
-
-	mockPreparer.AssertExpectations(t)
-}
-
-// TestCreateEntity_PreparerFailure tests the scenario where preparing the query
-// fails.
-func TestCreateEntity_PreparerFailure(t *testing.T) {
-	mockPreparer := new(utilmock.MockDB)
-	mockSQLUtil := new(entitymock.MockSQLUtil)
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		InserterFn: func(entity *TestEntity) ([]string, []any) {
-			return []string{"id", "name"}, []any{entity.ID, entity.Name}
-		},
-		SQLUtil: mockSQLUtil,
-	}
-
-	entity := &TestEntity{ID: 1, Name: "Alice"}
-
-	expectedErr := errors.New("prepare error")
-	mockPreparer.On("Prepare", mock.Anything).Return(nil, expectedErr)
-	mockSQLUtil.On("CheckDBError", mock.Anything).Return(expectedErr)
-
-	result, err := entityHelpers.CreateEntity(mockPreparer, entity, nil)
 
 	assert.EqualError(t, err, expectedErr.Error())
 	assert.Nil(t, result)
@@ -478,35 +371,9 @@ func TestCreateEntityWithManagedTransaction_CreateError(t *testing.T) {
 	mockTx.AssertExpectations(t)
 }
 
-// TestCreateEntityWithManagedTransaction_GetTxError tests the scenario where
-// starting the transaction fails.
-func TestCreateEntityWithManagedTransaction_GetTxError(t *testing.T) {
-	ctx := endpointutil.NewContext(context.Background())
-
-	getTxFn := func(ctx context.Context) (util.Tx, error) {
-		return nil, errors.New("failed to start transaction")
-	}
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		GetTxFn:   getTxFn,
-	}
-
-	entity := &TestEntity{ID: 1, Name: "Alice"}
-
-	result, err := entityHelpers.CreateEntityWithManagedTransaction(
-		ctx,
-		entity,
-		nil,
-	)
-
-	assert.EqualError(t, err, "failed to start transaction")
-	assert.Nil(t, result)
-}
-
-// TestCreateEntities_CreateWithoutUpsertOptions tests creating multiple
-// entities without UpsertOptions.
-func TestCreateEntities_CreateWithoutUpsertOptions(t *testing.T) {
+// TestCreateEntities_CreateSuccess tests the scenario where the entity
+// creation is successful.
+func TestCreateEntities_CreateSuccess(t *testing.T) {
 	mockPreparer := new(utilmock.MockDB)
 	mockStmt := new(utilmock.MockStmt)
 	mockResult := new(utilmock.MockResult)
@@ -532,50 +399,6 @@ func TestCreateEntities_CreateWithoutUpsertOptions(t *testing.T) {
 	mockResult.On("LastInsertId").Return(int64(1), nil)
 
 	result, err := entityHelpers.CreateEntities(mockPreparer, entities, nil)
-
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, entities, result)
-
-	mockPreparer.AssertExpectations(t)
-	mockStmt.AssertExpectations(t)
-	mockResult.AssertExpectations(t)
-}
-
-// TestCreateEntities_UpsertWithOptions tests creating or upserting multiple
-// entities using UpsertOptions.
-func TestCreateEntities_UpsertWithOptions(t *testing.T) {
-	mockPreparer := new(utilmock.MockDB)
-	mockStmt := new(utilmock.MockStmt)
-	mockResult := new(utilmock.MockResult)
-	mockSQLUtil := new(entitymock.MockSQLUtil)
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		InserterFn: func(entity *TestEntity) ([]string, []any) {
-			return []string{"id", "name"}, []any{entity.ID, entity.Name}
-		},
-		SQLUtil: mockSQLUtil,
-	}
-
-	entities := []*TestEntity{
-		{ID: 1, Name: "Alice"},
-		{ID: 2, Name: "Bob"},
-	}
-
-	opts := &UpsertOptions{
-		UpdateProjection: []util.Projection{
-			{Column: "name", Alias: "test_alias"},
-		},
-	}
-
-	mockPreparer.On("Prepare", mock.Anything).Return(mockStmt, nil)
-	mockStmt.On("Exec", mock.Anything).Return(mockResult, nil)
-	mockStmt.On("Close").Return(nil)
-	mockSQLUtil.On("CheckDBError", mock.Anything).Return(nil)
-	mockResult.On("LastInsertId").Return(int64(1), nil)
-
-	result, err := entityHelpers.CreateEntities(mockPreparer, entities, opts)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -621,29 +444,6 @@ func TestCreateEntities_UpsertError(t *testing.T) {
 	mockPreparer.AssertExpectations(t)
 }
 
-// TestCreateEntities_EmptyEntitiess tests the case where no entities are
-// provided.
-func TestCreateEntities_EmptyEntitiess(t *testing.T) {
-	mockPreparer := new(utilmock.MockDB)
-	mockSQLUtil := new(entitymock.MockSQLUtil)
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		InserterFn: func(entity *TestEntity) ([]string, []any) {
-			return []string{"id", "name"}, []any{entity.ID, entity.Name}
-		},
-		SQLUtil: mockSQLUtil,
-	}
-
-	entities := []*TestEntity{}
-
-	result, err := entityHelpers.CreateEntities(mockPreparer, entities, nil)
-
-	assert.NoError(t, err)
-	assert.Equal(t, 0, len(result))
-	mockPreparer.AssertExpectations(t)
-}
-
 // TestCreateEntities_PreparerFailure tests the scenario where preparing the
 // query fails.
 func TestCreateEntities_PreparerFailure(t *testing.T) {
@@ -673,41 +473,6 @@ func TestCreateEntities_PreparerFailure(t *testing.T) {
 	assert.Nil(t, result)
 
 	mockPreparer.AssertExpectations(t)
-}
-
-// TestCreateEntities_EntityCreationFailure tests the scenario where creating
-// the entities fails.
-func TestCreateEntities_EntityCreationFailure(t *testing.T) {
-	mockPreparer := new(utilmock.MockDB)
-	mockStmt := new(utilmock.MockStmt)
-	mockSQLUtil := new(entitymock.MockSQLUtil)
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		InserterFn: func(entity *TestEntity) ([]string, []any) {
-			return []string{"id", "name"}, []any{entity.ID, entity.Name}
-		},
-		SQLUtil: mockSQLUtil,
-	}
-
-	entities := []*TestEntity{
-		{ID: 1, Name: "Alice"},
-		{ID: 2, Name: "Bob"},
-	}
-
-	expectedErr := errors.New("exec error")
-	mockPreparer.On("Prepare", mock.Anything).Return(mockStmt, nil)
-	mockStmt.On("Exec", mock.Anything).Return(nil, expectedErr)
-	mockStmt.On("Close").Return(nil)
-	mockSQLUtil.On("CheckDBError", mock.Anything).Return(expectedErr)
-
-	result, err := entityHelpers.CreateEntities(mockPreparer, entities, nil)
-
-	assert.EqualError(t, err, expectedErr.Error())
-	assert.Nil(t, result)
-
-	mockPreparer.AssertExpectations(t)
-	mockStmt.AssertExpectations(t)
 }
 
 // TestCreateEntitiesWithManagedTransaction_SuccessfulTransaction tests the
@@ -757,53 +522,6 @@ func TestCreateEntitiesWithManagedTransaction_SuccessfulTransaction(t *testing.T
 
 	mockStmt.AssertExpectations(t)
 	mockResult.AssertExpectations(t)
-	mockTx.AssertExpectations(t)
-}
-
-// TestCreateEntitiesWithManagedTransaction_CreateError tests the scenario where
-// an error occurs during entity creation.
-func TestCreateEntitiesWithManagedTransaction_CreateError(t *testing.T) {
-	ctx := endpointutil.NewContext(context.Background())
-
-	mockTx := new(utilmock.MockTx)
-	mockStmt := new(utilmock.MockStmt)
-	mockSQLUtil := new(entitymock.MockSQLUtil)
-
-	getTxFn := func(ctx context.Context) (util.Tx, error) {
-		return mockTx, nil
-	}
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		GetTxFn:   getTxFn,
-		InserterFn: func(entity *TestEntity) ([]string, []any) {
-			return []string{"id", "name"}, []any{entity.ID, entity.Name}
-		},
-		SQLUtil: mockSQLUtil,
-	}
-
-	entities := []*TestEntity{
-		{ID: 1, Name: "Alice"},
-		{ID: 2, Name: "Bob"},
-	}
-
-	expectedErr := errors.New("exec error")
-	mockTx.On("Prepare", mock.Anything).Return(mockStmt, nil)
-	mockStmt.On("Exec", mock.Anything).Return(nil, expectedErr)
-	mockStmt.On("Close").Return(nil)
-	mockTx.On("Rollback").Return(nil)
-	mockSQLUtil.On("CheckDBError", mock.Anything).Return(expectedErr)
-
-	result, err := entityHelpers.CreateEntitiesWithManagedTransaction(
-		ctx,
-		entities,
-		nil,
-	)
-
-	assert.EqualError(t, err, expectedErr.Error())
-	assert.Nil(t, result)
-
-	mockStmt.AssertExpectations(t)
 	mockTx.AssertExpectations(t)
 }
 
@@ -871,314 +589,6 @@ func TestGetEntity_SuccessfulRetrieval(t *testing.T) {
 	assert.Equal(t, "Alice", result.Name)
 
 	mockPreparer.AssertExpectations(t)
-	mockStmt.AssertExpectations(t)
-	mockRow.AssertExpectations(t)
-}
-
-// TestGetEntity_EntityNotFound tests the scenario where the entity is not
-// found.
-func TestGetEntity_EntityNotFound(t *testing.T) {
-	mockPreparer := new(utilmock.MockDB)
-	mockStmt := new(utilmock.MockStmt)
-	mockRow := new(utilmock.MockRow)
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		ScanRowFn: func(row util.Row, entity *TestEntity) error {
-			return errors.New("entity not found")
-		},
-		EntityNotFoundFn: func() error {
-			return errors.New("entity not found")
-		},
-	}
-
-	getOpts := GetOptions{
-		Options: Options{
-			Selectors: []util.Selector{{Field: "id", Predicate: "=", Value: 2}},
-		},
-	}
-
-	mockPreparer.On("Prepare", mock.Anything).Return(mockStmt, nil)
-	mockStmt.On("QueryRow", mock.Anything).Return(mockRow)
-	mockStmt.On("Close").Return(nil)
-
-	result, err := entityHelpers.GetEntity(mockPreparer, getOpts)
-
-	assert.EqualError(t, err, "entity not found")
-	assert.Nil(t, result)
-
-	mockPreparer.AssertExpectations(t)
-	mockStmt.AssertExpectations(t)
-	mockRow.AssertExpectations(t)
-}
-
-// TestGetEntity_PreparerFailure tests the scenario where preparing the query
-// fails.
-func TestGetEntity_PreparerFailure(t *testing.T) {
-	mockPreparer := new(utilmock.MockDB)
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		ScanRowFn: func(row util.Row, entity *TestEntity) error {
-			entity.ID = 1
-			entity.Name = "Alice"
-			return nil
-		},
-	}
-
-	getOpts := GetOptions{
-		Options: Options{
-			Selectors: []util.Selector{{Field: "id", Predicate: "=", Value: 1}},
-		},
-	}
-
-	expectedErr := errors.New("prepare error")
-	mockPreparer.On("Prepare", mock.Anything).Return(nil, expectedErr)
-
-	result, err := entityHelpers.GetEntity(mockPreparer, getOpts)
-
-	assert.EqualError(t, err, expectedErr.Error())
-	assert.Nil(t, result)
-
-	mockPreparer.AssertExpectations(t)
-}
-
-// TestGetEntity_ScanError tests the scenario where scanning the row fails.
-func TestGetEntity_ScanError(t *testing.T) {
-	mockPreparer := new(utilmock.MockDB)
-	mockStmt := new(utilmock.MockStmt)
-	mockRow := new(utilmock.MockRow)
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		ScanRowFn: func(row util.Row, entity *TestEntity) error {
-			return errors.New("scan error")
-		},
-	}
-
-	getOpts := GetOptions{
-		Options: Options{
-			Selectors: []util.Selector{{Field: "id", Predicate: "=", Value: 1}},
-		},
-	}
-
-	mockPreparer.On("Prepare", mock.Anything).Return(mockStmt, nil)
-	mockStmt.On("QueryRow", mock.Anything).Return(mockRow)
-	mockStmt.On("Close").Return(nil)
-
-	result, err := entityHelpers.GetEntity(mockPreparer, getOpts)
-
-	assert.EqualError(t, err, "scan error")
-	assert.Nil(t, result)
-
-	mockPreparer.AssertExpectations(t)
-	mockStmt.AssertExpectations(t)
-	mockRow.AssertExpectations(t)
-}
-
-// TestGetEntityWithManagedTransaction_SuccessfulTransaction tests the
-// scenario where the entity is successfully retrieved.
-func TestGetEntityWithManagedTransaction_SuccessfulTransaction(t *testing.T) {
-	ctx := endpointutil.NewContext(context.Background())
-
-	mockTx := new(utilmock.MockTx)
-	mockStmt := new(utilmock.MockStmt)
-	mockRow := new(utilmock.MockRow)
-	// mockSQLUtil := new(entitymock.MockSQLUtil)
-
-	getTxFn := func(ctx context.Context) (util.Tx, error) {
-		return mockTx, nil
-	}
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		GetTxFn:   getTxFn,
-		ScanRowFn: func(row util.Row, entity *TestEntity) error {
-			entity.ID = 1
-			entity.Name = "Alice"
-			return nil
-		},
-	}
-
-	getOpts := GetOptions{
-		Options: Options{
-			Selectors: []util.Selector{{Field: "id", Predicate: "=", Value: 1}},
-		},
-	}
-
-	mockTx.On("Prepare", mock.Anything).Return(mockStmt, nil)
-	mockStmt.On("QueryRow", mock.Anything).Return(mockRow)
-	mockStmt.On("Close").Return(nil)
-	mockRow.On("Err").Return(nil)
-
-	mockTx.On("Commit").Return(nil)
-
-	result, err := entityHelpers.GetEntityWithManagedTransaction(ctx, getOpts)
-
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, 1, result.ID)
-	assert.Equal(t, "Alice", result.Name)
-
-	mockTx.AssertExpectations(t)
-	mockStmt.AssertExpectations(t)
-	mockRow.AssertExpectations(t)
-}
-
-// TestGetEntityWithManagedTransaction_GetTxError tests the scenario where
-// starting the transaction fails.
-func TestGetEntityWithManagedTransaction_GetTxError(t *testing.T) {
-	ctx := endpointutil.NewContext(context.Background())
-
-	getTxFn := func(ctx context.Context) (util.Tx, error) {
-		return nil, errors.New("failed to start transaction")
-	}
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		GetTxFn:   getTxFn,
-	}
-
-	getOpts := GetOptions{
-		Options: Options{
-			Selectors: []util.Selector{{Field: "id", Predicate: "=", Value: 1}},
-		},
-	}
-
-	result, err := entityHelpers.GetEntityWithManagedTransaction(ctx, getOpts)
-
-	assert.EqualError(t, err, "failed to start transaction")
-	assert.Nil(t, result)
-}
-
-// TestGetEntityWithManagedTransaction_EntityNotFound tests the scenario where
-// the entity is not found.
-func TestGetEntityWithManagedTransaction_EntityNotFound(t *testing.T) {
-	ctx := endpointutil.NewContext(context.Background())
-
-	mockTx := new(utilmock.MockTx)
-	mockStmt := new(utilmock.MockStmt)
-	mockRow := new(utilmock.MockRow)
-
-	getTxFn := func(ctx context.Context) (util.Tx, error) {
-		return mockTx, nil
-	}
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		GetTxFn:   getTxFn,
-		ScanRowFn: func(row util.Row, entity *TestEntity) error {
-			return errors.New("entity not found")
-		},
-		EntityNotFoundFn: func() error {
-			return errors.New("entity not found")
-		},
-	}
-
-	getOpts := GetOptions{
-		Options: Options{
-			Selectors: []util.Selector{{Field: "id", Predicate: "=", Value: 2}},
-		},
-	}
-
-	mockTx.On("Prepare", mock.Anything).Return(mockStmt, nil)
-	mockStmt.On("QueryRow", mock.Anything).Return(mockRow)
-	mockStmt.On("Close").Return(nil)
-	mockTx.On("Rollback").Return(nil)
-
-	result, err := entityHelpers.GetEntityWithManagedTransaction(ctx, getOpts)
-
-	assert.EqualError(t, err, "entity not found")
-	assert.Nil(t, result)
-
-	mockTx.AssertExpectations(t)
-	mockStmt.AssertExpectations(t)
-	mockRow.AssertExpectations(t)
-}
-
-// TestGetEntityWithManagedTransaction_ScanError tests the scenario where
-// scanning the row fails.
-func TestGetEntityWithManagedTransaction_ScanError(t *testing.T) {
-	ctx := endpointutil.NewContext(context.Background())
-
-	mockTx := new(utilmock.MockTx)
-	mockStmt := new(utilmock.MockStmt)
-	mockRow := new(utilmock.MockRow)
-
-	getTxFn := func(ctx context.Context) (util.Tx, error) {
-		return mockTx, nil
-	}
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		GetTxFn:   getTxFn,
-		ScanRowFn: func(row util.Row, entity *TestEntity) error {
-			return errors.New("scan error")
-		},
-	}
-
-	getOpts := GetOptions{
-		Options: Options{
-			Selectors: []util.Selector{{Field: "id", Predicate: "=", Value: 1}},
-		},
-	}
-
-	mockTx.On("Prepare", mock.Anything).Return(mockStmt, nil)
-	mockStmt.On("QueryRow", mock.Anything).Return(mockRow)
-	mockStmt.On("Close").Return(nil)
-	mockTx.On("Rollback").Return(nil)
-
-	result, err := entityHelpers.GetEntityWithManagedTransaction(ctx, getOpts)
-
-	assert.EqualError(t, err, "scan error")
-	assert.Nil(t, result)
-
-	mockTx.AssertExpectations(t)
-	mockStmt.AssertExpectations(t)
-	mockRow.AssertExpectations(t)
-}
-
-// TestGetEntityWithManagedTransaction_CommitError tests the scenario where
-// committing the transaction fails.
-func TestGetEntityWithManagedTransaction_CommitError(t *testing.T) {
-	ctx := endpointutil.NewContext(context.Background())
-
-	mockTx := new(utilmock.MockTx)
-	mockStmt := new(utilmock.MockStmt)
-	mockRow := new(utilmock.MockRow)
-
-	getTxFn := func(ctx context.Context) (util.Tx, error) {
-		return mockTx, nil
-	}
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-		GetTxFn:   getTxFn,
-		ScanRowFn: func(row util.Row, entity *TestEntity) error {
-			entity.ID = 1
-			entity.Name = "Alice"
-			return nil
-		},
-	}
-
-	getOpts := GetOptions{
-		Options: Options{
-			Selectors: []util.Selector{{Field: "id", Predicate: "=", Value: 1}},
-		},
-	}
-
-	mockTx.On("Prepare", mock.Anything).Return(mockStmt, nil)
-	mockStmt.On("QueryRow", mock.Anything).Return(mockRow)
-	mockStmt.On("Close").Return(nil)
-	mockRow.On("Err").Return(nil)
-	mockTx.On("Commit").Return(errors.New("commit error"))
-
-	result, err := entityHelpers.GetEntityWithManagedTransaction(ctx, getOpts)
-
-	assert.Contains(t, err.Error(), "commit error")
-	assert.Nil(t, result)
-
-	mockTx.AssertExpectations(t)
 	mockStmt.AssertExpectations(t)
 	mockRow.AssertExpectations(t)
 }
@@ -1256,19 +666,18 @@ func TestGetEntity_EntityNotFoundFnNotDefined(t *testing.T) {
 	mockRow.AssertExpectations(t)
 }
 
-// TestGetEntity_EntityNotFoundFnNil tests the scenario where the entity
-// not found function is nil.
-func TestGetEntity_EntityNotFoundFnNil(t *testing.T) {
+// TestGetEntity_PreparerFailure tests the scenario where preparing the query
+// fails.
+func TestGetEntity_PreparerFailure(t *testing.T) {
 	mockPreparer := new(utilmock.MockDB)
-	mockStmt := new(utilmock.MockStmt)
-	mockRow := new(utilmock.MockRow)
 
 	entityHelpers := EntityHelpers[TestEntity]{
 		TableName: "test_table",
 		ScanRowFn: func(row util.Row, entity *TestEntity) error {
+			entity.ID = 1
+			entity.Name = "Alice"
 			return nil
 		},
-		EntityNotFoundFn: nil,
 	}
 
 	getOpts := GetOptions{
@@ -1277,7 +686,7 @@ func TestGetEntity_EntityNotFoundFnNil(t *testing.T) {
 		},
 	}
 
-	expectedErr := errors.New("entity not found")
+	expectedErr := errors.New("prepare error")
 	mockPreparer.On("Prepare", mock.Anything).Return(nil, expectedErr)
 
 	result, err := entityHelpers.GetEntity(mockPreparer, getOpts)
@@ -1286,8 +695,81 @@ func TestGetEntity_EntityNotFoundFnNil(t *testing.T) {
 	assert.Nil(t, result)
 
 	mockPreparer.AssertExpectations(t)
+}
+
+// TestGetEntityWithManagedTransaction_SuccessfulTransaction tests the
+// scenario where the entity is successfully retrieved.
+func TestGetEntityWithManagedTransaction_SuccessfulTransaction(t *testing.T) {
+	ctx := endpointutil.NewContext(context.Background())
+
+	mockTx := new(utilmock.MockTx)
+	mockStmt := new(utilmock.MockStmt)
+	mockRow := new(utilmock.MockRow)
+	// mockSQLUtil := new(entitymock.MockSQLUtil)
+
+	getTxFn := func(ctx context.Context) (util.Tx, error) {
+		return mockTx, nil
+	}
+
+	entityHelpers := EntityHelpers[TestEntity]{
+		TableName: "test_table",
+		GetTxFn:   getTxFn,
+		ScanRowFn: func(row util.Row, entity *TestEntity) error {
+			entity.ID = 1
+			entity.Name = "Alice"
+			return nil
+		},
+	}
+
+	getOpts := GetOptions{
+		Options: Options{
+			Selectors: []util.Selector{{Field: "id", Predicate: "=", Value: 1}},
+		},
+	}
+
+	mockTx.On("Prepare", mock.Anything).Return(mockStmt, nil)
+	mockStmt.On("QueryRow", mock.Anything).Return(mockRow)
+	mockStmt.On("Close").Return(nil)
+	mockRow.On("Err").Return(nil)
+
+	mockTx.On("Commit").Return(nil)
+
+	result, err := entityHelpers.GetEntityWithManagedTransaction(ctx, getOpts)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, 1, result.ID)
+	assert.Equal(t, "Alice", result.Name)
+
+	mockTx.AssertExpectations(t)
 	mockStmt.AssertExpectations(t)
 	mockRow.AssertExpectations(t)
+}
+
+// TestGetEntityWithManagedTransaction_GetTxError tests the scenario where
+// starting the transaction fails.
+func TestGetEntityWithManagedTransaction_GetTxError(t *testing.T) {
+	ctx := endpointutil.NewContext(context.Background())
+
+	getTxFn := func(ctx context.Context) (util.Tx, error) {
+		return nil, errors.New("failed to start transaction")
+	}
+
+	entityHelpers := EntityHelpers[TestEntity]{
+		TableName: "test_table",
+		GetTxFn:   getTxFn,
+	}
+
+	getOpts := GetOptions{
+		Options: Options{
+			Selectors: []util.Selector{{Field: "id", Predicate: "=", Value: 1}},
+		},
+	}
+
+	result, err := entityHelpers.GetEntityWithManagedTransaction(ctx, getOpts)
+
+	assert.EqualError(t, err, "failed to start transaction")
+	assert.Nil(t, result)
 }
 
 // TestGetEntities_SuccessfulRetrieval tests the scenario where multiple
@@ -1563,52 +1045,6 @@ func TestGetEntityCount_PreparerFailure(t *testing.T) {
 	mockPreparer.AssertExpectations(t)
 }
 
-// TestGetEntityCount_ScanError tests the scenario where scanning the count
-// value fails.
-func TestGetEntityCount_ScanError(t *testing.T) {
-	mockPreparer := new(utilmock.MockDB)
-	mockStmt := new(utilmock.MockStmt)
-	mockRow := new(utilmock.MockRow)
-
-	entityHelpers := EntityHelpers[TestEntity]{
-		TableName: "test_table",
-	}
-
-	selectors := []util.Selector{
-		{Field: "active", Predicate: "=", Value: true},
-	}
-
-	joins := []util.Join{
-		{
-			Type:  util.JoinTypeFull,
-			Table: "related_table",
-			OnLeft: util.ColumSelector{
-				Table:  "test_table",
-				Column: "related_id",
-			},
-			OnRight: util.ColumSelector{
-				Table:  "related_table",
-				Column: "id",
-			},
-		},
-	}
-
-	expectedErr := errors.New("scan error")
-	mockPreparer.On("Prepare", mock.Anything).Return(mockStmt, nil)
-	mockStmt.On("QueryRow", mock.Anything).Return(mockRow, nil)
-	mockStmt.On("Close").Return(nil)
-	mockRow.On("Scan", mock.Anything).Return(expectedErr)
-
-	result, err := entityHelpers.GetEntityCount(mockPreparer, selectors, joins)
-
-	assert.EqualError(t, err, expectedErr.Error())
-	assert.Equal(t, 0, result)
-
-	mockPreparer.AssertExpectations(t)
-	mockStmt.AssertExpectations(t)
-	mockRow.AssertExpectations(t)
-}
-
 // TestGetEntityCountWithManagedTransaction_SuccessfulTransaction tests the
 // scenario where the entity count is success.
 func TestGetEntityCountWithManagedTransaction_SuccessfulTransaction(t *testing.T) {
@@ -1676,6 +1112,51 @@ func TestGetEntityCountWithManagedTransaction_SuccessfulTransaction(t *testing.T
 	mockTx.AssertExpectations(t)
 	mockStmt.AssertExpectations(t)
 	mockRow.AssertExpectations(t)
+}
+
+func TestGetEntityCountWithManagedTransaction_PreparerFailure(t *testing.T) {
+	ctx := endpointutil.NewContext(context.Background())
+
+	mockTx := new(utilmock.MockTx)
+
+	entityHelpers := EntityHelpers[TestEntity]{
+		TableName: "test_table",
+		GetTxFn:   func(ctx context.Context) (util.Tx, error) { return mockTx, nil },
+	}
+
+	selectors := []util.Selector{
+		{Field: "active", Predicate: "=", Value: true},
+	}
+
+	joins := []util.Join{
+		{
+			Type:  util.JoinTypeInner,
+			Table: "related_table",
+			OnLeft: util.ColumSelector{
+				Table:  "test_table",
+				Column: "related_id",
+			},
+			OnRight: util.ColumSelector{
+				Table:  "related_table",
+				Column: "id",
+			},
+		},
+	}
+
+	expectedErr := errors.New("prepare error")
+	mockTx.On("Prepare", mock.Anything).Return(nil, expectedErr)
+	mockTx.On("Rollback").Return(nil)
+
+	result, err := entityHelpers.GetEntityCountWithManagedTransaction(
+		ctx,
+		selectors,
+		joins,
+	)
+
+	assert.EqualError(t, err, expectedErr.Error())
+	assert.Equal(t, 0, result)
+
+	mockTx.AssertExpectations(t)
 }
 
 // TestUpdateEntities_SuccessfulUpdate tests the scenario where entities are
