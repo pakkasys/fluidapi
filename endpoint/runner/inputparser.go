@@ -82,7 +82,7 @@ func ParseUpdateEndpointInput(
 		return nil, err
 	}
 	if len(dbSelectors) == 0 {
-		return nil, selector.NeedAtLeastOneSelectorError()
+		return nil, selector.NeedAtLeastOneSelectorError
 	}
 
 	dbUpdates, err := update.ToDBUpdates(updates, apiFields)
@@ -90,7 +90,7 @@ func ParseUpdateEndpointInput(
 		return nil, err
 	}
 	if len(dbSelectors) == 0 {
-		return nil, update.NeedAtLeastOneUpdateError()
+		return nil, update.NeedAtLeastOneUpdateError
 	}
 
 	return &ParsedUpdateEndpointInput{
@@ -112,7 +112,7 @@ func ParseDeleteEndpointInput(
 		return nil, err
 	}
 	if len(dbSelectors) == 0 {
-		return nil, selector.NeedAtLeastOneSelectorError()
+		return nil, selector.NeedAtLeastOneSelectorError
 	}
 
 	dbOrders, err := order.ValidateAndTranslateToDatabaseOrders(

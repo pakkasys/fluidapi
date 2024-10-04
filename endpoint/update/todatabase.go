@@ -17,7 +17,11 @@ func ToDBUpdates(
 		// Translate the field
 		dbField, ok := apiToDBFieldMap[matchedUpdate.Field]
 		if !ok {
-			return nil, InvalidDatabaseUpdateTranslationError(matchedUpdate.Field)
+			return nil, InvalidDatabaseUpdateTranslationError.WithData(
+				InvalidDatabaseUpdateTranslationErrorData{
+					Field: matchedUpdate.Field,
+				},
+			)
 		}
 
 		dbUpdates = append(

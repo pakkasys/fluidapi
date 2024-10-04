@@ -7,7 +7,11 @@ type InputPage struct {
 
 func (p *InputPage) Validate(maxLimit int) error {
 	if p.Limit > maxLimit {
-		return MaxPageLimitExceeded(maxLimit)
+		return MaxPageLimitExceededError.WithData(
+			MaxPageLimitExceededErrorData{
+				MaxLimit: maxLimit,
+			},
+		)
 	}
 	return nil
 }

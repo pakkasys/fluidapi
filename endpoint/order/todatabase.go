@@ -50,7 +50,11 @@ func ToDatabaseOrders(
 		// Translate column
 		dbColumn := translatedField.Column
 		if dbColumn == "" {
-			return nil, InvalidOrderFieldError(order.Field)
+			return nil, InvalidOrderFieldError.WithData(
+				InvalidOrderFieldErrorData{
+					Field: order.Field,
+				},
+			)
 		}
 		order.Field = dbColumn
 

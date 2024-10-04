@@ -5,72 +5,31 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/predicate"
 )
 
+var NeedAtLeastOneSelectorError = api.NewError[any]("NEED_AT_LEAST_ONE_SELECTOR")
+
 type InvalidDatabaseSelectorTranslationErrorData struct {
 	Field string `json:"field"`
 }
 
-var INVALID_DATABASE_SELECTOR_TRANSLATION_ERROR_ID = "INVALID_DATABASE_SELECTOR_TRANSLATION"
-
-func InvalidDatabaseSelectorTranslationError(field string) *api.Error {
-	return &api.Error{
-		ID: INVALID_DATABASE_SELECTOR_TRANSLATION_ERROR_ID,
-		Data: InvalidDatabaseSelectorTranslationErrorData{
-			Field: field,
-		},
-	}
-}
+var InvalidDatabaseSelectorTranslationError = api.
+	NewError[InvalidDatabaseSelectorTranslationErrorData](
+	"INVALID_DATABASE_SELECTOR_TRANSLATION",
+)
 
 type InvalidPredicateErrorData struct {
 	Predicate predicate.Predicate `json:""`
 }
 
-var INVALID_PREDICATE_ERROR_ID = "INVALID_PREDICATE"
-
-func InvalidPredicateError(predicate predicate.Predicate) *api.Error {
-	return &api.Error{
-		ID: INVALID_PREDICATE_ERROR_ID,
-		Data: InvalidPredicateErrorData{
-			Predicate: predicate,
-		},
-	}
-}
+var InvalidPredicateError = api.NewError[InvalidPredicateErrorData]("INVALID_PREDICATE")
 
 type InvalidSelectorFieldErrorData struct {
 	Field string `json:"field"`
 }
 
-var INVALID_SELECTOR_FIELD_ERROR_ID = "INVALID_SELECTOR_FIELD"
-
-func InvalidSelectorFieldError(field string) *api.Error {
-	return &api.Error{
-		ID: INVALID_SELECTOR_FIELD_ERROR_ID,
-		Data: InvalidSelectorFieldErrorData{
-			Field: field,
-		},
-	}
-}
-
-var NEED_AT_LEAST_ONE_SELECTOR_ERROR_ID = "NEED_AT_LEAST_ONE_SELECTOR"
-
-func NeedAtLeastOneSelectorError() *api.Error {
-	return &api.Error{
-		ID: NEED_AT_LEAST_ONE_SELECTOR_ERROR_ID,
-	}
-}
+var InvalidSelectorFieldError = api.NewError[InvalidSelectorFieldErrorData]("INVALID_SELECTOR_FIELD")
 
 type PredicateNotAllowedErrorData struct {
 	Predicate predicate.Predicate `json:"predicate"`
 }
 
-var PREDICATE_NOT_ALLOWED_ERROR_ID = "PREDICATE_NOT_ALLOWED"
-
-func PredicateNotAllowedError(
-	predicate predicate.Predicate,
-) *api.Error {
-	return &api.Error{
-		ID: PREDICATE_NOT_ALLOWED_ERROR_ID,
-		Data: PredicateNotAllowedErrorData{
-			Predicate: predicate,
-		},
-	}
-}
+var PredicateNotAllowedError = api.NewError[PredicateNotAllowedErrorData]("PREDICATE_NOT_ALLOWED")

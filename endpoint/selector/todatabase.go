@@ -22,8 +22,8 @@ func ToDBSelectors(
 			selector.AllowedPredicates,
 			selector.Predicate,
 		) {
-			return nil, PredicateNotAllowedError(
-				selector.Predicate,
+			return nil, PredicateNotAllowedError.WithData(
+				PredicateNotAllowedErrorData{Predicate: selector.Predicate},
 			)
 		}
 
@@ -31,16 +31,16 @@ func ToDBSelectors(
 		dbPredicate, ok := predicate.
 			APIToDatabasePredicates[selector.Predicate]
 		if !ok {
-			return nil, InvalidPredicateError(
-				selector.Predicate,
+			return nil, InvalidPredicateError.WithData(
+				InvalidPredicateErrorData{Predicate: selector.Predicate},
 			)
 		}
 
 		// Translate the field
 		dbField, ok := apiToDBFieldMap[selector.Field]
 		if !ok {
-			return nil, InvalidDatabaseSelectorTranslationError(
-				selector.Field,
+			return nil, InvalidDatabaseSelectorTranslationError.WithData(
+				InvalidDatabaseSelectorTranslationErrorData{Field: selector.Field},
 			)
 		}
 

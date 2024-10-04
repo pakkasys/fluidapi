@@ -17,13 +17,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-var INVALID_INPUT_ERROR_ID = "INVALID_INPUT"
-
-func InvalidInputError() *api.Error {
-	return &api.Error{
-		ID: INVALID_INPUT_ERROR_ID,
-	}
-}
+var InvalidInputError = api.NewError[any]("INVALID_INPUT")
 
 type FieldConfig map[string][]string
 type StructRegistry map[reflect.Type]FieldConfig
@@ -69,7 +63,7 @@ func (o *ObjectPicker[T]) PickObject(
 		var err error
 		bodyData, err = o.bodyToMap(r)
 		if err != nil {
-			return nil, InvalidInputError()
+			return nil, InvalidInputError
 		}
 	}
 
@@ -78,7 +72,7 @@ func (o *ObjectPicker[T]) PickObject(
 		var err error
 		urlData, err = client.DecodeURL(r.URL.Query())
 		if err != nil {
-			return nil, InvalidInputError()
+			return nil, InvalidInputError
 		}
 	}
 
@@ -163,11 +157,11 @@ func (o *ObjectPicker[T]) pickObjectForObj(
 
 	decoder, err := mapstructure.NewDecoder(decoderConfig)
 	if err != nil {
-		return nil, InvalidInputError()
+		return nil, InvalidInputError
 	}
 
 	if err := decoder.Decode(valueMap); err != nil {
-		return nil, InvalidInputError()
+		return nil, InvalidInputError
 	}
 
 	return ptr.Elem().Interface(), nil

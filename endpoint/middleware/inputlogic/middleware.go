@@ -14,12 +14,12 @@ const MiddlewareID = "inputlogic"
 
 var internalExpectedErrors []ExpectedError = []ExpectedError{
 	{
-		ErrorID:       util.INVALID_INPUT_ERROR_ID,
+		ErrorID:       util.InvalidInputError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: false,
 	},
 	{
-		ErrorID:       VALIDATION_ERROR_ID,
+		ErrorID:       ValidationError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
@@ -36,7 +36,10 @@ type ValidatedInput interface {
 }
 
 type IErrorHandler interface {
-	Handle(handleError error, expectedErrors []ExpectedError) (int, *api.Error)
+	Handle(
+		handleError error,
+		expectedErrors []ExpectedError,
+	) (int, *api.Error[any])
 }
 
 type IObjectPicker[T any] interface {
@@ -151,7 +154,11 @@ func handleInputAndRunCallback[Input ValidatedInput, Output any](
 
 	validationErrors := (*input).Validate()
 	if len(validationErrors) > 0 {
-		validationError := ValidationError(validationErrors)
+		validationError := ValidationError.WithData(
+			ValidationErrorData{
+				Errors: validationErrors,
+			},
+		)
 		return nil, validationError
 	}
 

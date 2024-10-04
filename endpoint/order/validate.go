@@ -31,12 +31,20 @@ func ValidateAndDeduplicateOrders(
 func validate(order Order, allowedOrderFields []string) error {
 	// Check that the order direction is valid
 	if !slices.Contains(Directions, order.Direction) {
-		return InvalidOrderFieldError(order.Field)
+		return InvalidOrderFieldError.WithData(
+			InvalidOrderFieldErrorData{
+				Field: order.Field,
+			},
+		)
 	}
 
 	// Check that the order field is allowed
 	if !slices.Contains(allowedOrderFields, order.Field) {
-		return InvalidOrderFieldError(order.Field)
+		return InvalidOrderFieldError.WithData(
+			InvalidOrderFieldErrorData{
+				Field: order.Field,
+			},
+		)
 	}
 
 	return nil

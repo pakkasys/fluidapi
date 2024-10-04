@@ -15,8 +15,8 @@ const (
 )
 
 type Output[T any] struct {
-	Payload *T         `json:"payload,omitempty"`
-	Error   *api.Error `json:"error,omitempty"`
+	Payload *T              `json:"payload,omitempty"`
+	Error   *api.Error[any] `json:"error,omitempty"`
 }
 
 // HandleSendError checks if there is an error from the Send request and returns
@@ -57,7 +57,7 @@ func APIPayload[I any, O any](output *client.Response[I, Output[O]]) *O {
 // APIError returns the error of the API response from the output.
 func APIError[I any, O any](
 	output *client.Response[I, Output[O]],
-) *api.Error {
+) *api.Error[any] {
 	if output == nil {
 		return nil
 	}
@@ -95,14 +95,14 @@ func JSON(
 	return &output, nil
 }
 
-func handleError(outputError error) *api.Error {
+func handleError(outputError error) *api.Error[any] {
 	if outputError == nil {
 		return nil
 	}
 	switch errType := outputError.(type) {
-	case *api.Error:
+	case *api.Error[any]:
 		return errType
 	default:
-		return Error()
+		return Error
 	}
 }

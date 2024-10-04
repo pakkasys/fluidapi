@@ -13,12 +13,12 @@ import (
 
 var CreateErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 	{
-		ErrorID:       errors.DUPLICATE_ENTRY_ERROR_ID,
+		ErrorID:       errors.DuplicateEntryError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: false,
 	},
 	{
-		ErrorID:       errors.FOREIGN_CONSTRAINT_ERROR_ID,
+		ErrorID:       errors.ForeignConstraintError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: false,
 	},
@@ -26,27 +26,27 @@ var CreateErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 
 var GetErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 	{
-		ErrorID:       selector.INVALID_PREDICATE_ERROR_ID,
+		ErrorID:       selector.InvalidPredicateError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       selector.PREDICATE_NOT_ALLOWED_ERROR_ID,
+		ErrorID:       selector.PredicateNotAllowedError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       selector.INVALID_SELECTOR_FIELD_ERROR_ID,
+		ErrorID:       selector.InvalidSelectorFieldError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       order.INVALID_ORDER_FIELD_ERROR_ID,
+		ErrorID:       order.InvalidOrderFieldError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       page.MAX_PAGE_LIMIT_EXCEEDED_ERROR_ID,
+		ErrorID:       page.MaxPageLimitExceededError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
@@ -54,42 +54,42 @@ var GetErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 
 var UpdateErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 	{
-		ErrorID:       selector.INVALID_PREDICATE_ERROR_ID,
+		ErrorID:       selector.InvalidPredicateError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       selector.INVALID_SELECTOR_FIELD_ERROR_ID,
+		ErrorID:       selector.InvalidSelectorFieldError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       selector.PREDICATE_NOT_ALLOWED_ERROR_ID,
+		ErrorID:       selector.PredicateNotAllowedError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       selector.NEED_AT_LEAST_ONE_SELECTOR_ERROR_ID,
+		ErrorID:       selector.NeedAtLeastOneSelectorError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       update.NEED_AT_LEAST_ONE_UPDATE_ERROR_ID,
+		ErrorID:       update.NeedAtLeastOneUpdateError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       order.INVALID_ORDER_FIELD_ERROR_ID,
+		ErrorID:       order.InvalidOrderFieldError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       errors.DUPLICATE_ENTRY_ERROR_ID,
+		ErrorID:       errors.DuplicateEntryError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: false,
 	},
 	{
-		ErrorID:       errors.FOREIGN_CONSTRAINT_ERROR_ID,
+		ErrorID:       errors.ForeignConstraintError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: false,
 	},
@@ -97,22 +97,22 @@ var UpdateErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 
 var DeleteErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 	{
-		ErrorID:       selector.INVALID_PREDICATE_ERROR_ID,
+		ErrorID:       selector.InvalidPredicateError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       selector.INVALID_SELECTOR_FIELD_ERROR_ID,
+		ErrorID:       selector.InvalidSelectorFieldError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       selector.PREDICATE_NOT_ALLOWED_ERROR_ID,
+		ErrorID:       selector.PredicateNotAllowedError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},
 	{
-		ErrorID:       selector.NEED_AT_LEAST_ONE_SELECTOR_ERROR_ID,
+		ErrorID:       selector.NeedAtLeastOneSelectorError.ID,
 		StatusCode:    http.StatusBadRequest,
 		DataIsVisible: true,
 	},

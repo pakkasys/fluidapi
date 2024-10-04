@@ -12,9 +12,9 @@ func TestDuplicateEntry(t *testing.T) {
 	// Simulate an error
 	simulatedError := errors.New("duplicate entry error")
 
-	apiError := DuplicateEntry(simulatedError)
+	apiError := DuplicateEntryError.WithData(simulatedError)
 
-	assert.Equal(t, DUPLICATE_ENTRY_ERROR_ID, apiError.ID)
+	assert.Equal(t, DuplicateEntryError.ID, apiError.ID)
 	assert.Equal(t, simulatedError, apiError.Data)
 }
 
@@ -23,8 +23,8 @@ func TestForeignConstraintError(t *testing.T) {
 	// Simulate an error
 	simulatedError := errors.New("foreign constraint error")
 
-	apiError := ForeignConstraintError(simulatedError)
+	apiError := ForeignConstraintError.WithData(simulatedError)
 
-	assert.Equal(t, FOREIGN_CONSTRAINT_ERROR_ID, apiError.ID)
+	assert.Equal(t, ForeignConstraintError.ID, apiError.ID)
 	assert.Equal(t, simulatedError, apiError.Data)
 }
