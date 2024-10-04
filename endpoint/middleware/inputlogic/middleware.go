@@ -14,7 +14,7 @@ const MiddlewareID = "inputlogic"
 // Internal server expected errors for validation failures.
 var internalExpectedErrors []ExpectedError = []ExpectedError{
 	{
-		ID:         ValidationError.ID,
+		ID:         ValidationError.GetID(),
 		Status:     http.StatusBadRequest,
 		PublicData: true,
 	},

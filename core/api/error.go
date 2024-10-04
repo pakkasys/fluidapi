@@ -31,6 +31,7 @@ func (e *Error[T]) WithData(data T) *Error[T] {
 	}
 }
 
+// WithMessage returns a new error with the given message.
 func (e *Error[T]) WithMessage(message string) *Error[T] {
 	return &Error[T]{
 		ID:      e.ID,
