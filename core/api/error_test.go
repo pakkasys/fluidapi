@@ -54,8 +54,8 @@ func TestWithMessage(t *testing.T) {
 	assert.Empty(t, originalErr.Message, "Original Message should be empty")
 }
 
-// TestEnhancedErrorMethod tests the enhanced Error method with a message.
-func TestEnhancedErrorMethod(t *testing.T) {
+// TestErrorFunc tests the Error method.
+func TestErrorFunc(t *testing.T) {
 	err := Error[string]{
 		ID:      "test_error",
 		Data:    "",
@@ -68,4 +68,35 @@ func TestEnhancedErrorMethod(t *testing.T) {
 		err.Error(),
 		"Error string should include ID and message",
 	)
+}
+
+// TestGetID tests the GetID method of the generic Error type.
+func TestGetID(t *testing.T) {
+	err := NewError[string]("test_error")
+
+	assert.Equal(t, "test_error", err.GetID(), "Should return 'test_error'")
+}
+
+// TestGetData tests the GetData method of the generic Error type.
+func TestGetData(t *testing.T) {
+	err := NewError[string]("test_error")
+	data := "some_data"
+	errWithData := err.WithData(data)
+
+	assert.Equal(t, data, errWithData.GetData(), "Should return correct data")
+}
+
+// TestGetMessage tests the GetMessage method of the generic Error type.
+func TestGetMessage(t *testing.T) {
+	err := NewError[string]("test_error")
+	msg := "Detailed message"
+	errWithMessage := err.WithMessage(msg)
+
+	assert.Equal(t, msg, errWithMessage.GetMessage(), "No correct message")
+}
+
+// TestAPIErrorInterface tests if Error satisfies the APIError interface.
+func TestAPIErrorInterface(t *testing.T) {
+	var apiErr APIError = NewError[string]("test_error")
+	assert.Equal(t, "test_error", apiErr.GetID(), "Should return 'test_error'")
 }

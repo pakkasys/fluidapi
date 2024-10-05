@@ -11,6 +11,19 @@ import (
 // MiddlewareID is a constant used to identify the middleware within the system.
 const MiddlewareID = "inputlogic"
 
+// FieldError represents a field-level validation error
+type FieldError struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
+// ValidationErrorData contains a list of field-level validation errors
+type ValidationErrorData struct {
+	Errors []FieldError `json:"errors"`
+}
+
+var ValidationError = api.NewError[ValidationErrorData]("VALIDATION_ERROR")
+
 // Internal server expected errors for validation failures.
 var internalExpectedErrors []ExpectedError = []ExpectedError{
 	{
@@ -41,6 +54,7 @@ type IObjectPicker[T any] interface {
 	PickObject(r *http.Request, w http.ResponseWriter, obj T) (*T, error)
 }
 
+// ILogger represents an interface for logging messages.
 type ILogger interface {
 	Trace(message ...any)
 	Error(message ...any)
