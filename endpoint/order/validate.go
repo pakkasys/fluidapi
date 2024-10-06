@@ -4,6 +4,12 @@ import (
 	"slices"
 )
 
+// ValidateAndDeduplicateOrders validates and deduplicates the provided orders.
+// It returns a new list of orders with no duplicates.
+// It also returns an error if any of the orders are invalid.
+//
+//   - orders: The list of orders to validate and deduplicate.
+//   - allowedOrderFields: The list of allowed order fields.
 func ValidateAndDeduplicateOrders(
 	orders []Order,
 	allowedOrderFields []string,
@@ -18,10 +24,9 @@ func ValidateAndDeduplicateOrders(
 			return nil, err
 		}
 
-		field := order.GetField()
-		if !addedFields[field] {
+		if !addedFields[order.Field] {
 			newOrders = append(newOrders, order)
-			addedFields[field] = true
+			addedFields[order.Field] = true
 		}
 	}
 

@@ -1,42 +1,24 @@
 package order
 
-import (
-	"fmt"
-	"slices"
-)
-
 type OrderDirection string
 
 const (
-	DIRECTION_ASCENDING       OrderDirection = "ASC"
-	DIRECTION_ASCENDING_LONG  OrderDirection = "ASCENDING"
-	DIRECTION_DESCENDING      OrderDirection = "DESC"
-	DIRECTION_DESCENDING_LONG OrderDirection = "DESCENDING"
+	DIRECTION_ASC        OrderDirection = "ASC"
+	DIRECTION_ASCENDING  OrderDirection = "ASCENDING"
+	DIRECTION_DESC       OrderDirection = "DESC"
+	DIRECTION_DESCENDING OrderDirection = "DESCENDING"
 )
 
+// Directions is a list of all possible order directions.
 var Directions []OrderDirection = []OrderDirection{
+	DIRECTION_ASC,
 	DIRECTION_ASCENDING,
-	DIRECTION_ASCENDING_LONG,
+	DIRECTION_DESC,
 	DIRECTION_DESCENDING,
-	DIRECTION_DESCENDING_LONG,
 }
 
+// Order is used to specify the order of the result set.
 type Order struct {
 	Field     string         `json:"field"`
 	Direction OrderDirection `json:"direction"`
-}
-
-func (s Order) GetField() string {
-	return s.Field
-}
-
-func Get(field string, direction OrderDirection) *Order {
-	if !slices.Contains(Directions, direction) {
-		panic(fmt.Sprintf("invalid order direction: %s", direction))
-	}
-
-	return &Order{
-		Field:     field,
-		Direction: direction,
-	}
 }

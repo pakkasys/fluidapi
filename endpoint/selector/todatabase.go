@@ -28,8 +28,7 @@ func ToDBSelectors(
 		}
 
 		// Translate the predicate
-		dbPredicate, ok := predicate.
-			APIToDatabasePredicates[selector.Predicate]
+		dbPredicate, ok := predicate.ToDBPredicates[selector.Predicate]
 		if !ok {
 			return nil, InvalidPredicateError.WithData(
 				InvalidPredicateErrorData{Predicate: selector.Predicate},
