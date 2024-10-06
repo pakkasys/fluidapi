@@ -10,6 +10,14 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/middleware/inputlogic"
 )
 
+type InputFactory[T any] func() *T
+
+type InputSpecification[Input any] struct {
+	URL          string
+	Method       string
+	InputFactory InputFactory[Input]
+}
+
 type StackBuilder interface {
 	Build() middleware.Stack
 	MustAddMiddleware(wrapper ...api.MiddlewareWrapper) StackBuilder
