@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -8,6 +9,8 @@ import (
 )
 
 const RequestLogMiddlewareID = "request_log"
+
+type GetRequestMetadataFunc func(ctx context.Context) *RequestMetadata
 
 type requestLog struct {
 	StartTime     time.Time `json:"start_time"`
@@ -22,11 +25,12 @@ func RequestLogMiddlewareWrapper(
 ) *api.MiddlewareWrapper {
 	return &api.MiddlewareWrapper{
 		ID:         RequestLogMiddlewareID,
-		Middleware: RequestLogMiddleware(requestLoggerFn),
+		Middleware: RequestLogMiddleware(GetRequestMetadata, requestLoggerFn),
 	}
 }
 
 func RequestLogMiddleware(
+	getMetadataFn GetRequestMetadataFunc,
 	requestLoggerFn func(r *http.Request) func(messages ...any),
 ) api.Middleware {
 	if requestLoggerFn == nil {
@@ -35,7 +39,7 @@ func RequestLogMiddleware(
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logRequest(r, requestLoggerFn)
+			logRequest(r, getMetadataFn, requestLoggerFn)
 
 			next.ServeHTTP(w, r)
 
@@ -48,9 +52,10 @@ func RequestLogMiddleware(
 
 func logRequest(
 	r *http.Request,
+	getMetadataFn GetRequestMetadataFunc,
 	requestLoggerFn func(r *http.Request) func(messages ...any),
 ) {
-	requestMetadata := GetRequestMetadata(r.Context())
+	requestMetadata := getMetadataFn(r.Context())
 	if requestMetadata == nil {
 		requestLoggerFn(r)("Request started", "Request metadata not found")
 	} else {
