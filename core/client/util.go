@@ -113,16 +113,18 @@ func constructURL(
 ) (*string, error) {
 	url := fmt.Sprintf("%s%s", host, path)
 
+	// Return the base URL if there are no URL parameters
 	if len(urlParameters) == 0 {
 		return &url, nil
-	} else {
-		params, err := toURLParamString(urlParameters)
-		if err != nil {
-			return nil, err
-		}
-		fullURL := fmt.Sprintf("%s?%s", url, *params)
-		return &fullURL, nil
 	}
+
+	params, err := toURLParamString(urlParameters)
+	if err != nil {
+		return nil, err
+	}
+
+	fullURL := fmt.Sprintf("%s?%s", url, *params)
+	return &fullURL, nil
 }
 
 func toURLParamString(input map[string]any) (*string, error) {
