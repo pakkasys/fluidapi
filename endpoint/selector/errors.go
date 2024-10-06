@@ -11,10 +11,7 @@ type InvalidDatabaseSelectorTranslationErrorData struct {
 	Field string `json:"field"`
 }
 
-var InvalidDatabaseSelectorTranslationError = api.
-	NewError[InvalidDatabaseSelectorTranslationErrorData](
-	"INVALID_DATABASE_SELECTOR_TRANSLATION",
-)
+var InvalidDatabaseSelectorTranslationError = api.NewError[InvalidDatabaseSelectorTranslationErrorData]("INVALID_DATABASE_SELECTOR_TRANSLATION")
 
 type InvalidPredicateErrorData struct {
 	Predicate predicate.Predicate `json:""`

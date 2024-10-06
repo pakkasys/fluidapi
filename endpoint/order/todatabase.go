@@ -12,7 +12,7 @@ var DirectionDatabaseTranslations = map[OrderDirection]util.OrderDirection{
 	DIRECTION_DESCENDING: util.OrderDesc,
 }
 
-// ValidateAndTranslateToDatabaseOrders validates and translates the provided
+// ValidateAndTranslateToDBOrders validates and translates the provided
 // orders into database orders.
 // It also returns an error if any of the orders are invalid.
 //
@@ -20,7 +20,7 @@ var DirectionDatabaseTranslations = map[OrderDirection]util.OrderDirection{
 //   - allowedOrderFields: The list of allowed order fields.
 //   - apiToDatabaseFieldTranslation: The mapping of API field names to database
 //     field names.
-func ValidateAndTranslateToDatabaseOrders(
+func ValidateAndTranslateToDBOrders(
 	orders []Order,
 	allowedOrderFields []string,
 	apiToDatabaseFieldTranslation map[string]dbfield.DBField,
@@ -33,7 +33,7 @@ func ValidateAndTranslateToDatabaseOrders(
 		return nil, err
 	}
 
-	dbOrders, err := ToDatabaseOrders(newOrders, apiToDatabaseFieldTranslation)
+	dbOrders, err := ToDBOrders(newOrders, apiToDatabaseFieldTranslation)
 	if err != nil {
 		return nil, err
 	}
@@ -41,13 +41,13 @@ func ValidateAndTranslateToDatabaseOrders(
 	return dbOrders, nil
 }
 
-// ToDatabaseOrders translates the provided orders into database orders.
+// ToDBOrders translates the provided orders into database orders.
 // It returns an error if any of the orders are invalid.
 //
 //   - orders: The list of orders to translate.
 //   - fieldTranslations: The mapping of API field names to database field
 //     names.
-func ToDatabaseOrders(
+func ToDBOrders(
 	orders []Order,
 	fieldTranslations map[string]dbfield.DBField,
 ) ([]util.Order, error) {

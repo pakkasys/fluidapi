@@ -39,7 +39,7 @@ func ParseGetEndpointInput(
 	maxPageCount int,
 	getCount bool,
 ) (*ParsedGetEndpointInput, error) {
-	dbOrders, err := order.ValidateAndTranslateToDatabaseOrders(
+	dbOrders, err := order.ValidateAndTranslateToDBOrders(
 		orders,
 		allowedOrderFields,
 		apiFields,
@@ -115,7 +115,7 @@ func ParseDeleteEndpointInput(
 		return nil, selector.NeedAtLeastOneSelectorError
 	}
 
-	dbOrders, err := order.ValidateAndTranslateToDatabaseOrders(
+	dbOrders, err := order.ValidateAndTranslateToDBOrders(
 		orders,
 		allowedOrderFields,
 		apiFields,

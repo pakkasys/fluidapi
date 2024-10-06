@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestValidateAndTranslateToDatabaseOrders tests the
-// ValidateAndTranslateToDatabaseOrders function
-func TestValidateAndTranslateToDatabaseOrders_ValidInput(t *testing.T) {
+// TestValidateAndTranslateToDBOrders tests the
+// ValidateAndTranslateToDBOrders function
+func TestValidateAndTranslateToDBOrders_ValidInput(t *testing.T) {
 	orders := []Order{
 		{Field: "name", Direction: DIRECTION_ASC},
 		{Field: "age", Direction: DIRECTION_DESC},
@@ -23,7 +23,7 @@ func TestValidateAndTranslateToDatabaseOrders_ValidInput(t *testing.T) {
 		"age":  {Table: "users", Column: "user_age"},
 	}
 
-	dbOrders, err := ValidateAndTranslateToDatabaseOrders(
+	dbOrders, err := ValidateAndTranslateToDBOrders(
 		orders,
 		allowedFields,
 		fieldTranslations,
@@ -39,9 +39,9 @@ func TestValidateAndTranslateToDatabaseOrders_ValidInput(t *testing.T) {
 	assert.Equal(t, util.OrderDesc, dbOrders[1].Direction, "Expected descending order for age order")
 }
 
-// TestValidateAndTranslateToDatabaseOrders tests the scenario where
+// TestValidateAndTranslateToDBOrders tests the scenario where
 // an invalid field is passed in
-func TestValidateAndTranslateToDatabaseOrders_InvalidField(t *testing.T) {
+func TestValidateAndTranslateToDBOrders_InvalidField(t *testing.T) {
 	orders := []Order{
 		{Field: "invalid_field", Direction: DIRECTION_ASC},
 	}
@@ -52,7 +52,7 @@ func TestValidateAndTranslateToDatabaseOrders_InvalidField(t *testing.T) {
 		"age":  {Table: "users", Column: "user_age"},
 	}
 
-	dbOrders, err := ValidateAndTranslateToDatabaseOrders(
+	dbOrders, err := ValidateAndTranslateToDBOrders(
 		orders,
 		allowedFields,
 		fieldTranslations,
@@ -66,9 +66,9 @@ func TestValidateAndTranslateToDatabaseOrders_InvalidField(t *testing.T) {
 	assert.Equal(t, "invalid_field", apiErr.Data.Field, "Error fields should match")
 }
 
-// TestValidateAndTranslateToDatabaseOrders tests the scenario where
+// TestValidateAndTranslateToDBOrders tests the scenario where
 // an invalid direction is passed in
-func TestValidateAndTranslateToDatabaseOrders_InvalidDirection(t *testing.T) {
+func TestValidateAndTranslateToDBOrders_InvalidDirection(t *testing.T) {
 	orders := []Order{
 		{Field: "name", Direction: "INVALID_DIRECTION"},
 	}
@@ -79,7 +79,7 @@ func TestValidateAndTranslateToDatabaseOrders_InvalidDirection(t *testing.T) {
 		"age":  {Table: "users", Column: "user_age"},
 	}
 
-	dbOrders, err := ValidateAndTranslateToDatabaseOrders(
+	dbOrders, err := ValidateAndTranslateToDBOrders(
 		orders,
 		allowedFields,
 		fieldTranslations,
@@ -93,9 +93,9 @@ func TestValidateAndTranslateToDatabaseOrders_InvalidDirection(t *testing.T) {
 	assert.Equal(t, "name", apiErr.Data.Field, "Error fields should match")
 }
 
-// TestValidateAndTranslateToDatabaseOrders tests the scenario where
+// TestValidateAndTranslateToDBOrders tests the scenario where
 // a field not in the translation map is passed in
-func TestValidateAndTranslateToDatabaseOrders_FieldNotInTranslationMap(t *testing.T) {
+func TestValidateAndTranslateToDBOrders_FieldNotInTranslationMap(t *testing.T) {
 	orders := []Order{
 		{Field: "name", Direction: DIRECTION_ASC},
 	}
@@ -106,7 +106,7 @@ func TestValidateAndTranslateToDatabaseOrders_FieldNotInTranslationMap(t *testin
 		"age": {Table: "users", Column: "user_age"},
 	}
 
-	dbOrders, err := ValidateAndTranslateToDatabaseOrders(
+	dbOrders, err := ValidateAndTranslateToDBOrders(
 		orders,
 		allowedFields,
 		fieldTranslations,
@@ -120,9 +120,9 @@ func TestValidateAndTranslateToDatabaseOrders_FieldNotInTranslationMap(t *testin
 	assert.Equal(t, "name", apiErr.Data.Field, "Error fields should match")
 }
 
-// TestToDatabaseOrders_ValidOrders tests the scenario where
+// TestToDBOrders_ValidOrders tests the scenario where
 // valid orders are passed in
-func TestToDatabaseOrders_ValidOrders(t *testing.T) {
+func TestToDBOrders_ValidOrders(t *testing.T) {
 	orders := []Order{
 		{Field: "name", Direction: DIRECTION_ASC},
 		{Field: "age", Direction: DIRECTION_DESC},
@@ -133,7 +133,7 @@ func TestToDatabaseOrders_ValidOrders(t *testing.T) {
 		"age":  {Table: "users", Column: "user_age"},
 	}
 
-	dbOrders, err := ToDatabaseOrders(orders, fieldTranslations)
+	dbOrders, err := ToDBOrders(orders, fieldTranslations)
 
 	assert.NoError(t, err, "Expected no error for valid orders")
 	assert.Len(t, dbOrders, 2, "Expected two translated orders")
@@ -145,9 +145,9 @@ func TestToDatabaseOrders_ValidOrders(t *testing.T) {
 	assert.Equal(t, util.OrderDesc, dbOrders[1].Direction, "Expected descending order for age order")
 }
 
-// TestToDatabaseOrders_InvalidField tests the scenario where
+// TestToDBOrders_InvalidField tests the scenario where
 // an invalid field is passed in
-func TestToDatabaseOrders_InvalidField(t *testing.T) {
+func TestToDBOrders_InvalidField(t *testing.T) {
 	orders := []Order{
 		{Field: "invalid_field", Direction: DIRECTION_ASC},
 	}
@@ -157,7 +157,7 @@ func TestToDatabaseOrders_InvalidField(t *testing.T) {
 		"age":  {Table: "users", Column: "user_age"},
 	}
 
-	dbOrders, err := ToDatabaseOrders(orders, fieldTranslations)
+	dbOrders, err := ToDBOrders(orders, fieldTranslations)
 
 	assert.Error(t, err, "Expected an error for an invalid field")
 	assert.Nil(t, dbOrders, "Expected no database orders for an invalid field")

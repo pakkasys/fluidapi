@@ -5,6 +5,11 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/dbfield"
 )
 
+// ToDBUpdates translates a list of updates to a database update list
+// and returns an error if the translation fails.
+//
+//   - updates: The list of updates to translate.
+//   - apiToDBFieldMap: The mapping of API field names to database field names.
 func ToDBUpdates(
 	updates []Update,
 	apiToDBFieldMap map[string]dbfield.DBField,
