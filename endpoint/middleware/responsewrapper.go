@@ -14,6 +14,8 @@ var (
 	requestDataKey  = util.NewDataKey()
 )
 
+// ResponseWrapperMiddlewareWrapper creates a new MiddlewareWrapper for the
+// Response Wrapper middleware.
 func ResponseWrapperMiddlewareWrapper() *api.MiddlewareWrapper {
 	return &api.MiddlewareWrapper{
 		ID: ResponseWrapperMiddlewareID,
@@ -24,6 +26,11 @@ func ResponseWrapperMiddlewareWrapper() *api.MiddlewareWrapper {
 	}
 }
 
+// ResponseWrapperMiddleware constructs a middleware function that wraps the
+// request and response.
+//
+//   - requestWrapperFn: A function that wraps the HTTP request.
+//   - responseWrapperFn: A function that wraps the HTTP response.
 func ResponseWrapperMiddleware(
 	requestWrapperFn func(*http.Request) (*util.RequestWrapper, error),
 	responseWrapperFn func(http.ResponseWriter) *util.ResponseWrapper,
@@ -49,6 +56,10 @@ func ResponseWrapperMiddleware(
 		})
 	}
 }
+
+// GetResponseWrapper retrieves the `ResponseWrapper` from the request context.
+//
+//   - r: The HTTP request from which to retrieve the `ResponseWrapper`.
 func GetResponseWrapper(r *http.Request) *util.ResponseWrapper {
 	return util.GetContextValue[*util.ResponseWrapper](
 		r.Context(),
@@ -57,6 +68,9 @@ func GetResponseWrapper(r *http.Request) *util.ResponseWrapper {
 	)
 }
 
+// GetRequestWrapper retrieves the `RequestWrapper` from the request context.
+//
+//   - r: The HTTP request from which to retrieve the `RequestWrapper`.
 func GetRequestWrapper(r *http.Request) *util.RequestWrapper {
 	return util.GetContextValue[*util.RequestWrapper](
 		r.Context(),

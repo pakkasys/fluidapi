@@ -10,16 +10,22 @@ import (
 
 const RequestLogMiddlewareID = "request_log"
 
+// GetRequestMetadataFunc is a function type used for retrieving RequestMetadata
+// from a context.
 type GetRequestMetadataFunc func(ctx context.Context) *RequestMetadata
 
 type requestLog struct {
-	StartTime     time.Time `json:"start_time"`
-	RemoteAddress string    `json:"remote_address"`
-	Protocol      string    `json:"protocol"`
-	HTTPMethod    string    `json:"http_method"`
-	URL           string    `json:"url"`
+	StartTime     time.Time `json:"start_time"`     // Start time of the request.
+	RemoteAddress string    `json:"remote_address"` // Remote IP address of the client making the request.
+	Protocol      string    `json:"protocol"`       // Protocol used in the request (e.g., HTTP/1.1).
+	HTTPMethod    string    `json:"http_method"`    // HTTP method used for the request.
+	URL           string    `json:"url"`            // Full URL of the request.
 }
 
+// RequestLogMiddlewareWrapper creates a new MiddlewareWrapper for the
+// Request Log middleware. This middleware logs request information.
+//
+//   - requestLoggerFn: A function that logs messages for the request.
 func RequestLogMiddlewareWrapper(
 	requestLoggerFn func(r *http.Request) func(messages ...any),
 ) *api.MiddlewareWrapper {
@@ -29,6 +35,12 @@ func RequestLogMiddlewareWrapper(
 	}
 }
 
+// RequestLogMiddleware constructs a middleware that logs information about
+// incoming requests. It uses the given request metadata retrieval function and
+// the request logger function.
+//
+//   - getMetadataFn: A function that gets metadata from the request context.
+//   - requestLoggerFn: A function that logs messages for the request.
 func RequestLogMiddleware(
 	getMetadataFn GetRequestMetadataFunc,
 	requestLoggerFn func(r *http.Request) func(messages ...any),
@@ -40,12 +52,8 @@ func RequestLogMiddleware(
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logRequest(r, getMetadataFn, requestLoggerFn)
-
 			next.ServeHTTP(w, r)
-
-			if requestLoggerFn != nil {
-				requestLoggerFn(r)("Request completed")
-			}
+			requestLoggerFn(r)("Request completed")
 		})
 	}
 }

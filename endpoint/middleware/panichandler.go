@@ -16,6 +16,7 @@ const (
 	maxDumpSize = 1024 * 1024
 )
 
+// ResponseWrapper is an interface that wraps an http.ResponseWriter.
 type ResponseWrapper interface {
 	StatusCode() int
 	Body() []byte
@@ -48,6 +49,11 @@ type panicData struct {
 	StackTrace  []string        `json:"stack_trace"`
 }
 
+// PanicHandlerMiddlewareWrapper creates a new MiddlewareWrapper for
+// the Panic Handler middleware. This middleware catches and logs any panics
+// during the request lifecycle.
+//
+//   - loggerFn: A function that logs panic information for the request.
 func PanicHandlerMiddlewareWrapper(
 	loggerFn func(r *http.Request) func(messages ...any),
 ) *api.MiddlewareWrapper {
@@ -57,6 +63,11 @@ func PanicHandlerMiddlewareWrapper(
 	}
 }
 
+// PanicHandlerMiddleware constructs a middleware that captures and logs any
+// panic events during request handling. It uses the provided panic handler
+// logger function to log the details.
+//
+//   - panicHandlerLoggerFn: A function that logs messages in the event of a panic.
 func PanicHandlerMiddleware(
 	panicHandlerLoggerFn func(r *http.Request) func(messages ...any),
 ) api.Middleware {
