@@ -1,0 +1,250 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>selector: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/pakkasys/fluidapi/endpoint/selector/selector.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package selector
+
+import (
+        "fmt"
+        "slices"
+
+        "github.com/pakkasys/fluidapi/core/api"
+        "github.com/pakkasys/fluidapi/database/util"
+        "github.com/pakkasys/fluidapi/endpoint/dbfield"
+        "github.com/pakkasys/fluidapi/endpoint/predicate"
+)
+
+var NeedAtLeastOneSelectorError = api.NewError[any]("NEED_AT_LEAST_ONE_SELECTOR")
+
+type InvalidDatabaseSelectorTranslationErrorData struct {
+        Field string `json:"field"`
+}
+
+var InvalidDatabaseSelectorTranslationError = api.NewError[InvalidDatabaseSelectorTranslationErrorData]("INVALID_DATABASE_SELECTOR_TRANSLATION")
+
+type InvalidPredicateErrorData struct {
+        Predicate predicate.Predicate `json:""`
+}
+
+var InvalidPredicateError = api.NewError[InvalidPredicateErrorData]("INVALID_PREDICATE")
+
+type InvalidSelectorFieldErrorData struct {
+        Field string `json:"field"`
+}
+
+var InvalidSelectorFieldError = api.NewError[InvalidSelectorFieldErrorData]("INVALID_SELECTOR_FIELD")
+
+type PredicateNotAllowedErrorData struct {
+        Predicate predicate.Predicate `json:"predicate"`
+}
+
+var PredicateNotAllowedError = api.NewError[PredicateNotAllowedErrorData]("PREDICATE_NOT_ALLOWED")
+
+// Selector represents a data selector that specifies criteria for filtering
+// data based on fields, predicates, and values.
+type Selector struct {
+        // Predicates allowed for this selector
+        AllowedPredicates []predicate.Predicate
+        // The name of the field being filtered
+        Field string
+        // The predicate for filtering
+        Predicate predicate.Predicate
+        // The value to filter by
+        Value any
+}
+
+// Selectors represents a collection of selectors used for filtering data.
+type Selectors []Selector
+
+// String returns a string representation of the selector.
+// It is useful for debugging and logging purposes.
+//
+// Returns:
+// - A formatted string showing the field, predicate, and value.
+func (i Selector) String() string <span class="cov8" title="1">{
+        return fmt.Sprintf("%s %s %v", i.Field, i.Predicate, i.Value)
+}</span>
+
+// GetByFields returns all selectors that match the given fields.
+//
+// Parameters:
+// - fields: The fields to search for in the selectors.
+//
+// Returns:
+// - A slice of selectors that match the provided field names.
+func (i Selectors) GetByFields(fields ...string) []Selector <span class="cov8" title="1">{
+        selectors := Selectors{}
+        for f := range fields </span><span class="cov8" title="1">{
+                for j := range i </span><span class="cov8" title="1">{
+                        if i[j].Field == fields[f] </span><span class="cov8" title="1">{
+                                selectors = append(selectors, i[j])
+                        }</span>
+                }
+        }
+        <span class="cov8" title="1">return selectors</span>
+}
+
+// ToDBSelectors converts a slice of API-level selectors to database selectors.
+// It validates predicates and translates the fields and predicates for use with
+// the database.
+//
+// Parameters:
+//   - selectors: A slice of API-level selectors that specify the criteria for
+//     selecting data.
+//   - apiToDBFieldMap: A map translating API field names to their corresponding
+//     database field definitions.
+//
+// Returns:
+//   - A slice of util.Selector, which represents the translated database
+//     selectors.
+//   - An error if any validation fails, such as invalid predicates or unknown
+//     fields.
+func ToDBSelectors(
+        selectors []Selector,
+        apiToDBFieldMap map[string]dbfield.DBField,
+) ([]util.Selector, error) <span class="cov8" title="1">{
+        var databaseSelectors []util.Selector
+
+        for i := range selectors </span><span class="cov8" title="1">{
+                selector := selectors[i]
+
+                // Validate the input predicate
+                if !slices.Contains(
+                        selector.AllowedPredicates,
+                        selector.Predicate,
+                ) </span><span class="cov8" title="1">{
+                        return nil, PredicateNotAllowedError.WithData(
+                                PredicateNotAllowedErrorData{Predicate: selector.Predicate},
+                        )
+                }</span>
+
+                // Translate the predicate
+                <span class="cov8" title="1">dbPredicate, ok := predicate.ToDBPredicates[selector.Predicate]
+                if !ok </span><span class="cov8" title="1">{
+                        return nil, InvalidPredicateError.WithData(
+                                InvalidPredicateErrorData{Predicate: selector.Predicate},
+                        )
+                }</span>
+
+                // Translate the field
+                <span class="cov8" title="1">dbField, ok := apiToDBFieldMap[selector.Field]
+                if !ok </span><span class="cov8" title="1">{
+                        return nil, InvalidDatabaseSelectorTranslationError.WithData(
+                                InvalidDatabaseSelectorTranslationErrorData{
+                                        Field: selector.Field,
+                                },
+                        )
+                }</span>
+
+                <span class="cov8" title="1">databaseSelectors = append(
+                        databaseSelectors,
+                        util.Selector{
+                                Table:     dbField.Table,
+                                Field:     dbField.Column,
+                                Predicate: dbPredicate,
+                                Value:     selector.Value,
+                        },
+                )</span>
+        }
+
+        <span class="cov8" title="1">return databaseSelectors, nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
