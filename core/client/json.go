@@ -34,9 +34,10 @@ func Send[Input any, Output any](
 	url string,
 	host string,
 	method string,
+	urlEncoder URLEncoder,
 	opts ...HandlerOpts[Output],
 ) (*Response[Input, Output], error) {
-	useOpts := determineSendOpt(opts)
+	useOpts := determineSendOpt(opts, urlEncoder)
 
 	parsedInput, err := useOpts.InputParser(method, input)
 	if err != nil {
@@ -66,6 +67,7 @@ func Send[Input any, Output any](
 
 func determineSendOpt[Payload any](
 	opts []HandlerOpts[Payload],
+	urlEncoder URLEncoder,
 ) *HandlerOpts[Payload] {
 	if len(opts) != 0 {
 		return &opts[0]
@@ -85,6 +87,7 @@ func determineSendOpt[Payload any](
 				url,
 				method,
 				inputData,
+				urlEncoder,
 			)
 		},
 	}

@@ -1,7 +1,9 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/pakkasys/fluidapi/core/api"
@@ -52,22 +54,52 @@ func TestMiddlewares_StackWithMiddlewares(t *testing.T) {
 // TestMiddlewares_Order tests the order of the middlewares returned by
 // Middlewares function.
 func TestMiddlewares_Order(t *testing.T) {
-	mw1 := api.MiddlewareWrapper{
-		ID:         "first",
-		Middleware: MockMiddleware,
-	}
-	mw2 := api.MiddlewareWrapper{
-		ID:         "second",
-		Middleware: MockMiddleware,
+	callOrder := []string{}
+
+	// Middleware 1: Add "first" to a shared slice
+	mw1 := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callOrder = append(callOrder, "first")
+			next.ServeHTTP(w, r)
+		})
 	}
 
-	mwStack := Stack{mw1, mw2}
+	// Middleware 2: Add "second" to the shared slice
+	mw2 := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callOrder = append(callOrder, "second")
+			next.ServeHTTP(w, r)
+		})
+	}
 
+	// Create the middleware stack
+	mwStack := Stack{
+		api.MiddlewareWrapper{ID: "first", Middleware: mw1},
+		api.MiddlewareWrapper{ID: "second", Middleware: mw2},
+	}
+
+	// Get the middleware functions from the stack
 	middlewares := mwStack.Middlewares()
 
-	assert.Equal(t, 2, len(middlewares), "Middleware stack should have 2 middlewares")
-	assert.Equal(t, mw1.Middleware, middlewares[0], "First middleware should be in correct order")
-	assert.Equal(t, mw2.Middleware, middlewares[1], "Second middleware should be in correct order")
+	// Define a final handler
+	finalHandler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {},
+	)
+
+	// Apply middlewares to the final handler
+	wrappedHandler := api.ApplyMiddlewares(finalHandler, middlewares...)
+
+	// Create a slice to track the middleware execution order
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	req = req.WithContext(context.Background())
+
+	// Perform the request
+	rr := httptest.NewRecorder()
+	wrappedHandler.ServeHTTP(rr, req)
+
+	// Verify the expected order of middleware execution
+	assert.Equal(t, []string{"first", "second"}, callOrder, "Middlewares should be executed in the correct order")
 }
 
 // TestInsertAfterID_Success tests the InsertAfterID function when the

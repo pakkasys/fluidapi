@@ -21,12 +21,18 @@ const (
 	requestCookies = "cookies"
 )
 
+// URLEncoder interface for encoding URL values.
+type URLEncoder interface {
+	EncodeURL(data map[string]any) (url.Values, error)
+}
+
 func processAndSend[Payload any](
 	client *http.Client,
 	host string,
 	url string,
 	method string,
 	input *RequestData,
+	urlEncoder URLEncoder,
 ) (*SendResult[Payload], error) {
 	if input.Body != nil && method == http.MethodGet {
 		return nil, fmt.Errorf("body cannot be set for GET requests")
@@ -37,7 +43,12 @@ func processAndSend[Payload any](
 		return nil, err
 	}
 
-	constructedURL, err := constructURL(host, url, input.URLParameters)
+	constructedURL, err := constructURL(
+		host,
+		url,
+		input.URLParameters,
+		urlEncoder,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -110,6 +121,7 @@ func constructURL(
 	host string,
 	path string,
 	urlParameters map[string]any,
+	urlEncoder URLEncoder,
 ) (*string, error) {
 	url := fmt.Sprintf("%s%s", host, path)
 
@@ -118,7 +130,7 @@ func constructURL(
 		return &url, nil
 	}
 
-	params, err := toURLParamString(urlParameters)
+	params, err := toURLParamString(urlParameters, urlEncoder)
 	if err != nil {
 		return nil, err
 	}
@@ -127,17 +139,17 @@ func constructURL(
 	return &fullURL, nil
 }
 
-func toURLParamString(input map[string]any) (*string, error) {
+func toURLParamString(
+	input map[string]any,
+	urlEncoder URLEncoder,
+) (*string, error) {
 	if input == nil {
 		return nil, fmt.Errorf("input map is nil")
 	}
 
-	values := url.Values{}
-	for key, value := range input {
-		err := EncodeURL(&values, key, reflect.ValueOf(value))
-		if err != nil {
-			return nil, err
-		}
+	values, err := urlEncoder.EncodeURL(input)
+	if err != nil {
+		return nil, err
 	}
 
 	urlParams := values.Encode()

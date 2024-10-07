@@ -92,11 +92,15 @@ func TestSend_Success(t *testing.T) {
 
 	// Call Send function
 	input := Input{}
+
+	mockURLEncoder := &MockURLEncoder{}
+
 	resp, err := Send(
 		&input,
 		"/test-url",
 		"localhost",
 		"GET",
+		mockURLEncoder,
 		HandlerOpts[any]{
 			InputParser: mockParser.ParseInput,
 			Sender:      mockSender.ProcessAndSend,
@@ -129,6 +133,8 @@ func TestSend_ParseInputError(t *testing.T) {
 		errors.New("parse error"),
 	)
 
+	mockURLEncoder := &MockURLEncoder{}
+
 	// Call Send function
 	input := struct{}{}
 	_, err := Send(
@@ -136,6 +142,7 @@ func TestSend_ParseInputError(t *testing.T) {
 		"/test-url",
 		"localhost",
 		"GET",
+		mockURLEncoder,
 		HandlerOpts[any]{
 			InputParser: mockParser.ParseInput,
 			Sender:      mockSender.ProcessAndSend,
@@ -180,6 +187,8 @@ func TestSend_ProcessAndSendError(t *testing.T) {
 		errors.New("send error"),
 	)
 
+	mockURLEncoder := &MockURLEncoder{}
+
 	// Call Send function
 	input := struct{}{}
 	_, err := Send(
@@ -187,6 +196,7 @@ func TestSend_ProcessAndSendError(t *testing.T) {
 		"/test-url",
 		"localhost",
 		"GET",
+		mockURLEncoder,
 		HandlerOpts[any]{
 			InputParser: mockParser.ParseInput,
 			Sender:      mockSender.ProcessAndSend,
@@ -215,8 +225,10 @@ func TestDetermineSendOpt_CustomOptions(t *testing.T) {
 		Sender:      mockSender.ProcessAndSend,
 	}
 
+	mockURLEncoder := &MockURLEncoder{}
+
 	// Call determineSendOpt with custom options
-	opts := determineSendOpt([]HandlerOpts[any]{customOpts})
+	opts := determineSendOpt([]HandlerOpts[any]{customOpts}, mockURLEncoder)
 
 	// Assert that input parsers are the same by calling them both
 	mockParser.On("ParseInput", "GET", mock.Anything).Return(
@@ -231,7 +243,13 @@ func TestDetermineSendOpt_CustomOptions(t *testing.T) {
 	}
 
 	// Assert that senders are the same by calling them both
-	mockSender.On("ProcessAndSend", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+	mockSender.On(
+		"ProcessAndSend",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+	).Return(
 		(*http.Response)(nil),
 		nil,
 		nil,
@@ -269,8 +287,10 @@ func TestDetermineSendOpt_NoOptions(t *testing.T) {
 	)
 	defer mockServer.Close()
 
+	mockURLEncoder := &MockURLEncoder{}
+
 	// Test with no options provided (should use default)
-	opts := determineSendOpt[any](nil)
+	opts := determineSendOpt[any](nil, mockURLEncoder)
 
 	// Assert that default InputParser is not nil
 	if opts.InputParser == nil {

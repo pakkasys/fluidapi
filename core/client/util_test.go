@@ -7,10 +7,12 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 // errorReader is a helper type to simulate a reader that always errors.
@@ -46,6 +48,14 @@ func (m *MockRoundTripper) RoundTrip(
 	req *http.Request,
 ) (*http.Response, error) {
 	return nil, m.Err
+}
+
+type MockURLEncoder struct {
+	mock.Mock
+}
+
+func (m *MockURLEncoder) EncodeURL(data map[string]any) (url.Values, error) {
+	return m.Called(data).Get(0).(url.Values), m.Called(data).Error(1)
 }
 
 // TestProcessAndSend tests the processAndSend function.
@@ -85,12 +95,16 @@ func TestProcessAndSend(t *testing.T) {
 		Body:    map[string]any{"key": "value"},
 	}
 
+	mockURLEncoder := &MockURLEncoder{}
+	mockURLEncoder.On("EncodeURL", mock.Anything).Return(url.Values{}, nil)
+
 	result, err := processAndSend[MockOutput](
 		mockClient,
 		mockServer.URL,
 		"/test",
 		http.MethodPost,
 		input,
+		mockURLEncoder,
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
@@ -98,17 +112,24 @@ func TestProcessAndSend(t *testing.T) {
 	assert.Equal(t, "success", result.Output.Message)
 
 	// Case 2: Invalid GET request with a body
+	mockURLEncoder = &MockURLEncoder{}
+	mockURLEncoder.On("EncodeURL", mock.Anything).Return(url.Values{}, nil)
+
 	_, err = processAndSend[MockOutput](
 		mockClient,
 		mockServer.URL,
 		"/test",
 		http.MethodGet,
 		input,
+		mockURLEncoder,
 	)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "body cannot be set for GET requests")
 
 	// Case 3: Error in marshalBody
+	mockURLEncoder = &MockURLEncoder{}
+	mockURLEncoder.On("EncodeURL", mock.Anything).Return(url.Values{}, nil)
+
 	unmarshalableBody := make(chan int) // Channels cannot be marshaled
 	input = &RequestData{
 		Body: unmarshalableBody,
@@ -119,31 +140,36 @@ func TestProcessAndSend(t *testing.T) {
 		"/test",
 		http.MethodPost,
 		input,
+		mockURLEncoder,
 	)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "json: unsupported type: chan int")
 
 	// Case 4: Error in constructURL
-	input = &RequestData{
-		URLParameters: map[string]any{
-			"invalid_param": make(chan int), // Channels cannot be encoded in URL
-		},
-	}
+	mockURLEncoder = &MockURLEncoder{}
+	mockURLEncoder.On("EncodeURL", mock.Anything).Return(
+		url.Values{},
+		errors.New("encode error"),
+	)
+
+	input = &RequestData{URLParameters: map[string]any{
+		"key": "value", // Some values to trigger URL encoding
+	}}
 	_, err = processAndSend[MockOutput](
 		mockClient,
 		mockServer.URL,
 		"/test",
 		http.MethodPost,
 		input,
+		mockURLEncoder,
 	)
 	assert.NotNil(t, err)
-	assert.Contains(
-		t,
-		err.Error(),
-		"value type not supported by URL encoding: chan",
-	)
+	assert.Contains(t, err.Error(), "encode error")
 
 	// Case 5: Error in createRequest
+	mockURLEncoder = &MockURLEncoder{}
+	mockURLEncoder.On("EncodeURL", mock.Anything).Return(url.Values{}, nil)
+
 	input = &RequestData{}
 	_, err = processAndSend[MockOutput](
 		mockClient,
@@ -151,10 +177,14 @@ func TestProcessAndSend(t *testing.T) {
 		"/test",
 		http.MethodGet,
 		input,
+		mockURLEncoder,
 	)
 	assert.NotNil(t, err)
 
 	// Case 6: Error in client.Do
+	mockURLEncoder = &MockURLEncoder{}
+	mockURLEncoder.On("EncodeURL", mock.Anything).Return(url.Values{}, nil)
+
 	mockClient = &http.Client{
 		Transport: &MockRoundTripper{Err: errors.New("network error")},
 	}
@@ -165,11 +195,15 @@ func TestProcessAndSend(t *testing.T) {
 		"/test",
 		http.MethodPost,
 		input,
+		mockURLEncoder,
 	)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "network error")
 
 	// Case 7: Error in responseToPayload
+	mockURLEncoder = &MockURLEncoder{}
+	mockURLEncoder.On("EncodeURL", mock.Anything).Return(url.Values{}, nil)
+
 	mockServerInvalidJSON := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
@@ -185,6 +219,7 @@ func TestProcessAndSend(t *testing.T) {
 		"/test",
 		http.MethodPost,
 		&RequestData{},
+		mockURLEncoder,
 	)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "JSON unmarshal error")
@@ -290,8 +325,10 @@ func TestConstructURL_NoParams(t *testing.T) {
 	path := "/api/v1/resource"
 	urlParams := map[string]any{}
 
+	mockURLEncoder := &MockURLEncoder{}
+
 	// Call constructURL
-	result, err := constructURL(host, path, urlParams)
+	result, err := constructURL(host, path, urlParams, mockURLEncoder)
 
 	// Verify that no error is returned
 	assert.Nil(t, err, "unexpected error")
@@ -309,8 +346,17 @@ func TestConstructURL_WithParams(t *testing.T) {
 		"param2": "value2",
 	}
 
+	mockURLEncoder := &MockURLEncoder{}
+	mockURLEncoder.On("EncodeURL", urlParams).Return(
+		url.Values{
+			"param1": []string{"value1"},
+			"param2": []string{"value2"},
+		},
+		nil,
+	)
+
 	// Call constructURL
-	result, err := constructURL(host, path, urlParams)
+	result, err := constructURL(host, path, urlParams, mockURLEncoder)
 
 	// Verify that no error is returned
 	assert.Nil(t, err, "unexpected error")
@@ -320,21 +366,27 @@ func TestConstructURL_WithParams(t *testing.T) {
 	assert.Equal(t, expected, *result, "unexpected URL")
 }
 
-// // TestConstructURL_WithNilParamValue tests error handling when constructing
-// // an URL.
-// func TestConstructURL_WithError(t *testing.T) {
-// 	host := "http://localhost"
-// 	path := "/api/v1/resource"
-// 	urlParams := map[string]any{
-// 		"param1": nil,
-// 	}
-// 	// Call constructURL
-// 	result, err := constructURL(host, path, urlParams)
+// TestConstructURL_WithNilParamValue tests error handling when constructing
+// an URL.
+func TestConstructURL_WithError(t *testing.T) {
+	host := "http://localhost"
+	path := "/api/v1/resource"
+	urlParams := map[string]any{"param1": nil}
 
-// 	// Verify that an error is returned
-// 	assert.NotNil(t, err, "expected error")
-// 	assert.Equal(t, host+path, *result, "unexpected URL")
-// }
+	mockURLEncoder := &MockURLEncoder{}
+
+	mockURLEncoder.On("EncodeURL", urlParams).Return(
+		url.Values{},
+		errors.New("error encoding URL"),
+	)
+
+	// Call constructURL
+	result, err := constructURL(host, path, urlParams, mockURLEncoder)
+
+	// Verify that an error is returned
+	assert.NotNil(t, err, "error encoding URL")
+	assert.Nil(t, result, "expected nil result for error encoding URL")
+}
 
 // TestResponseToPayload tests the responseToPayload function.
 func TestResponseToPayload(t *testing.T) {
@@ -402,8 +454,17 @@ func TestResponseToPayload_UnmarshalError(t *testing.T) {
 func TestToURLParamString_Map(t *testing.T) {
 	input := map[string]any{"key1": "value1", "key2": "value2"}
 
+	mockURLEncoder := &MockURLEncoder{}
+	mockURLEncoder.On("EncodeURL", input).Return(
+		url.Values{
+			"key1": []string{"value1"},
+			"key2": []string{"value2"},
+		},
+		nil,
+	)
+
 	// Call toURLParamString with a valid map
-	result, err := toURLParamString(input)
+	result, err := toURLParamString(input, mockURLEncoder)
 
 	// Verify no error is returned
 	assert.Nil(t, err, "expected no error for valid map input")
@@ -420,8 +481,11 @@ func TestToURLParamString_Map(t *testing.T) {
 func TestToURLParamString_EmptyMap(t *testing.T) {
 	input := map[string]any{}
 
+	mockURLEncoder := &MockURLEncoder{}
+	mockURLEncoder.On("EncodeURL", input).Return(url.Values{}, nil)
+
 	// Call toURLParamString with an empty map
-	result, err := toURLParamString(input)
+	result, err := toURLParamString(input, mockURLEncoder)
 
 	// Verify no error is returned
 	assert.Nil(t, err, "expected no error for empty map input")
@@ -432,8 +496,10 @@ func TestToURLParamString_EmptyMap(t *testing.T) {
 
 // TestToURLParamString_NilMap tests toURLParamString with a nil map.
 func TestToURLParamString_NilMap(t *testing.T) {
+	mockURLEncoder := &MockURLEncoder{}
+
 	// Call toURLParamString with a nil map
-	_, err := toURLParamString(nil)
+	_, err := toURLParamString(nil, mockURLEncoder)
 
 	// Verify an error is returned
 	assert.NotNil(t, err, "expected error for nil map input")
