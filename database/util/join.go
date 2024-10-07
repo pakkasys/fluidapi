@@ -2,6 +2,7 @@ package util
 
 import "fmt"
 
+// JoinType represents the type of join
 type JoinType string
 
 const (
@@ -11,6 +12,7 @@ const (
 	JoinTypeFull  JoinType = "FULL"
 )
 
+// Join represents a database join clause
 type Join struct {
 	Type    JoinType
 	Table   string
@@ -18,35 +20,13 @@ type Join struct {
 	OnRight ColumSelector
 }
 
-func NewJoin(
-	typ JoinType,
-	table string,
-	onLeft ColumSelector,
-	onRight ColumSelector,
-) Join {
-	return Join{
-		Type:    typ,
-		Table:   table,
-		OnLeft:  onLeft,
-		OnRight: onRight,
-	}
-}
-
+// ColumSelector represents a column selector
 type ColumSelector struct {
 	Table  string
 	Column string
 }
 
-func NewColumnSelector(
-	table string,
-	column string,
-) ColumSelector {
-	return ColumSelector{
-		Table:  table,
-		Column: column,
-	}
-}
-
+// String returns the string representation of the ColumnSelector
 func (c *ColumSelector) String() string {
 	return fmt.Sprintf("`%s`.`%s`", c.Table, c.Column)
 }

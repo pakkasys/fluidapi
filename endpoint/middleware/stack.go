@@ -2,22 +2,42 @@ package middleware
 
 import "github.com/pakkasys/fluidapi/core/api"
 
-type MiddlewareStack []api.MiddlewareWrapper
+type Stack []api.MiddlewareWrapper
 
-func (ms *MiddlewareStack) InsertAfterID(
-	id string,
-	newMiddleware api.MiddlewareWrapper,
-) bool {
-	for i, mw := range *ms {
+// Middlewares returns the middlewares in the stack.
+//
+// Parameters:
+//   - s: The middleware stack.
+//
+// Returns:
+//   - The middlewares in the stack.
+func (s Stack) Middlewares() []api.Middleware {
+	middlewares := []api.Middleware{}
+	for _, mw := range s {
+		middlewares = append(middlewares, mw.Middleware)
+	}
+	return middlewares
+}
+
+// InsertAfterID inserts a middleware wrapper after the given ID.
+//
+// Parameters:
+//   - id: The ID of the middleware to insert after.
+//   - wrapper: The middleware wrapper to insert.
+//
+// Returns:
+//   - True if the middleware was inserted, false otherwise.
+func (s *Stack) InsertAfterID(id string, wrapper api.MiddlewareWrapper) bool {
+	for i, mw := range *s {
 		if mw.ID == id {
-			if i == len(*ms)-1 {
-				*ms = append(*ms, newMiddleware)
+			if i == len(*s)-1 {
+				*s = append(*s, wrapper)
 			} else {
-				*ms = append(
-					(*ms)[:i+1],
+				*s = append(
+					(*s)[:i+1],
 					append(
-						[]api.MiddlewareWrapper{newMiddleware},
-						(*ms)[i+1:]...,
+						[]api.MiddlewareWrapper{wrapper},
+						(*s)[i+1:]...,
 					)...,
 				)
 			}

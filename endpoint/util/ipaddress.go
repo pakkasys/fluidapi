@@ -5,9 +5,19 @@ import (
 	"strings"
 )
 
+const headerXForwardedFor = "X-Forwarded-For"
+
+// RequestIPAddress returns the IP address of the request.
+// It first checks if the `X-Forwarded-For` header is set.
+// If not, it falls back to using the `RemoteAddr` field.
+//
+// Parameters:
+//   - request: The HTTP request
+//
+// Returns:
+//   - The IP address of the request
 func RequestIPAddress(request *http.Request) string {
-	// Check for the IP in X-Forwarded-For header
-	forwarded := request.Header.Get("X-Forwarded-For")
+	forwarded := request.Header.Get(headerXForwardedFor)
 	if forwarded != "" {
 		// X-Forwarded-For can contain multiple IP addresses; take the first one
 		ips := strings.Split(forwarded, ",")

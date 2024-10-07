@@ -6,6 +6,9 @@ import (
 
 type Middleware func(http.Handler) http.Handler
 
+// ApplyMiddlewares applies a chain of middlewares to an http.Handler.
+//   - h: The http.Handler to wrap with middlewares.
+//   - middlewares: A variadic parameter of Middleware functions to apply.
 func ApplyMiddlewares(h http.Handler, middlewares ...Middleware) http.Handler {
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		h = middlewares[i](h)
@@ -13,61 +16,9 @@ func ApplyMiddlewares(h http.Handler, middlewares ...Middleware) http.Handler {
 	return h
 }
 
-type MiddlewareInput struct {
-	Input any
-}
-
-func NewMiddlewareInput(input any) MiddlewareInput {
-	return MiddlewareInput{
-		Input: input,
-	}
-}
-
+// MiddlewareWrapper wraps a middleware function with additional metadata.
 type MiddlewareWrapper struct {
-	ID               string
-	Middleware       Middleware
-	MiddlewareInputs []MiddlewareInput
-}
-
-type MiddlewareWrapperBuilder struct {
-	middlewareWrapper MiddlewareWrapper
-}
-
-func NewMiddlewareWrapperBuilder() *MiddlewareWrapperBuilder {
-	return &MiddlewareWrapperBuilder{
-		middlewareWrapper: MiddlewareWrapper{},
-	}
-}
-
-func (b *MiddlewareWrapperBuilder) Build() *MiddlewareWrapper {
-	return &b.middlewareWrapper
-}
-
-func (b *MiddlewareWrapperBuilder) ID(id string) *MiddlewareWrapperBuilder {
-	b.middlewareWrapper.ID = id
-	return b
-}
-
-func (b *MiddlewareWrapperBuilder) Middleware(
-	middleware Middleware,
-) *MiddlewareWrapperBuilder {
-	b.middlewareWrapper.Middleware = middleware
-	return b
-}
-
-func (b *MiddlewareWrapperBuilder) MiddlewareInputs(
-	middlewareInputs []MiddlewareInput,
-) *MiddlewareWrapperBuilder {
-	b.middlewareWrapper.MiddlewareInputs = middlewareInputs
-	return b
-}
-
-func (b *MiddlewareWrapperBuilder) AddMiddlewareInput(
-	middlewareInput MiddlewareInput,
-) *MiddlewareWrapperBuilder {
-	b.middlewareWrapper.MiddlewareInputs = append(
-		b.middlewareWrapper.MiddlewareInputs,
-		middlewareInput,
-	)
-	return b
+	ID         string
+	Middleware Middleware
+	Inputs     []any
 }
