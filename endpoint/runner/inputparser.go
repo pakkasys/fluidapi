@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"github.com/pakkasys/fluidapi/core/api"
 	"github.com/pakkasys/fluidapi/database/entity"
 	databaseutil "github.com/pakkasys/fluidapi/database/util"
 	"github.com/pakkasys/fluidapi/endpoint/dbfield"
@@ -9,6 +10,8 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/selector"
 	"github.com/pakkasys/fluidapi/endpoint/update"
 )
+
+var NeedAtLeastOneUpdateError = api.NewError[any]("NEED_AT_LEAST_ONE_UPDATE")
 
 type APIFields map[string]dbfield.DBField
 
@@ -90,7 +93,7 @@ func ParseUpdateEndpointInput(
 		return nil, err
 	}
 	if len(dbSelectors) == 0 {
-		return nil, update.NeedAtLeastOneUpdateError
+		return nil, NeedAtLeastOneUpdateError
 	}
 
 	return &ParsedUpdateEndpointInput{

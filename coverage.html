@@ -3,7 +3,7 @@
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-		<title>selector: Go Coverage Report</title>
+		<title>update: Go Coverage Report</title>
 		<style>
 			body {
 				background: black;
@@ -55,7 +55,7 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">github.com/pakkasys/fluidapi/endpoint/selector/selector.go (100.0%)</option>
+				<option value="file0">github.com/pakkasys/fluidapi/endpoint/update/update.go (100.0%)</option>
 				
 				</select>
 			</div>
@@ -69,152 +69,62 @@
 		</div>
 		<div id="content">
 		
-		<pre class="file" id="file0" style="display: none">package selector
+		<pre class="file" id="file0" style="display: none">package update
 
 import (
-        "fmt"
-        "slices"
-
         "github.com/pakkasys/fluidapi/core/api"
-        "github.com/pakkasys/fluidapi/database/util"
+        "github.com/pakkasys/fluidapi/database/entity"
         "github.com/pakkasys/fluidapi/endpoint/dbfield"
-        "github.com/pakkasys/fluidapi/endpoint/predicate"
 )
 
-var NeedAtLeastOneSelectorError = api.NewError[any]("NEED_AT_LEAST_ONE_SELECTOR")
+var NeedAtLeastOneUpdateError = api.NewError[any]("NEED_AT_LEAST_ONE_UPDATE")
 
-type InvalidDatabaseSelectorTranslationErrorData struct {
+type InvalidDatabaseUpdateTranslationErrorData struct {
         Field string `json:"field"`
 }
 
-var InvalidDatabaseSelectorTranslationError = api.NewError[InvalidDatabaseSelectorTranslationErrorData]("INVALID_DATABASE_SELECTOR_TRANSLATION")
+var InvalidDatabaseUpdateTranslationError = api.NewError[InvalidDatabaseUpdateTranslationErrorData]("INVALID_DATABASE_UPDATE_TRANSLATION")
 
-type InvalidPredicateErrorData struct {
-        Predicate predicate.Predicate `json:""`
-}
-
-var InvalidPredicateError = api.NewError[InvalidPredicateErrorData]("INVALID_PREDICATE")
-
-type InvalidSelectorFieldErrorData struct {
-        Field string `json:"field"`
-}
-
-var InvalidSelectorFieldError = api.NewError[InvalidSelectorFieldErrorData]("INVALID_SELECTOR_FIELD")
-
-type PredicateNotAllowedErrorData struct {
-        Predicate predicate.Predicate `json:"predicate"`
-}
-
-var PredicateNotAllowedError = api.NewError[PredicateNotAllowedErrorData]("PREDICATE_NOT_ALLOWED")
-
-// Selector represents a data selector that specifies criteria for filtering
-// data based on fields, predicates, and values.
-type Selector struct {
-        // Predicates allowed for this selector
-        AllowedPredicates []predicate.Predicate
-        // The name of the field being filtered
+// Update represents a data update.
+type Update struct {
         Field string
-        // The predicate for filtering
-        Predicate predicate.Predicate
-        // The value to filter by
         Value any
 }
 
-// Selectors represents a collection of selectors used for filtering data.
-type Selectors []Selector
-
-// String returns a string representation of the selector.
-// It is useful for debugging and logging purposes.
+// ToDBUpdates translates a list of updates to a database update list
+// and returns an error if the translation fails.
 //
-// Returns:
-// - A formatted string showing the field, predicate, and value.
-func (i Selector) String() string <span class="cov8" title="1">{
-        return fmt.Sprintf("%s %s %v", i.Field, i.Predicate, i.Value)
-}</span>
-
-// GetByFields returns all selectors that match the given fields.
-//
-// Parameters:
-// - fields: The fields to search for in the selectors.
-//
-// Returns:
-// - A slice of selectors that match the provided field names.
-func (i Selectors) GetByFields(fields ...string) []Selector <span class="cov8" title="1">{
-        selectors := Selectors{}
-        for f := range fields </span><span class="cov8" title="1">{
-                for j := range i </span><span class="cov8" title="1">{
-                        if i[j].Field == fields[f] </span><span class="cov8" title="1">{
-                                selectors = append(selectors, i[j])
-                        }</span>
-                }
-        }
-        <span class="cov8" title="1">return selectors</span>
-}
-
-// ToDBSelectors converts a slice of API-level selectors to database selectors.
-// It validates predicates and translates the fields and predicates for use with
-// the database.
-//
-// Parameters:
-//   - selectors: A slice of API-level selectors that specify the criteria for
-//     selecting data.
-//   - apiToDBFieldMap: A map translating API field names to their corresponding
-//     database field definitions.
-//
-// Returns:
-//   - A slice of util.Selector, which represents the translated database
-//     selectors.
-//   - An error if any validation fails, such as invalid predicates or unknown
-//     fields.
-func ToDBSelectors(
-        selectors []Selector,
+//   - updates: The list of updates to translate.
+//   - apiToDBFieldMap: The mapping of API field names to database field names.
+func ToDBUpdates(
+        updates []Update,
         apiToDBFieldMap map[string]dbfield.DBField,
-) ([]util.Selector, error) <span class="cov8" title="1">{
-        var databaseSelectors []util.Selector
+) ([]entity.Update, error) <span class="cov8" title="1">{
+        var dbUpdates []entity.Update
 
-        for i := range selectors </span><span class="cov8" title="1">{
-                selector := selectors[i]
-
-                // Validate the input predicate
-                if !slices.Contains(
-                        selector.AllowedPredicates,
-                        selector.Predicate,
-                ) </span><span class="cov8" title="1">{
-                        return nil, PredicateNotAllowedError.WithData(
-                                PredicateNotAllowedErrorData{Predicate: selector.Predicate},
-                        )
-                }</span>
-
-                // Translate the predicate
-                <span class="cov8" title="1">dbPredicate, ok := predicate.ToDBPredicates[selector.Predicate]
-                if !ok </span><span class="cov8" title="1">{
-                        return nil, InvalidPredicateError.WithData(
-                                InvalidPredicateErrorData{Predicate: selector.Predicate},
-                        )
-                }</span>
+        for i := range updates </span><span class="cov8" title="1">{
+                matchedUpdate := updates[i]
 
                 // Translate the field
-                <span class="cov8" title="1">dbField, ok := apiToDBFieldMap[selector.Field]
+                dbField, ok := apiToDBFieldMap[matchedUpdate.Field]
                 if !ok </span><span class="cov8" title="1">{
-                        return nil, InvalidDatabaseSelectorTranslationError.WithData(
-                                InvalidDatabaseSelectorTranslationErrorData{
-                                        Field: selector.Field,
+                        return nil, InvalidDatabaseUpdateTranslationError.WithData(
+                                InvalidDatabaseUpdateTranslationErrorData{
+                                        Field: matchedUpdate.Field,
                                 },
                         )
                 }</span>
 
-                <span class="cov8" title="1">databaseSelectors = append(
-                        databaseSelectors,
-                        util.Selector{
-                                Table:     dbField.Table,
-                                Field:     dbField.Column,
-                                Predicate: dbPredicate,
-                                Value:     selector.Value,
+                <span class="cov8" title="1">dbUpdates = append(
+                        dbUpdates,
+                        entity.Update{
+                                Field: dbField.Column,
+                                Value: matchedUpdate.Value,
                         },
                 )</span>
         }
 
-        <span class="cov8" title="1">return databaseSelectors, nil</span>
+        <span class="cov8" title="1">return dbUpdates, nil</span>
 }
 </pre>
 		

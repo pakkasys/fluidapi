@@ -8,7 +8,6 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/order"
 	"github.com/pakkasys/fluidapi/endpoint/page"
 	"github.com/pakkasys/fluidapi/endpoint/selector"
-	"github.com/pakkasys/fluidapi/endpoint/update"
 )
 
 var CreateErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
@@ -74,7 +73,7 @@ var UpdateErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 		PublicData: true,
 	},
 	{
-		ID:         update.NeedAtLeastOneUpdateError.ID,
+		ID:         NeedAtLeastOneUpdateError.ID,
 		Status:     http.StatusBadRequest,
 		PublicData: true,
 	},
