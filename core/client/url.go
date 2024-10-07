@@ -45,6 +45,18 @@ func (s *minSlice) toSlice() []any {
 	return slice
 }
 
+// Converts all MinSlice instances in the map to regular slices recursively.
+func convertMinSlicesToRegularSlices(data map[string]any) {
+	for key, value := range data {
+		switch v := value.(type) {
+		case *minSlice:
+			data[key] = v.toSlice()
+		case map[string]any:
+			convertMinSlicesToRegularSlices(v)
+		}
+	}
+}
+
 // TODO: Test order preservation
 // Decodes URL from the following syntax:
 // someKey=value
@@ -67,18 +79,6 @@ func DecodeURL(values url.Values) (map[string]any, error) {
 	}
 	convertMinSlicesToRegularSlices(urlData)
 	return urlData, nil
-}
-
-// Converts all MinSlice instances in the map to regular slices recursively.
-func convertMinSlicesToRegularSlices(data map[string]any) {
-	for key, value := range data {
-		switch v := value.(type) {
-		case *minSlice:
-			data[key] = v.toSlice()
-		case map[string]any:
-			convertMinSlicesToRegularSlices(v)
-		}
-	}
 }
 
 // TODO: Test order preservation
