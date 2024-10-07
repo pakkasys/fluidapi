@@ -5,76 +5,61 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pakkasys/fluidapi/database/errors"
-	"github.com/pakkasys/fluidapi/database/internal"
 	"github.com/pakkasys/fluidapi/database/util"
-
-	"github.com/go-sql-driver/mysql"
 )
 
-type Inserter interface {
-	GetInserted() (columns []string, values []any)
-}
+// Inserter is a function used to insert an entity into the database.
+type Inserter[T any] func(entity T) (columns []string, values []any)
 
-func CreateEntity[T Inserter](
-	entity T,
-	exec util.Executor,
+// CreateEntity creates an entity in the database.
+//
+//   - entity: The entity to insert.
+//   - db: The database connection.
+//   - tableName: The name of the database table.
+//   - inserter: The function used to get the columns and values to insert.
+func CreateEntity[T any](
+	entity *T,
+	preparer util.Preparer,
 	tableName string,
+	inserter Inserter[*T],
+	sqlUtil SQLUtil,
 ) (int64, error) {
-	return checkInsertResult(
-		insert(exec, entity, tableName),
-	)
+	res, err := insert(preparer, entity, tableName, inserter)
+	return checkInsertResult(res, err, sqlUtil)
 }
 
-func CreateEntities[T Inserter](
-	entities []T,
-	exec util.Executor,
+// CreateEntities creates entities in the database.
+//
+//   - entities: The entities to insert.
+//   - db: The database connection.
+//   - tableName: The name of the database table.
+//   - inserter: The function used to get the columns and values to insert.
+func CreateEntities[T any](
+	entities []*T,
+	preparer util.Preparer,
 	tableName string,
+	inserter Inserter[*T],
+	sqlUtil SQLUtil,
 ) (int64, error) {
 	if len(entities) == 0 {
 		return 0, nil
 	}
-	return checkInsertResult(
-		insertMany(exec, entities, tableName),
+	res, err := insertMany(
+		preparer,
+		entities,
+		tableName,
+		inserter,
 	)
-}
-
-func UpsertEntity[T Inserter](
-	entity T,
-	exec util.Executor,
-	tableName string,
-	updateProjections []util.Projection,
-) (int64, error) {
-	return checkInsertResult(
-		upsert(exec, entity, tableName, updateProjections),
-	)
-}
-
-func UpsertEntities[T Inserter](
-	entities []T,
-	exec util.Executor,
-	tableName string,
-	updateProjections []util.Projection,
-) (int64, error) {
-	return checkInsertResult(
-		upsertMany(exec, entities, tableName, updateProjections),
-	)
+	return checkInsertResult(res, err, sqlUtil)
 }
 
 func checkInsertResult(
 	result sql.Result,
 	err error,
+	sqlUtil SQLUtil,
 ) (int64, error) {
 	if err != nil {
-		mysqlErr, ok := err.(*mysql.MySQLError)
-		if ok {
-			if internal.IsDuplicateEntryError(mysqlErr) {
-				return 0, errors.DuplicateEntry(mysqlErr)
-			} else if internal.IsForeignConstraintError(mysqlErr) {
-				return 0, errors.ForeignConstraintError(mysqlErr)
-			}
-		}
-		return 0, err
+		return 0, sqlUtil.CheckDBError(err)
 	}
 
 	id, err := result.LastInsertId()
@@ -91,15 +76,15 @@ func getInsertQueryColumnNames(columns []string) string {
 		wrappedColumns[i] = "`" + column + "`"
 	}
 	columnNames := strings.Join(wrappedColumns, ", ")
-
 	return columnNames
 }
 
-func insertQuery(
-	inserter Inserter,
+func insertQuery[T any](
+	entity *T,
 	tableName string,
+	inserter Inserter[*T],
 ) (string, []any) {
-	columns, values := inserter.GetInserted()
+	columns, values := inserter(entity)
 	columnNames := getInsertQueryColumnNames(columns)
 
 	valuePlaceholders := strings.TrimSuffix(
@@ -117,14 +102,15 @@ func insertQuery(
 	return query, values
 }
 
-func insert(
-	exec util.Executor,
-	inserter Inserter,
+func insert[T any](
+	preparer util.Preparer,
+	entity *T,
 	tableName string,
+	inserter Inserter[*T],
 ) (sql.Result, error) {
-	query, values := insertQuery(inserter, tableName)
+	query, values := insertQuery(entity, tableName, inserter)
 
-	statement, err := exec.Prepare(query)
+	statement, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -138,21 +124,22 @@ func insert(
 	return result, nil
 }
 
-func insertManyQuery[T Inserter](
-	entities []T,
+func insertManyQuery[T any](
+	entities []*T,
 	tableName string,
+	inserter Inserter[*T],
 ) (string, []any) {
 	if len(entities) == 0 {
 		return "", nil
 	}
 
-	columns, _ := entities[0].GetInserted()
+	columns, _ := inserter(entities[0])
 	columnNames := getInsertQueryColumnNames(columns)
 
 	var allValues []any
 	valuePlaceholders := make([]string, len(entities))
 	for i, entity := range entities {
-		_, values := entity.GetInserted()
+		_, values := inserter(entity)
 		placeholders := make([]string, len(values))
 		for j := range values {
 			placeholders[j] = "?"
@@ -171,126 +158,15 @@ func insertManyQuery[T Inserter](
 	return query, allValues
 }
 
-func insertMany[T Inserter](
-	exec util.Executor,
-	entities []T,
+func insertMany[T any](
+	preparer util.Preparer,
+	entities []*T,
 	tableName string,
+	inserter Inserter[*T],
 ) (sql.Result, error) {
-	query, values := insertManyQuery(entities, tableName)
+	query, values := insertManyQuery(entities, tableName, inserter)
 
-	statement, err := exec.Prepare(query)
-	if err != nil {
-		return nil, err
-	}
-	defer statement.Close()
-
-	result, err := statement.Exec(values...)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func upsertQuery(
-	inserter Inserter,
-	tableName string,
-	updateProjections []util.Projection,
-) (string, []any) {
-	query, values := insertQuery(inserter, tableName)
-
-	updateParts := make([]string, len(updateProjections))
-	for i, proj := range updateProjections {
-		updateParts[i] = fmt.Sprintf(
-			"`%s` = %s.`%s`",
-			proj.Column,
-			proj.Alias,
-			proj.Column,
-		)
-	}
-
-	upsertQuery := fmt.Sprintf(
-		"%s AS %s ON DUPLICATE KEY UPDATE %s",
-		query,
-		updateProjections[0].Alias,
-		strings.Join(updateParts, ", "),
-	)
-
-	return upsertQuery, values
-}
-
-func upsert(
-	exec util.Executor,
-	inserter Inserter,
-	tableName string,
-	updateProjections []util.Projection,
-) (sql.Result, error) {
-	if len(updateProjections) == 0 {
-		return nil, fmt.Errorf("must provide update projections")
-	}
-	if len(updateProjections[0].Alias) == 0 {
-		return nil, fmt.Errorf("must provide update projections alias")
-	}
-
-	upsertQuery, values := upsertQuery(inserter, tableName, updateProjections)
-
-	statement, err := exec.Prepare(upsertQuery)
-	if err != nil {
-		return nil, err
-	}
-	defer statement.Close()
-
-	result, err := statement.Exec(values...)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func upsertManyQuery[T Inserter](
-	entities []T,
-	tableName string,
-	updateProjections []util.Projection,
-) (string, []any) {
-	insertQueryPart, allValues := insertManyQuery(entities, tableName)
-
-	updateParts := make([]string, len(updateProjections))
-	for i, proj := range updateProjections {
-		updateParts[i] = fmt.Sprintf(
-			"`%s` = VALUES(`%s`)",
-			proj.Column,
-			proj.Column,
-		)
-	}
-
-	upsertQuery := fmt.Sprintf(
-		"%s ON DUPLICATE KEY UPDATE %s",
-		insertQueryPart,
-		strings.Join(updateParts, ", "),
-	)
-
-	return upsertQuery, allValues
-}
-
-func upsertMany[T Inserter](
-	exec util.Executor,
-	entities []T,
-	tableName string,
-	updateProjections []util.Projection,
-) (sql.Result, error) {
-	if len(entities) == 0 {
-		return nil, fmt.Errorf("must provide entities to upsert")
-	}
-	if len(updateProjections) == 0 {
-		return nil, fmt.Errorf("must provide update projections")
-	}
-	if len(updateProjections[0].Alias) == 0 {
-		return nil, fmt.Errorf("must provide update projections alias")
-	}
-
-	query, values := upsertManyQuery(entities, tableName, updateProjections)
-	statement, err := exec.Prepare(query)
+	statement, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, err
 	}

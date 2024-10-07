@@ -8,117 +8,111 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/order"
 	"github.com/pakkasys/fluidapi/endpoint/page"
 	"github.com/pakkasys/fluidapi/endpoint/selector"
-	"github.com/pakkasys/fluidapi/endpoint/update"
 )
 
-var ExpectedErrorsCreate []inputlogic.ExpectedError = []inputlogic.ExpectedError{
+var CreateErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 	{
-		ErrorID:       errors.DUPLICATE_ENTRY_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: false,
+		ID:         errors.DuplicateEntryError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: false,
 	},
 	{
-		ErrorID:       errors.FOREIGN_CONSTRAINT_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: false,
-	},
-}
-
-var ExpectedErrorsGet []inputlogic.ExpectedError = []inputlogic.ExpectedError{
-	{
-		ErrorID:       selector.INVALID_PREDICATE_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
-	},
-	{
-		ErrorID:       selector.PREDICATE_NOT_ALLOWED_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
-	},
-	{
-		ErrorID:       selector.INVALID_SELECTOR_FIELD_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
-	},
-	{
-		ErrorID:       order.INVALID_ORDER_FIELD_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
-	},
-	{
-		ErrorID:       page.MAX_PAGE_LIMIT_EXCEEDED_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
+		ID:         errors.ForeignConstraintError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: false,
 	},
 }
 
-var ExpectedErrorsUpdate []inputlogic.ExpectedError = []inputlogic.ExpectedError{
+var GetErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 	{
-		ErrorID:       selector.INVALID_PREDICATE_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
+		ID:         selector.InvalidPredicateError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
 	},
 	{
-		ErrorID:       selector.INVALID_SELECTOR_FIELD_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
+		ID:         selector.PredicateNotAllowedError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
 	},
 	{
-		ErrorID:       selector.PREDICATE_NOT_ALLOWED_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
+		ID:         selector.InvalidSelectorFieldError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
 	},
 	{
-		ErrorID:       selector.NEED_AT_LEAST_ONE_SELECTOR_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
+		ID:         order.InvalidOrderFieldError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
 	},
 	{
-		ErrorID:       update.NEED_AT_LEAST_ONE_UPDATE_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
-	},
-	{
-		ErrorID:       update.INVALID_UPDATE_FIELD_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
-	},
-	{
-		ErrorID:       order.INVALID_ORDER_FIELD_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
-	},
-	{
-		ErrorID:       errors.DUPLICATE_ENTRY_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: false,
-	},
-	{
-		ErrorID:       errors.FOREIGN_CONSTRAINT_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: false,
+		ID:         page.MaxPageLimitExceededError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
 	},
 }
 
-var ExpectedErrorsDelete []inputlogic.ExpectedError = []inputlogic.ExpectedError{
+var UpdateErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 	{
-		ErrorID:       selector.INVALID_PREDICATE_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
+		ID:         selector.InvalidPredicateError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
 	},
 	{
-		ErrorID:       selector.INVALID_SELECTOR_FIELD_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
+		ID:         selector.InvalidSelectorFieldError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
 	},
 	{
-		ErrorID:       selector.PREDICATE_NOT_ALLOWED_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
+		ID:         selector.PredicateNotAllowedError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
 	},
 	{
-		ErrorID:       selector.NEED_AT_LEAST_ONE_SELECTOR_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
+		ID:         NeedAtLeastOneSelectorError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
+	},
+	{
+		ID:         NeedAtLeastOneUpdateError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
+	},
+	{
+		ID:         order.InvalidOrderFieldError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
+	},
+	{
+		ID:         errors.DuplicateEntryError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: false,
+	},
+	{
+		ID:         errors.ForeignConstraintError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: false,
+	},
+}
+
+var DeleteErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
+	{
+		ID:         selector.InvalidPredicateError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
+	},
+	{
+		ID:         selector.InvalidSelectorFieldError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
+	},
+	{
+		ID:         selector.PredicateNotAllowedError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
+	},
+	{
+		ID:         NeedAtLeastOneSelectorError.ID,
+		Status:     http.StatusBadRequest,
+		PublicData: true,
 	},
 }

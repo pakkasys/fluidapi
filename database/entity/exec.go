@@ -6,41 +6,48 @@ import (
 	"github.com/pakkasys/fluidapi/database/util"
 )
 
-// RowsQuery runs the query and returns the rows and statement.
-// Caller is responsible for closing the statement and the rows after
-// successful execution.
+// RowsQuery runs a row returning query. The returned rows and stmt objects must
+// be closed by the caller after successful query execution.
+//
+//   - db: The database connection.
+//   - query: The query string.
+//   - parameters: The parameters for the query.
 func RowsQuery(
-	exec util.Executor,
+	preparer util.Preparer,
 	query string,
 	parameters []any,
-) (*sql.Rows, *sql.Stmt, error) {
-	statement, err := exec.Prepare(query)
+) (util.Rows, util.Stmt, error) {
+	stmt, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	rows, err := statement.Query(parameters...)
+	rows, err := stmt.Query(parameters...)
 	if err != nil {
-		statement.Close()
+		stmt.Close()
 		return nil, nil, err
 	}
 
-	return rows, statement, nil
+	return rows, stmt, nil
 }
 
-// ExecQuery runs the query and returns the result.
+// ExecQuery runs a query and returns the result.
+//
+//   - db: The database connection.
+//   - query: The query string.
+//   - parameters: The parameters for the query.
 func ExecQuery(
-	exec util.Executor,
+	preparer util.Preparer,
 	query string,
 	parameters []any,
 ) (sql.Result, error) {
-	statement, err := exec.Prepare(query)
+	stmt, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
-	defer statement.Close()
+	defer stmt.Close()
 
-	result, err := statement.Exec(parameters...)
+	result, err := stmt.Exec(parameters...)
 	if err != nil {
 		return nil, err
 	}

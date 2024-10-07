@@ -1,10 +1,7 @@
 package util
 
+// Predicate represents the predicate of a selector.
 type Predicate string
-
-func (predicate Predicate) String() string {
-	return string(predicate)
-}
 
 const (
 	GREATER          Predicate = ">"

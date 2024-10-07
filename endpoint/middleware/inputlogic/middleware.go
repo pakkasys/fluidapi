@@ -6,194 +6,242 @@ import (
 	"slices"
 
 	"github.com/pakkasys/fluidapi/core/api"
-	endpointoutput "github.com/pakkasys/fluidapi/endpoint/output"
-	"github.com/pakkasys/fluidapi/endpoint/util"
 )
 
+// MiddlewareID is a constant used to identify the middleware within the system.
 const MiddlewareID = "inputlogic"
 
+// FieldError represents a field-level validation error
+type FieldError struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
+// ValidationErrorData contains a list of field-level validation errors
+type ValidationErrorData struct {
+	Errors []FieldError `json:"errors"`
+}
+
+var ValidationError = api.NewError[ValidationErrorData]("VALIDATION_ERROR")
+
+// Internal server expected errors for validation failures.
 var internalExpectedErrors []ExpectedError = []ExpectedError{
 	{
-		ErrorID:       util.INVALID_INPUT_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: false,
-	},
-	{
-		ErrorID:       VALIDATION_ERROR_ID,
-		StatusCode:    http.StatusBadRequest,
-		DataIsVisible: true,
+		ID:         ValidationError.GetID(),
+		Status:     http.StatusBadRequest,
+		PublicData: true,
 	},
 }
 
+// Callback represents the function signature used by the middleware to process
+// requests. Input is the type of input to the callback, and Output is the type
+// of the output.
 type Callback[Input any, Output any] func(
-	writer http.ResponseWriter,
-	request *http.Request,
-	input *Input,
+	w http.ResponseWriter,
+	r *http.Request,
+	i *Input,
 ) (*Output, error)
 
-type IErrorHandler interface {
-	Handle(
-		handleError error,
-		expectedErrors []ExpectedError,
-	) (int, *api.Error)
+// ValidatedInput is an interface that should be implemented by input types that
+// can be validated.
+type ValidatedInput interface {
+	Validate() []FieldError
 }
 
+// IObjectPicker represents an interface for picking objects from an HTTP
+// request.
 type IObjectPicker[T any] interface {
 	PickObject(r *http.Request, w http.ResponseWriter, obj T) (*T, error)
 }
 
-type IValidator interface {
-	ValidateStruct(obj any) error
-	GetErrorStrings(err error) []string
+// ILogger represents an interface for logging messages.
+type ILogger interface {
+	Trace(message ...any)
+	Error(message ...any)
 }
 
-func MiddlewareWrapper[Input any, Output any](
+// IOutputHandler represents an interface for processing and sending output
+// based on the request context.
+type IOutputHandler interface {
+	ProcessOutput(
+		w http.ResponseWriter,
+		r *http.Request,
+		out any,
+		outError error,
+		statusCode int,
+	) error
+}
+
+// Options represents options that can be configured for the middleware.
+// It includes an object picker, output handler, and logging functions.
+type Options[Input any] struct {
+	// Used to extract the input object from the request.
+	ObjectPicker IObjectPicker[Input]
+	// Handles output processing.
+	OutputHandler IOutputHandler
+	// Gets an instance of the logger.
+	Logger func(*http.Request) ILogger
+}
+
+// MiddlewareWrapper wraps the callback and creates a MiddlewareWrapper
+// instance that can be used as a middleware handler.
+//
+// Input is the type of input to the callback.
+// Output is the type of the output to be returned.
+func MiddlewareWrapper[Input ValidatedInput, Output any](
 	callback Callback[Input, Output],
 	inputFactory func() *Input,
 	expectedErrors []ExpectedError,
-	errorHandler IErrorHandler,
-	objectPicker IObjectPicker[Input],
-	validator IValidator,
-	traceLoggerFn func(r *http.Request) func(messages ...any),
-	errorLoggerFn func(r *http.Request) func(messages ...any),
+	opts Options[Input],
 ) *api.MiddlewareWrapper {
-	return api.NewMiddlewareWrapperBuilder().
-		ID(MiddlewareID).
-		Middleware(Middleware(
+	return &api.MiddlewareWrapper{
+		ID: MiddlewareID,
+		Middleware: Middleware(
 			callback,
 			inputFactory,
 			expectedErrors,
-			errorHandler,
-			objectPicker,
-			validator,
-			traceLoggerFn,
-			errorLoggerFn,
-		)).
-		Build()
+			opts.ObjectPicker,
+			opts.OutputHandler,
+			opts.Logger,
+		),
+		Inputs: []any{*inputFactory()},
+	}
 }
 
-func Middleware[Input any, Output any](
+// Middleware constructs a new middleware that handles input validation,
+// error handling, and request-response management.
+//
+// Input is the type of input to the callback.
+// Output is the type of output expected from the callback.
+//
+//   - callback: The function that handles the request.
+//   - inputFactory: A function that returns a pointer to the input object.
+//   - expectedErrors: A list of expected errors that can be handled by the
+//     middleware.
+//   - objectPicker: An object picker that can be used to extract the input
+//     object from the request. If nil, the middleware will panic.
+//   - outputHandler: The handler that processes and sends the output to the
+//     client. If nil, the middleware will panic.
+//   - traceLoggerFn: A function that can be used to log trace messages.
+//   - errorLoggerFn: A function that can be used to log error messages.
+func Middleware[Input ValidatedInput, Output any](
 	callback Callback[Input, Output],
 	inputFactory func() *Input,
 	expectedErrors []ExpectedError,
-	errorHandler IErrorHandler,
 	objectPicker IObjectPicker[Input],
-	validator IValidator,
-	traceLoggerFn func(r *http.Request) func(messages ...any),
-	errorLoggerFn func(r *http.Request) func(messages ...any),
+	outputHandler IOutputHandler,
+	loggerFn func(*http.Request) ILogger,
 ) api.Middleware {
-	if errorHandler == nil {
-		errorHandler = &ErrorHandler{}
-	}
 	if objectPicker == nil {
-		objectPicker = &util.ObjectPicker[Input]{}
+		panic("object picker cannot be nil")
 	}
-	if validator == nil {
-		validator = util.NewValidation()
+	if outputHandler == nil {
+		panic("output handler cannot be nil")
 	}
-	allExpectedErrors := slices.Concat(internalExpectedErrors, expectedErrors)
+
+	allErrors := slices.Concat(internalExpectedErrors, expectedErrors)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			output, callbackError := handleInputAndRunCallback(
+			input, err := handleInput(
 				w,
 				r,
-				callback,
 				*inputFactory(),
 				objectPicker,
-				validator,
-				traceLoggerFn,
-			)
-			statusCode := http.StatusOK
-
-			var outputError error
-			if callbackError != nil {
-				statusCode, outputError = errorHandler.Handle(
-					callbackError,
-					allExpectedErrors,
-				)
-				if traceLoggerFn != nil {
-					traceLoggerFn(r)(fmt.Sprintf(
-						"Error handler, status code: %d, callback error: %s, output error: %s",
-						statusCode,
-						callbackError,
-						outputError,
-					))
-				}
-			}
-
-			err := processOutput(
-				w,
-				r,
-				output,
-				outputError,
-				statusCode,
-				traceLoggerFn,
-				errorLoggerFn,
+				loggerFn,
 			)
 			if err != nil {
+				handleError(w, r, err, outputHandler, allErrors, loggerFn)
 				return
 			}
+
+			out, err := callback(w, r, input)
+			if err != nil {
+				handleError(w, r, err, outputHandler, allErrors, loggerFn)
+				return
+			}
+
+			handleOutput(
+				w,
+				r,
+				out,
+				nil,
+				http.StatusOK,
+				outputHandler,
+				loggerFn,
+			)
 
 			next.ServeHTTP(w, r)
 		})
 	}
 }
 
-func handleInputAndRunCallback[Input any, Output any](
+func handleError(
 	w http.ResponseWriter,
 	r *http.Request,
-	callback Callback[Input, Output],
+	handleError error,
+	outputHandler IOutputHandler,
+	expectedErrors []ExpectedError,
+	loggerFn func(*http.Request) ILogger,
+) {
+	statusCode, outError := ErrorHandler{}.Handle(handleError, expectedErrors)
+
+	if loggerFn != nil {
+		loggerFn(r).Trace(fmt.Sprintf(
+			"Error handler, status code: %d, callback error: %s, output error: %s",
+			statusCode,
+			handleError,
+			outError,
+		))
+	}
+
+	handleOutput(w, r, nil, outError, statusCode, outputHandler, loggerFn)
+}
+
+func handleInput[Input ValidatedInput](
+	w http.ResponseWriter,
+	r *http.Request,
 	inputObject Input,
 	objectPicker IObjectPicker[Input],
-	validator IValidator,
-	traceLoggerFn func(r *http.Request) func(messages ...any),
-) (*Output, error) {
+	loggerFn func(*http.Request) ILogger,
+) (*Input, error) {
 	input, err := objectPicker.PickObject(r, w, inputObject)
 	if err != nil {
 		return nil, err
 	}
-	if traceLoggerFn != nil {
-		traceLoggerFn(r)("Picked object", input)
+	if loggerFn != nil {
+		loggerFn(r).Trace("Picked object", *input)
 	}
 
-	if err := validator.ValidateStruct(input); err != nil {
-		return nil, ValidationError(validator.GetErrorStrings(err))
+	validationErrors := (*input).Validate()
+	if len(validationErrors) > 0 {
+		return nil, ValidationError.WithData(ValidationErrorData{
+			Errors: validationErrors,
+		})
 	}
 
-	return callback(w, r, input)
+	return input, nil
 }
 
-func processOutput(
+func handleOutput(
 	w http.ResponseWriter,
 	r *http.Request,
 	output any,
 	outputError error,
 	statusCode int,
-	traceLoggerFn func(r *http.Request) func(messages ...any),
-	errorLoggerFn func(r *http.Request) func(messages ...any),
-) error {
-	clientOutput, err := endpointoutput.JSON(
-		r.Context(),
-		w,
-		r,
-		output,
-		outputError,
-		statusCode,
-	)
+	outputHandler IOutputHandler,
+	loggerFn func(*http.Request) ILogger,
+) {
+	err := outputHandler.ProcessOutput(w, r, output, outputError, statusCode)
+
 	if err != nil {
-		if errorLoggerFn != nil {
-			errorLoggerFn(r)(fmt.Sprintf(
-				"Error handling output JSON: %s",
+		if loggerFn != nil {
+			loggerFn(r).Error(fmt.Sprintf(
+				"Error processing output: %s",
 				err,
 			))
 		}
 		w.WriteHeader(http.StatusInternalServerError)
-		return err
+		return
 	}
-	if traceLoggerFn != nil {
-		traceLoggerFn(r)("Client output", *clientOutput)
-	}
-
-	return nil
 }

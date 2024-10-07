@@ -1,24 +1,27 @@
 package page
 
-type InputPage struct {
+import "github.com/pakkasys/fluidapi/core/api"
+
+type MaxPageLimitExceededErrorData struct {
+	MaxLimit int `json:"max_limit"`
+}
+
+var MaxPageLimitExceededError = api.NewError[MaxPageLimitExceededErrorData]("MAX_PAGE_LIMIT_EXCEEDED")
+
+// Page represents a pagination input.
+type Page struct {
 	Offset int `json:"offset" validate:"min=0"`
 	Limit  int `json:"limit" validate:"min=0"`
 }
 
-func NewInputPage(offset int, limit int) *InputPage {
-	return &InputPage{
-		Offset: offset,
-		Limit:  limit,
+// Validate validates the input page.
+func (p *Page) Validate(maxLimit int) error {
+	if p.Limit > maxLimit {
+		return MaxPageLimitExceededError.WithData(
+			MaxPageLimitExceededErrorData{
+				MaxLimit: maxLimit,
+			},
+		)
 	}
-}
-
-func ValidatePage(page *InputPage, maxLimit int) (*InputPage, error) {
-	if page == nil {
-		return NewInputPage(0, maxLimit), nil
-	}
-	if page.Limit > maxLimit {
-		return nil, MaxPageLimitExceeded(maxLimit)
-	}
-
-	return page, nil
+	return nil
 }
