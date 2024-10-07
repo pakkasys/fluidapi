@@ -8,14 +8,14 @@ type MaxPageLimitExceededErrorData struct {
 
 var MaxPageLimitExceededError = api.NewError[MaxPageLimitExceededErrorData]("MAX_PAGE_LIMIT_EXCEEDED")
 
-// InputPage represents a pagination input.
-type InputPage struct {
+// Page represents a pagination input.
+type Page struct {
 	Offset int `json:"offset" validate:"min=0"`
 	Limit  int `json:"limit" validate:"min=0"`
 }
 
 // Validate validates the input page.
-func (p *InputPage) Validate(maxLimit int) error {
+func (p *Page) Validate(maxLimit int) error {
 	if p.Limit > maxLimit {
 		return MaxPageLimitExceededError.WithData(
 			MaxPageLimitExceededErrorData{

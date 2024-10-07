@@ -10,8 +10,6 @@ import (
 	"github.com/pakkasys/fluidapi/endpoint/predicate"
 )
 
-var NeedAtLeastOneSelectorError = api.NewError[any]("NEED_AT_LEAST_ONE_SELECTOR")
-
 type InvalidDatabaseSelectorTranslationErrorData struct {
 	Field string `json:"field"`
 }

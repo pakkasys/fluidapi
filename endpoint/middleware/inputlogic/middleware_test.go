@@ -57,6 +57,7 @@ func (m *MockLogger) Error(messages ...any) {
 	m.Called(messages)
 }
 
+// TODO: Get working without helper
 // MockHelper helps to mock a value receiver object.
 type MockHelper struct {
 	mock.Mock

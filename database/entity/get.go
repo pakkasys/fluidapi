@@ -212,7 +212,7 @@ func buildBaseGetQuery(
 	return builder.String(), whereValues
 }
 
-func getLimitOffsetClauseFromPage(page *page.InputPage) string {
+func getLimitOffsetClauseFromPage(page *page.Page) string {
 	if page == nil {
 		return ""
 	}

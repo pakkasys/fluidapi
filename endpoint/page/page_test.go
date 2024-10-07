@@ -9,13 +9,13 @@ import (
 
 // Validate_ValidLimit tests the Validate function for a valid limit.
 func TestValidate_ValidLimit(t *testing.T) {
-	inputPage := &InputPage{
+	page := &Page{
 		Offset: 0,
 		Limit:  5,
 	}
 	maxLimit := 10
 
-	err := inputPage.Validate(maxLimit)
+	err := page.Validate(maxLimit)
 
 	assert.NoError(t, err, "Expected no error when limit is within maxLimit")
 }
@@ -23,13 +23,13 @@ func TestValidate_ValidLimit(t *testing.T) {
 // Validate_LimitExceeded tests the Validate function for a limit that exceeds
 // the max limit.
 func TestValidate_LimitExceeded(t *testing.T) {
-	inputPage := &InputPage{
+	page := &Page{
 		Offset: 0,
 		Limit:  15,
 	}
 	maxLimit := 10
 
-	err := inputPage.Validate(maxLimit)
+	err := page.Validate(maxLimit)
 
 	assert.Error(t, err, "Expected an error when limit exceeds maxLimit")
 	apiErr, ok := err.(*api.Error[MaxPageLimitExceededErrorData])
@@ -40,13 +40,13 @@ func TestValidate_LimitExceeded(t *testing.T) {
 
 // Validate_ZeroLimit tests the Validate function for a limit of zero.
 func TestValidate_ZeroLimit(t *testing.T) {
-	inputPage := &InputPage{
+	page := &Page{
 		Offset: 0,
 		Limit:  0,
 	}
 	maxLimit := 10
 
-	err := inputPage.Validate(maxLimit)
+	err := page.Validate(maxLimit)
 
 	assert.NoError(t, err, "Expected no error when limit is zero")
 }

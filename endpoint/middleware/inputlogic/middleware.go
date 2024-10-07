@@ -119,9 +119,9 @@ func MiddlewareWrapper[Input ValidatedInput, Output any](
 //   - expectedErrors: A list of expected errors that can be handled by the
 //     middleware.
 //   - objectPicker: An object picker that can be used to extract the input
-//     object from the request.
+//     object from the request. If nil, the middleware will panic.
 //   - outputHandler: The handler that processes and sends the output to the
-//     client.
+//     client. If nil, the middleware will panic.
 //   - traceLoggerFn: A function that can be used to log trace messages.
 //   - errorLoggerFn: A function that can be used to log error messages.
 func Middleware[Input ValidatedInput, Output any](

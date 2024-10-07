@@ -996,7 +996,7 @@ func TestBuildBaseGetQuery_WithLock(t *testing.T) {
 // TestBuildBaseGetQuery_WithPage tests the case where pagination is provided.
 func TestBuildBaseGetQuery_WithPage(t *testing.T) {
 	getOptions := GetOptions{}
-	getOptions.Page = &page.InputPage{Offset: 10, Limit: 20}
+	getOptions.Page = &page.Page{Offset: 10, Limit: 20}
 
 	query, whereValues := buildBaseGetQuery("user", &getOptions)
 
@@ -1008,7 +1008,7 @@ func TestBuildBaseGetQuery_WithPage(t *testing.T) {
 // TestGetLimitOffsetClauseFromPage_NoPage tests the case where no page is
 // provided.
 func TestGetLimitOffsetClauseFromPage_NoPage(t *testing.T) {
-	var p *page.InputPage = nil
+	var p *page.Page = nil
 	limitOffsetClause := getLimitOffsetClauseFromPage(p)
 	assert.Equal(t, "", limitOffsetClause)
 }
@@ -1016,7 +1016,7 @@ func TestGetLimitOffsetClauseFromPage_NoPage(t *testing.T) {
 // TestGetLimitOffsetClauseFromPage_WithPage tests the case where a page with
 // limit and offset is provided.
 func TestGetLimitOffsetClauseFromPage_WithPage(t *testing.T) {
-	p := &page.InputPage{Limit: 10, Offset: 20}
+	p := &page.Page{Limit: 10, Offset: 20}
 
 	limitOffsetClause := getLimitOffsetClauseFromPage(p)
 
@@ -1026,7 +1026,7 @@ func TestGetLimitOffsetClauseFromPage_WithPage(t *testing.T) {
 
 // TestGetLimitOffsetClauseFromPage_ZeroLimit tests the case where limit is 0.
 func TestGetLimitOffsetClauseFromPage_ZeroLimit(t *testing.T) {
-	p := &page.InputPage{Limit: 0, Offset: 20}
+	p := &page.Page{Limit: 0, Offset: 20}
 
 	limitOffsetClause := getLimitOffsetClauseFromPage(p)
 
@@ -1036,7 +1036,7 @@ func TestGetLimitOffsetClauseFromPage_ZeroLimit(t *testing.T) {
 
 // TestGetLimitOffsetClauseFromPage_ZeroOffset tests the case where offset is 0.
 func TestGetLimitOffsetClauseFromPage_ZeroOffset(t *testing.T) {
-	p := &page.InputPage{Limit: 10, Offset: 0}
+	p := &page.Page{Limit: 10, Offset: 0}
 
 	limitOffsetClause := getLimitOffsetClauseFromPage(p)
 
@@ -1047,7 +1047,7 @@ func TestGetLimitOffsetClauseFromPage_ZeroOffset(t *testing.T) {
 // TestGetLimitOffsetClauseFromPage_ZeroLimitAndOffset tests the case where both
 // limit and offset are 0.
 func TestGetLimitOffsetClauseFromPage_ZeroLimitAndOffset(t *testing.T) {
-	p := &page.InputPage{Limit: 0, Offset: 0}
+	p := &page.Page{Limit: 0, Offset: 0}
 
 	limitOffsetClause := getLimitOffsetClauseFromPage(p)
 

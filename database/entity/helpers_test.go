@@ -796,7 +796,7 @@ func TestGetEntities_SuccessfulRetrieval(t *testing.T) {
 			Orders: []util.Order{
 				{Field: "created_at", Direction: util.OrderAsc},
 			},
-			Page: &page.InputPage{
+			Page: &page.Page{
 				Limit:  10,
 				Offset: 0,
 			},

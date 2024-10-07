@@ -68,7 +68,7 @@ var UpdateErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 		PublicData: true,
 	},
 	{
-		ID:         selector.NeedAtLeastOneSelectorError.ID,
+		ID:         NeedAtLeastOneSelectorError.ID,
 		Status:     http.StatusBadRequest,
 		PublicData: true,
 	},
@@ -111,7 +111,7 @@ var DeleteErrors []inputlogic.ExpectedError = []inputlogic.ExpectedError{
 		PublicData: true,
 	},
 	{
-		ID:         selector.NeedAtLeastOneSelectorError.ID,
+		ID:         NeedAtLeastOneSelectorError.ID,
 		Status:     http.StatusBadRequest,
 		PublicData: true,
 	},

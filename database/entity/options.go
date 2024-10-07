@@ -9,7 +9,7 @@ import (
 type Options struct {
 	Selectors   []util.Selector
 	Orders      []util.Order
-	Page        *page.InputPage
+	Page        *page.Page
 	Joins       []util.Join
 	Projections []util.Projection
 }
