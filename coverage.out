@@ -1,6 +1,0 @@
-mode: set
-github.com/pakkasys/fluidapi/endpoint/update/update.go:31.28,34.25 2 1
-github.com/pakkasys/fluidapi/endpoint/update/update.go:34.25,39.10 3 1
-github.com/pakkasys/fluidapi/endpoint/update/update.go:39.10,45.4 1 1
-github.com/pakkasys/fluidapi/endpoint/update/update.go:47.3,53.4 1 1
-github.com/pakkasys/fluidapi/endpoint/update/update.go:56.2,56.23 1 1
