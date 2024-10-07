@@ -23,19 +23,31 @@ var (
 	corsAllowHeaders = []string{"Content-Type"}
 )
 
+// CORSMiddlewareWrapper creates a new MiddlewareWrapper with the CORSMiddleware
+//
+//   - allowedOrigins: The list of allowed origins
+//   - allowedMethods: The list of allowed methods
+//   - allowedHeaders: The list of allowed headers
 func CORSMiddlewareWrapper(
 	allowedOrigins []string,
 	allowedMethods []string,
 	allowedHeaders []string,
 ) *api.MiddlewareWrapper {
-	return api.NewMiddlewareWrapperBuilder().
-		ID(CORSMiddlewareID).
-		Middleware(
-			CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders),
-		).
-		Build()
+	return &api.MiddlewareWrapper{
+		ID: CORSMiddlewareID,
+		Middleware: CORSMiddleware(
+			allowedOrigins,
+			allowedMethods,
+			allowedHeaders,
+		),
+	}
 }
 
+// CORSMiddleware creates a new CORS middleware
+//
+//   - allowedOrigins: The list of allowed origins
+//   - allowedMethods: The list of allowed methods
+//   - allowedHeaders: The list of allowed headers
 func CORSMiddleware(
 	allowedOrigins []string,
 	allowedMethods []string,

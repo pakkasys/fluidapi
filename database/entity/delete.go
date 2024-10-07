@@ -9,35 +9,25 @@ import (
 	"github.com/pakkasys/fluidapi/database/util"
 )
 
+// DeleteOptions is the options struct for entity delete queries.
 type DeleteOptions struct {
 	Limit  int
 	Orders []util.Order
 }
 
-func NewDeleteOptions(limit int, orders []util.Order) *DeleteOptions {
-	return &DeleteOptions{
-		Limit:  limit,
-		Orders: orders,
-	}
-}
-
-type DBOptionsCount struct {
-	Selectors []util.Selector
-	Joins     []util.Join
-}
-
+// DeleteEntities deletes entities from the database.
+//
+//   - db: The database connection.
+//   - tableName: The name of the database table.
+//   - selectors: The selectors for the entities to delete.
+//   - opts: The options for the query.
 func DeleteEntities(
-	selectors []util.Selector,
-	exec util.Executor,
+	preparer util.Preparer,
 	tableName string,
+	selectors []util.Selector,
 	opts *DeleteOptions,
 ) (int64, error) {
-	result, err := delete(
-		exec,
-		tableName,
-		selectors,
-		opts,
-	)
+	result, err := delete(preparer, tableName, selectors, opts)
 	if err != nil {
 		return 0, err
 	}
@@ -51,38 +41,28 @@ func DeleteEntities(
 }
 
 func delete(
-	exec util.Executor,
+	preparer util.Preparer,
 	tableName string,
 	selectors []util.Selector,
 	opts *DeleteOptions,
 ) (sql.Result, error) {
-	whereColumns, whereValues :=
-		internal.ProcessSelectors(selectors)
+	whereColumns, whereValues := internal.ProcessSelectors(selectors)
 
 	whereClause := ""
 	if len(whereColumns) > 0 {
 		whereClause = "WHERE " + strings.Join(whereColumns, " AND ")
 	}
 
-	query := fmt.Sprintf(
-		"DELETE FROM `%s` %s",
-		tableName,
-		whereClause,
+	builder := strings.Builder{}
+	builder.WriteString(
+		fmt.Sprintf("DELETE FROM `%s` %s", tableName, whereClause),
 	)
 
 	if opts != nil {
-		orderClause := getOrderClauseFromOrders(opts.Orders)
-		if orderClause != "" {
-			query += " " + orderClause
-		}
-
-		limit := opts.Limit
-		if limit > 0 {
-			query += fmt.Sprintf(" LIMIT %d", limit)
-		}
+		writeDeleteOptions(&builder, opts)
 	}
 
-	statement, err := exec.Prepare(query)
+	statement, err := preparer.Prepare(builder.String())
 	if err != nil {
 		return nil, err
 	}
@@ -94,4 +74,19 @@ func delete(
 	}
 
 	return res, nil
+}
+
+func writeDeleteOptions(
+	builder *strings.Builder,
+	opts *DeleteOptions,
+) {
+	orderClause := getOrderClauseFromOrders(opts.Orders)
+	if orderClause != "" {
+		builder.WriteString(" " + orderClause)
+	}
+
+	limit := opts.Limit
+	if limit > 0 {
+		builder.WriteString(fmt.Sprintf(" LIMIT %d", limit))
+	}
 }

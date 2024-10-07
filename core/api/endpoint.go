@@ -1,19 +1,8 @@
 package api
 
+// Endpoint represents an API endpoint.
 type Endpoint struct {
 	URL         string
-	HTTPMethod  string
+	Method      string
 	Middlewares []Middleware
-}
-
-func NewEndpoint(
-	url string,
-	httpMethod string,
-	middlewares []Middleware,
-) *Endpoint {
-	return &Endpoint{
-		URL:         url,
-		HTTPMethod:  httpMethod,
-		Middlewares: middlewares,
-	}
 }

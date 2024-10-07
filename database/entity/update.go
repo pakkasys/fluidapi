@@ -5,59 +5,43 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pakkasys/fluidapi/database/errors"
 	"github.com/pakkasys/fluidapi/database/internal"
 	"github.com/pakkasys/fluidapi/database/util"
-
-	"github.com/go-sql-driver/mysql"
 )
 
+// Update is the options struct for entity update queries.
 type Update struct {
 	Field string
 	Value any
 }
 
-func NewUpdate(field string, value any) *Update {
-	return &Update{
-		Field: field,
-		Value: value,
-	}
-}
-
+// UpdateEntities updates entities in the database.
+//
+//   - db: The database connection to use.
+//   - tableName: The name of the database table.
+//   - selectors: The selectors of the entities to update.
+//   - updates: The updates to apply to the entities.
 func UpdateEntities(
+	preparer util.Preparer,
+	tableName string,
 	selectors []util.Selector,
 	updates []Update,
-	exec util.Executor,
-	tableName string,
+	sqlUtil SQLUtil,
 ) (int64, error) {
 	if len(updates) == 0 {
 		return 0, nil
 	}
-
-	return checkUpdateResult(
-		update(
-			exec,
-			tableName,
-			updates,
-			selectors,
-		),
-	)
+	res, err := update(preparer, tableName, updates, selectors)
+	return checkUpdateResult(res, err, sqlUtil)
 }
 
 func checkUpdateResult(
 	result sql.Result,
 	err error,
+	sqlUtil SQLUtil,
 ) (int64, error) {
 	if err != nil {
-		mysqlErr, ok := err.(*mysql.MySQLError)
-		if ok {
-			if internal.IsDuplicateEntryError(mysqlErr) {
-				return 0, errors.DuplicateEntry(mysqlErr)
-			} else if internal.IsForeignConstraintError(mysqlErr) {
-				return 0, errors.ForeignConstraintError(mysqlErr)
-			}
-		}
-		return 0, err
+		return 0, sqlUtil.CheckDBError(err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -69,14 +53,14 @@ func checkUpdateResult(
 }
 
 func update(
-	exec util.Executor,
+	preparer util.Preparer,
 	tableName string,
 	updates []Update,
 	selectors []util.Selector,
 ) (sql.Result, error) {
 	query, values := updateQuery(tableName, updates, selectors)
 
-	statement, err := exec.Prepare(query)
+	statement, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -95,18 +79,22 @@ func updateQuery(
 	updates []Update,
 	selectors []util.Selector,
 ) (string, []any) {
-	whereColumns, whereValues :=
-		internal.ProcessSelectors(selectors)
+	whereColumns, whereValues := internal.ProcessSelectors(selectors)
 
 	setClause, values := getSetClause(updates)
 	values = append(values, whereValues...)
 
-	return fmt.Sprintf(
-		"UPDATE `%s` SET %s %s",
+	builder := strings.Builder{}
+	builder.WriteString(fmt.Sprintf(
+		"UPDATE `%s` SET %s",
 		tableName,
 		setClause,
-		getWhereClause(whereColumns),
-	), values
+	))
+	if len(whereColumns) != 0 {
+		builder.WriteString(" " + getWhereClause(whereColumns))
+	}
+
+	return builder.String(), values
 }
 
 func getWhereClause(whereColumns []string) string {
@@ -117,9 +105,7 @@ func getWhereClause(whereColumns []string) string {
 	return whereClause
 }
 
-func getSetClause(
-	updates []Update,
-) (string, []any) {
+func getSetClause(updates []Update) (string, []any) {
 	setClauseParts := make([]string, len(updates))
 	values := make([]any, len(updates))
 
