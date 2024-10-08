@@ -439,7 +439,7 @@ func TestCreateEndpointHandler(t *testing.T) {
 	}
 
 	// Create an instance of the handler
-	handler := createEndpointHandler(endpoints, "/test", mockLogger, mockLogger)
+	handler := createEndpointHandler(endpoints, mockLogger, mockLogger)
 
 	tests := []struct {
 		name           string
