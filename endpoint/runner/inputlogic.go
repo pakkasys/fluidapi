@@ -41,10 +41,6 @@ type StackBuilder interface {
 	MustAddMiddleware(wrapper ...api.MiddlewareWrapper) StackBuilder
 }
 
-// StackBuilderFactory is a function type that creates a new StackBuilder
-// instance.
-type StackBuilderFactory func() StackBuilder
-
 // SendFunc is a function type used to send requests from a client.
 // It returns a response or an error.
 type SendFunc[I any, W any] func(
@@ -101,8 +97,7 @@ func WithMiddlewareWrapper[I ValidatedInput, O any, W any](
 //     factory.
 //   - callback: The callback function to process the endpoint request.
 //   - expectedErrors: A list of expected errors to handle.
-//   - stackBuilder: A factory function to create a middleware stack
-//     builder.
+//   - stackBuilder: A middleware stack.
 //   - opts: Options for configuring the input logic.
 //   - sendFn: Function to send the request.
 //   - options: Additional endpoint options to configure.
