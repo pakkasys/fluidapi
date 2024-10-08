@@ -32,6 +32,8 @@ func HTTPServer(server IServer) error {
 	return startServer(make(chan os.Signal, 1), server)
 }
 
+type LoggerFn func(r *http.Request) func(messages ...any)
+
 // HTTPServer returns the default HTTP server implementation.
 //
 //   - port: Port for the HTTP server.
@@ -41,8 +43,8 @@ func HTTPServer(server IServer) error {
 func DefaultHTTPServer(
 	port int,
 	httpEndpoints []api.Endpoint,
-	loggerInfoFn func(r *http.Request) func(messages ...any),
-	loggerErrorFn func(r *http.Request) func(messages ...any),
+	loggerInfoFn LoggerFn,
+	loggerErrorFn LoggerFn,
 ) IServer {
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
@@ -100,7 +102,6 @@ func setupMux(
 			iterUrl,
 			createEndpointHandler(
 				endpoints[iterUrl],
-				iterUrl,
 				loggerInfoFn,
 				loggerErrorFn,
 			),
@@ -114,7 +115,6 @@ func setupMux(
 
 func createEndpointHandler(
 	endpoints map[string]http.Handler,
-	iterUrl string,
 	loggerInfoFn func(r *http.Request) func(messages ...any),
 	loggerErrorFn func(r *http.Request) func(messages ...any),
 ) http.HandlerFunc {

@@ -252,9 +252,6 @@ func TestGenericEndpointDefinition(t *testing.T) {
 	stackBuilder := new(MockStackBuilder)
 	stackBuilder.On("MustAddMiddleware", mock.Anything).Return(stackBuilder)
 	stackBuilder.On("Build").Return(middleware.Stack{})
-	stackBuilderFactoryFn := func() StackBuilder {
-		return stackBuilder
-	}
 
 	sendFn := func(
 		input *MockValidatedInput,
@@ -284,7 +281,7 @@ func TestGenericEndpointDefinition(t *testing.T) {
 		specification,
 		callback,
 		expectedErrors,
-		stackBuilderFactoryFn,
+		stackBuilder,
 		opts,
 		sendFn,
 	)
@@ -309,9 +306,6 @@ func TestGenericEndpointDefinition_WithMiddlewareWrapper(t *testing.T) {
 	stackBuilder := new(MockStackBuilder)
 	stackBuilder.On("MustAddMiddleware", mock.Anything).Return(stackBuilder)
 	stackBuilder.On("Build").Return(middleware.Stack{})
-	stackBuilderFactoryFn := func() StackBuilder {
-		return stackBuilder
-	}
 
 	sendFn := func(
 		input *MockValidatedInput,
@@ -352,7 +346,7 @@ func TestGenericEndpointDefinition_WithMiddlewareWrapper(t *testing.T) {
 			return nil, nil
 		},
 		[]inputlogic.ExpectedError{},
-		stackBuilderFactoryFn,
+		stackBuilder,
 		opts,
 		sendFn,
 		WithMiddlewareWrapper[MockValidatedInput, string, any](
@@ -399,10 +393,6 @@ func TestGetEndpointDefinition(t *testing.T) {
 	stackBuilder.On("MustAddMiddleware", mock.Anything).Return(stackBuilder)
 	stackBuilder.On("Build").Return(middleware.Stack(stackBuilder.middlewares))
 
-	stackBuilderFactoryFn := func() StackBuilder {
-		return stackBuilder
-	}
-
 	sendFn := func(
 		input *MockParseableInput,
 		host string,
@@ -435,7 +425,7 @@ func TestGetEndpointDefinition(t *testing.T) {
 		MockGetCountFunc,
 		MockToGetEndpointOutput,
 		[]inputlogic.ExpectedError{},
-		stackBuilderFactoryFn,
+		stackBuilder,
 		opts,
 		sendFn,
 	)
@@ -481,10 +471,6 @@ func TestUpdateEndpointDefinition(t *testing.T) {
 	stackBuilder.On("MustAddMiddleware", mock.Anything).Return(stackBuilder)
 	stackBuilder.On("Build").Return(middleware.Stack(stackBuilder.middlewares))
 
-	stackBuilderFactoryFn := func() StackBuilder {
-		return stackBuilder
-	}
-
 	sendFn := func(
 		input *MockParseableUpdateInput,
 		host string,
@@ -529,7 +515,7 @@ func TestUpdateEndpointDefinition(t *testing.T) {
 		mockUpdateServiceFunc,
 		MockToUpdateEndpointOutput,
 		[]inputlogic.ExpectedError{},
-		stackBuilderFactoryFn,
+		stackBuilder,
 		opts,
 		sendFn,
 	)
@@ -575,10 +561,6 @@ func TestDeleteEndpointDefinition_WithCallbackExecution(t *testing.T) {
 	stackBuilder.On("MustAddMiddleware", mock.Anything).Return(stackBuilder)
 	stackBuilder.On("Build").Return(middleware.Stack(stackBuilder.middlewares))
 
-	stackBuilderFactoryFn := func() StackBuilder {
-		return stackBuilder
-	}
-
 	sendFn := func(
 		input *MockParseableDeleteInput,
 		host string,
@@ -610,7 +592,7 @@ func TestDeleteEndpointDefinition_WithCallbackExecution(t *testing.T) {
 		MockDeleteServiceFunc,
 		MockToDeleteEndpointOutput,
 		[]inputlogic.ExpectedError{},
-		stackBuilderFactoryFn,
+		stackBuilder,
 		opts,
 		sendFn,
 	)

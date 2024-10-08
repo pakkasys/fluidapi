@@ -101,7 +101,7 @@ func WithMiddlewareWrapper[I ValidatedInput, O any, W any](
 //     factory.
 //   - callback: The callback function to process the endpoint request.
 //   - expectedErrors: A list of expected errors to handle.
-//   - stackBuilderFactoryFn: A factory function to create a middleware stack
+//   - stackBuilder: A factory function to create a middleware stack
 //     builder.
 //   - opts: Options for configuring the input logic.
 //   - sendFn: Function to send the request.
@@ -113,7 +113,7 @@ func GenericEndpointDefinition[I ValidatedInput, O any, W any](
 	specification InputSpecification[I],
 	callback inputlogic.Callback[I, O],
 	expectedErrors []inputlogic.ExpectedError,
-	stackBuilderFactoryFn StackBuilderFactory,
+	stackBuilder StackBuilder,
 	opts inputlogic.Options[I],
 	sendFn SendFunc[I, W],
 	options ...EndpointOption[I, O, W],
@@ -125,13 +125,11 @@ func GenericEndpointDefinition[I ValidatedInput, O any, W any](
 		opts,
 	)
 
-	stackBuilder := stackBuilderFactoryFn().
-		MustAddMiddleware(*middlewareWrapper)
-
 	definition := &definition.EndpointDefinition{
-		URL:             specification.URL,
-		Method:          specification.Method,
-		MiddlewareStack: stackBuilder.Build(),
+		URL:    specification.URL,
+		Method: specification.Method,
+		MiddlewareStack: stackBuilder.
+			MustAddMiddleware(*middlewareWrapper).Build(),
 	}
 
 	client := &Client[I, O, W]{
@@ -160,7 +158,7 @@ func GenericEndpointDefinition[I ValidatedInput, O any, W any](
 //   - getCountFn: Function to get the count of entities.
 //   - toOutputFn: Function to convert entities to output format.
 //   - expectedErrors: A list of expected errors to handle.
-//   - stackBuilderFactoryFn: A factory function to create a middleware stack
+//   - stackBuilder: A factory function to create a middleware stack
 //     builder.
 //   - opts: Options for configuring the input logic.
 //   - sendFn: Function to send the request.
@@ -174,7 +172,7 @@ func GetEndpointDefinition[I ParseableInput[ParsedGetEndpointInput], O any, E an
 	getCountFn GetCountFunc,
 	toOutputFn ToGetEndpointOutput[E, O],
 	expectedErrors []inputlogic.ExpectedError,
-	stackBuilderFactoryFn StackBuilderFactory,
+	stackBuilder StackBuilder,
 	opts inputlogic.Options[I],
 	sendFn SendFunc[I, W],
 	options ...EndpointOption[I, O, W],
@@ -198,7 +196,7 @@ func GetEndpointDefinition[I ParseableInput[ParsedGetEndpointInput], O any, E an
 		specification,
 		callback,
 		expectedErrors,
-		stackBuilderFactoryFn,
+		stackBuilder,
 		opts,
 		sendFn,
 		options...,
@@ -212,7 +210,7 @@ func GetEndpointDefinition[I ParseableInput[ParsedGetEndpointInput], O any, E an
 //   - updateEntitiesFn: Function to update entities in the database.
 //   - toOutputFn: Function to convert the update result to output format.
 //   - expectedErrors: A list of expected errors to handle.
-//   - stackBuilderFactoryFn: A factory function to create a middleware stack
+//   - stackBuilder: A factory function to create a middleware stack
 //     builder.
 //   - opts: Options for configuring the input logic.
 //   - sendFn: Function to send the request.
@@ -225,7 +223,7 @@ func UpdateEndpointDefinition[I ParseableInput[ParsedUpdateEndpointInput], O any
 	updateEntitiesFn UpdateServiceFunc,
 	toOutputFn ToUpdateEndpointOutput[O],
 	expectedErrors []inputlogic.ExpectedError,
-	stackBuilderFactoryFn StackBuilderFactory,
+	stackBuilder StackBuilder,
 	opts inputlogic.Options[I],
 	sendFn SendFunc[I, W],
 	options ...EndpointOption[I, O, W],
@@ -248,7 +246,7 @@ func UpdateEndpointDefinition[I ParseableInput[ParsedUpdateEndpointInput], O any
 		specification,
 		callback,
 		expectedErrors,
-		stackBuilderFactoryFn,
+		stackBuilder,
 		opts,
 		sendFn,
 		options...,
@@ -264,7 +262,7 @@ func UpdateEndpointDefinition[I ParseableInput[ParsedUpdateEndpointInput], O any
 //     output format.
 //   - expectedErrors: A list of errors that are expected and handled during
 //     request processing.
-//   - stackBuilderFactoryFn: A factory function used to create a middleware
+//   - stackBuilder: A factory function used to create a middleware
 //     stack builder for the endpoint.
 //   - opts: Options to configure the input logic, such as the object picker and
 //     output handler.
@@ -280,7 +278,7 @@ func DeleteEndpointDefinition[I ParseableInput[ParsedDeleteEndpointInput], O any
 	deleteEntitiesFn DeleteServiceFunc,
 	toOutputFn ToDeleteEndpointOutput[O],
 	expectedErrors []inputlogic.ExpectedError,
-	stackBuilderFactoryFn StackBuilderFactory,
+	stackBuilder StackBuilder,
 	opts inputlogic.Options[I],
 	sendFn SendFunc[I, W],
 	options ...EndpointOption[I, O, W],
@@ -303,7 +301,7 @@ func DeleteEndpointDefinition[I ParseableInput[ParsedDeleteEndpointInput], O any
 		specification,
 		callback,
 		expectedErrors,
-		stackBuilderFactoryFn,
+		stackBuilder,
 		opts,
 		sendFn,
 		options...,
