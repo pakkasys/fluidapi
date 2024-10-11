@@ -98,7 +98,7 @@ func TestMiddlewareWrapper_Success(t *testing.T) {
 	opts := Options[MockValidatedInput]{
 		ObjectPicker:  mockObjectPicker,
 		OutputHandler: mockOutputHandler,
-		Logger: func(*http.Request) ILogger {
+		LoggerFn: func(*http.Request) ILogger {
 			return mockLogger
 		},
 	}
@@ -143,7 +143,7 @@ func TestMiddleware_Success(t *testing.T) {
 	}
 
 	opts := Options[MockValidatedInput]{
-		Logger: func(*http.Request) ILogger {
+		LoggerFn: func(*http.Request) ILogger {
 			return mockLogger
 		},
 	}
@@ -170,7 +170,7 @@ func TestMiddleware_Success(t *testing.T) {
 		nil,
 		mockObjectPicker,
 		mockOutputHandler,
-		opts.Logger,
+		opts.LoggerFn,
 	)
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusTeapot)
@@ -204,7 +204,7 @@ func TestMiddleware_InputValidationError(t *testing.T) {
 	}
 
 	opts := Options[MockValidatedInput]{
-		Logger: func(*http.Request) ILogger {
+		LoggerFn: func(*http.Request) ILogger {
 			return mockLogger
 		},
 	}
@@ -240,7 +240,7 @@ func TestMiddleware_InputValidationError(t *testing.T) {
 		nil,
 		mockObjectPicker,
 		mockOutputHandler,
-		opts.Logger,
+		opts.LoggerFn,
 	)
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -274,7 +274,7 @@ func TestMiddleware_CallbackError(t *testing.T) {
 	}
 
 	opts := Options[MockValidatedInput]{
-		Logger: func(*http.Request) ILogger {
+		LoggerFn: func(*http.Request) ILogger {
 			return mockLogger
 		},
 	}
@@ -307,7 +307,7 @@ func TestMiddleware_CallbackError(t *testing.T) {
 		nil,
 		mockObjectPicker,
 		mockOutputHandler,
-		opts.Logger,
+		opts.LoggerFn,
 	)
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -342,7 +342,7 @@ func TestMiddleware_ObjectPickerNil_Panics(t *testing.T) {
 	}
 
 	opts := Options[MockValidatedInput]{
-		Logger: func(*http.Request) ILogger {
+		LoggerFn: func(*http.Request) ILogger {
 			return mockLogger
 		},
 	}
@@ -359,7 +359,7 @@ func TestMiddleware_ObjectPickerNil_Panics(t *testing.T) {
 		nil,
 		nil,
 		mockOutputHandler,
-		opts.Logger,
+		opts.LoggerFn,
 	)
 }
 
@@ -382,7 +382,7 @@ func TestMiddleware_OutputHandlerNil_Panics(t *testing.T) {
 	}
 
 	opts := Options[MockValidatedInput]{
-		Logger: func(*http.Request) ILogger {
+		LoggerFn: func(*http.Request) ILogger {
 			return mockLogger
 		},
 	}
@@ -399,7 +399,7 @@ func TestMiddleware_OutputHandlerNil_Panics(t *testing.T) {
 		nil,
 		mockObjectPicker,
 		nil,
-		opts.Logger,
+		opts.LoggerFn,
 	)
 }
 
