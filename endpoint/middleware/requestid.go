@@ -19,10 +19,10 @@ var dataKey = util.NewDataKey()
 type RequestMetadata struct {
 	TimeStart     time.Time // Time when the request started.
 	RequestID     string    // Unique identifier for the request.
-	RemoteAddress string    // Remote IP address of the client making the request.
+	RemoteAddress string    // Remote IP address of the request.
 	Protocol      string    // Protocol used in the request (e.g., HTTP/1.1).
-	HTTPMethod    string    // HTTP method used for the request (e.g., GET, POST).
-	URL           string    // Full URL of the request.
+	HTTPMethod    string    // HTTP method used for the request (e.g., GET).
+	URL           string    // URL of the request.
 }
 
 // RequestIDMiddlewareWrapper creates a new MiddlewareWrapper for the Request ID
@@ -57,7 +57,7 @@ func RequestIDMiddleware(requestIDFn func() string) api.Middleware {
 				RemoteAddress: util.RequestIPAddress(r),
 				Protocol:      r.Proto,
 				HTTPMethod:    r.Method,
-				URL:           fmt.Sprintf("%s%s", r.Host, r.URL),
+				URL:           fmt.Sprintf("%s%s", r.Host, r.URL.Path),
 			}
 			util.SetContextValue(r.Context(), dataKey, &requestMetadata)
 			next.ServeHTTP(w, r)

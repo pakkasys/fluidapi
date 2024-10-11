@@ -72,6 +72,8 @@ type IOutputHandler interface {
 	) error
 }
 
+type LoggerFn func(r *http.Request) ILogger
+
 // Options represents options that can be configured for the middleware.
 // It includes an object picker, output handler, and logging functions.
 type Options[Input any] struct {
@@ -80,7 +82,7 @@ type Options[Input any] struct {
 	// Handles output processing.
 	OutputHandler IOutputHandler
 	// Gets an instance of the logger.
-	Logger func(*http.Request) ILogger
+	LoggerFn LoggerFn
 }
 
 // MiddlewareWrapper wraps the callback and creates a MiddlewareWrapper
@@ -102,7 +104,7 @@ func MiddlewareWrapper[Input ValidatedInput, Output any](
 			expectedErrors,
 			opts.ObjectPicker,
 			opts.OutputHandler,
-			opts.Logger,
+			opts.LoggerFn,
 		),
 		Inputs: []any{*inputFactory()},
 	}
