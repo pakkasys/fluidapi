@@ -17,7 +17,9 @@ func TestNewError(t *testing.T) {
 
 // TestError tests the Error method of the generic Error type.
 func TestError(t *testing.T) {
-	err := Error[string]{ID: "test_error", Data: "", Message: ""}
+	data := ""
+	message := ""
+	err := Error[string]{ID: "test_error", Data: &data, Message: &message}
 
 	assert.Equal(t, "test_error", err.Error(), "Expected 'test_error'")
 }
@@ -56,10 +58,12 @@ func TestWithMessage(t *testing.T) {
 
 // TestErrorFunc tests the Error method.
 func TestErrorFunc(t *testing.T) {
+	data := ""
+	message := "Something went wrong"
 	err := Error[string]{
 		ID:      "test_error",
-		Data:    "",
-		Message: "Something went wrong",
+		Data:    &data,
+		Message: &message,
 	}
 
 	assert.Equal(

@@ -54,9 +54,13 @@ func CORSMiddleware(
 	allowedHeaders []string,
 ) api.Middleware {
 	return func(next http.Handler) http.Handler {
+		isWildcardOrigin := slices.Contains(allowedOrigins, "*")
+
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get(originHeader)
-			if slices.Contains(allowedOrigins, origin) {
+			if isWildcardOrigin {
+				w.Header().Set(headerAllowOrigin, "*")
+			} else if slices.Contains(allowedOrigins, origin) {
 				w.Header().Set(headerAllowOrigin, origin)
 			}
 

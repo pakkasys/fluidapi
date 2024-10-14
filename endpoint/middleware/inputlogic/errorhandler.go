@@ -74,5 +74,5 @@ func (expectedError *ExpectedError) maskAPIError(
 		useData = nil
 	}
 
-	return expectedError.Status, &api.Error[any]{ID: useErrorID, Data: useData}
+	return expectedError.Status, &api.Error[any]{ID: useErrorID, Data: &useData}
 }

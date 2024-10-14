@@ -52,34 +52,6 @@ func UpsertEntities[T any](
 	return checkInsertResult(res, err, sqlUtil)
 }
 
-func upsertQuery[T any](
-	entity *T,
-	tableName string,
-	inserter Inserter[*T],
-	updateProjections []util.Projection,
-) (string, []any) {
-	query, values := insertQuery(entity, tableName, inserter)
-
-	updateParts := make([]string, len(updateProjections))
-	for i, proj := range updateProjections {
-		updateParts[i] = fmt.Sprintf(
-			"`%s` = %s.`%s`",
-			proj.Column,
-			proj.Alias,
-			proj.Column,
-		)
-	}
-
-	upsertQuery := fmt.Sprintf(
-		"%s AS %s ON DUPLICATE KEY UPDATE %s",
-		query,
-		updateProjections[0].Alias,
-		strings.Join(updateParts, ", "),
-	)
-
-	return upsertQuery, values
-}
-
 func upsert[T any](
 	preparer util.Preparer,
 	tableName string,
@@ -94,8 +66,8 @@ func upsert[T any](
 		return nil, fmt.Errorf("must provide update projections alias")
 	}
 
-	upsertQuery, values := upsertQuery(
-		entity,
+	upsertQuery, values := upsertManyQuery(
+		[]*T{entity},
 		tableName,
 		inserter,
 		updateProjections,
