@@ -37,8 +37,9 @@ func TestErrorHandler_Handle_ExpectedAPIError(t *testing.T) {
 	handler := &ErrorHandler{}
 
 	// Simulate an *api.Error that is expected
-	err := api.NewError[any]("EXPECTED_ERROR")
-	err.Data = "Some error data"
+	err := api.NewError[string]("EXPECTED_ERROR")
+	data := "Some error data"
+	err.Data = &data
 
 	expectedErrors := []ExpectedError{
 		{
@@ -59,8 +60,9 @@ func TestErrorHandler_Handle_ExpectedAPIError_MaskedID(t *testing.T) {
 	handler := &ErrorHandler{}
 
 	// Simulate an *api.Error that is expected
-	err := api.NewError[any]("EXPECTED_ERROR")
-	err.Data = "Sensitive data"
+	err := api.NewError[string]("EXPECTED_ERROR")
+	data := "Sensitive data"
+	err.Data = &data
 
 	maskedErrorID := "MASKED_ERROR"
 	expectedErrors := []ExpectedError{
@@ -120,8 +122,9 @@ func TestErrorHandler_GetExpectedError_NotFound(t *testing.T) {
 }
 
 func TestExpectedError_MaskAPIError_DataVisible(t *testing.T) {
-	err := api.NewError[any]("ERROR_ID")
-	err.Data = "Error details"
+	err := api.NewError[string]("ERROR_ID")
+	data := "Error details"
+	err.Data = &data
 
 	expectedError := &ExpectedError{
 		ID:         "ERROR_ID",
@@ -137,8 +140,9 @@ func TestExpectedError_MaskAPIError_DataVisible(t *testing.T) {
 }
 
 func TestExpectedError_MaskAPIError_DataNotVisible(t *testing.T) {
-	err := api.NewError[any]("ERROR_ID")
-	err.Data = "Sensitive data"
+	err := api.NewError[string]("ERROR_ID")
+	data := "Sensitive data"
+	err.Data = &data
 
 	maskedID := "MASKED_ID"
 	expectedError := &ExpectedError{

@@ -17,8 +17,13 @@ const (
 
 	requestURL     = "url"
 	requestBody    = "body"
+	requestHeader  = "header"
 	requestHeaders = "headers"
+	requestCookie  = "cookie"
 	requestCookies = "cookies"
+
+	contentTypeHeader = "Content-Type"
+	applicationJSON   = "application/json"
 )
 
 // URLEncoder interface for encoding URL values.
@@ -41,6 +46,9 @@ func processAndSend[Payload any](
 	bodyReader, err := marshalBody(input.Body)
 	if err != nil {
 		return nil, err
+	}
+	if input.Headers != nil && input.Headers[contentTypeHeader] == "" {
+		input.Headers[contentTypeHeader] = applicationJSON
 	}
 
 	constructedURL, err := constructURL(
@@ -114,6 +122,7 @@ func marshalBody(body any) (*bytes.Reader, error) {
 		return nil, err
 	}
 
+	fmt.Println("BODY BYTES: ", string(bodyBytes))
 	return bytes.NewReader(bodyBytes), nil
 }
 
@@ -145,6 +154,9 @@ func toURLParamString(
 ) (*string, error) {
 	if input == nil {
 		return nil, fmt.Errorf("input map is nil")
+	}
+	if urlEncoder == nil {
+		return nil, fmt.Errorf("url encoder is nil")
 	}
 
 	values, err := urlEncoder.EncodeURL(input)
@@ -304,9 +316,9 @@ func placeFieldValue(
 		urlParameters[jsonFieldName] = value
 	case requestBody:
 		body[jsonFieldName] = value
-	case requestHeaders:
+	case requestHeader, requestHeaders:
 		headers[jsonFieldName] = fmt.Sprintf("%v", value)
-	case requestCookies:
+	case requestCookie, requestCookies:
 		cookies = append(
 			cookies,
 			http.Cookie{
