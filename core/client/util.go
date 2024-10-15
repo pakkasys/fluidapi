@@ -122,7 +122,6 @@ func marshalBody(body any) (*bytes.Reader, error) {
 		return nil, err
 	}
 
-	fmt.Println("BODY BYTES: ", string(bodyBytes))
 	return bytes.NewReader(bodyBytes), nil
 }
 
