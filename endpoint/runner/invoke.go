@@ -25,7 +25,7 @@ type ValidatedInput interface {
 // Output: Type of the parsed output.
 type ParseableInput[Output any] interface {
 	ValidatedInput
-	Parse() (*Output, error)
+	Parse(r *http.Request) (*Output, error)
 }
 
 // ToGetEndpointOutput represents a function type to convert service output to
@@ -105,7 +105,7 @@ func GetInvoke[I ParseableInput[ParsedGetEndpointInput], O any, E any](
 	getCountFn GetCountFunc,
 	toEndpointOutputFn ToGetEndpointOutput[E, O],
 ) (*O, error) {
-	parsedInput, err := input.Parse()
+	parsedInput, err := input.Parse(request)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func UpdateInvoke[I ParseableInput[ParsedUpdateEndpointInput], EndpointOutput an
 	serviceFn UpdateServiceFunc,
 	toEndpointOutputFn ToUpdateEndpointOutput[EndpointOutput],
 ) (*EndpointOutput, error) {
-	parsedInput, err := input.Parse()
+	parsedInput, err := input.Parse(request)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func DeleteInvoke[EndpointInput ParseableInput[ParsedDeleteEndpointInput], Endpo
 	serviceFn DeleteServiceFunc,
 	toEndpointOutputFn ToDeleteEndpointOutput[EndpointOutput],
 ) (*EndpointOutput, error) {
-	parsedInput, err := input.Parse()
+	parsedInput, err := input.Parse(request)
 	if err != nil {
 		return nil, err
 	}

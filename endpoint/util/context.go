@@ -20,6 +20,9 @@ type contextData struct {
 
 // NewDataKey safely increments and returns the next value of base.
 // It is used to create a unique key for storing custom context data.
+//
+// Returns:
+// - The next data key value.
 func NewDataKey() DataKey {
 	lock.Lock()
 	defer lock.Unlock()
@@ -55,17 +58,17 @@ func IsContextSet(ctx context.Context) bool {
 //
 // Parameters:
 // - ctx: The context to check.
-// - payloadKey: The key for which to check the existence of a value.
+// - key: The key for which to check the existence of a value.
 //
 // Returns:
 // - A boolean value indicating if the value exists in the context.
-func HasContextValue(ctx context.Context, payloadKey any) bool {
+func HasContextValue(ctx context.Context, key any) bool {
 	cd, ok := getContextData(ctx)
 	if !ok {
 		return false
 	}
 
-	_, exists := cd.data.Load(payloadKey)
+	_, exists := cd.data.Load(key)
 	return exists
 }
 
@@ -76,7 +79,7 @@ func HasContextValue(ctx context.Context, payloadKey any) bool {
 //
 // Parameters:
 //   - ctx: The context from which to retrieve the value.
-//   - payloadKey: The key for which to retrieve the value.
+//   - key: The key for which to retrieve the value.
 //   - returnOnNull: The default value to return if the key does not exist or
 //     the type does not match.
 //
@@ -85,7 +88,7 @@ func HasContextValue(ctx context.Context, payloadKey any) bool {
 //     otherwise the default value.
 func GetContextValue[T any](
 	ctx context.Context,
-	payloadKey any,
+	key any,
 	returnOnNull T,
 ) T {
 	cd, ok := getContextData(ctx)
@@ -93,7 +96,7 @@ func GetContextValue[T any](
 		return returnOnNull
 	}
 
-	value, exists := cd.data.Load(payloadKey)
+	value, exists := cd.data.Load(key)
 	if !exists {
 		return returnOnNull
 	}
@@ -113,7 +116,7 @@ func GetContextValue[T any](
 //
 // Parameters:
 // - ctx: The context from which to fetch the value.
-// - payloadKey: The key for which to fetch the value.
+// - key: The key for which to fetch the value.
 //
 // Returns:
 // - The value from the context if it exists and matches the expected type.
@@ -121,12 +124,12 @@ func GetContextValue[T any](
 // Panics:
 //   - If the custom context is not set, the key does not exist, or there is a
 //     type mismatch.
-func MustGetContextValue[T any](ctx context.Context, payloadKey any) T {
+func MustGetContextValue[T any](ctx context.Context, key any) T {
 	cd, ok := getContextData(ctx)
 	if !ok {
 		panic("get context value: no custom context set in request")
 	}
-	value, exists := cd.data.Load(payloadKey)
+	value, exists := cd.data.Load(key)
 	if !exists {
 		panic("get context value: key does not exist")
 	}
@@ -144,13 +147,16 @@ func MustGetContextValue[T any](ctx context.Context, payloadKey any) T {
 //
 // Parameters:
 // - ctx: The context in which to set the value.
-// - payloadKey: The key for which to set the value.
-// - payload: The value to set in the context.
+// - key: The key for which to set the value.
+// - data: The value to set in the context.
+//
+// Returns:
+// - The updated context.
 //
 // Panics:
 // - If the key is nil or if the custom context is not set.
-func SetContextValue(ctx context.Context, payloadKey any, payload any) {
-	if payloadKey == nil {
+func SetContextValue(ctx context.Context, key any, data any) context.Context {
+	if key == nil {
 		panic("set context value: key cannot be nil")
 	}
 
@@ -158,7 +164,10 @@ func SetContextValue(ctx context.Context, payloadKey any, payload any) {
 	if !ok {
 		panic("set context value: no custom context set in request")
 	}
-	cd.data.Store(payloadKey, payload)
+
+	cd.data.Store(key, data)
+
+	return ctx
 }
 
 // ClearContextValue clears a value in the custom data of the context for the
@@ -166,12 +175,29 @@ func SetContextValue(ctx context.Context, payloadKey any, payload any) {
 //
 // Parameters:
 // - ctx: The context from which to clear the value.
-// - payloadKey: The key for which to clear the value.
-func ClearContextValue(ctx context.Context, payloadKey any) {
+// - key: The key for which to clear the value.
+//
+// Returns:
+// - The updated context.
+func ClearContextValue(ctx context.Context, key any) context.Context {
 	cd, ok := getContextData(ctx)
 	if ok {
-		cd.data.Delete(payloadKey)
+		cd.data.Delete(key)
 	}
+
+	return ctx
+}
+
+// DumpData retrieves the custom context data from the provided context.
+//
+// Parameters:
+// - ctx: The context from which to retrieve the custom data.
+//
+// Returns:
+// - A pointer to the contextData if it exists and is valid, otherwise nil.
+func DumpData(ctx context.Context) *contextData {
+	cd, _ := getContextData(ctx)
+	return cd
 }
 
 // getContextData retrieves the custom context data from the provided context.

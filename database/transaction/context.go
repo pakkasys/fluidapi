@@ -13,8 +13,8 @@ var txContextKey = endpointutil.NewDataKey()
 //
 //   - ctx: The context to set the transaction to.
 //   - tx: The transaction to set.
-func SetTransactionToContext(ctx context.Context, tx util.Tx) {
-	endpointutil.SetContextValue(ctx, txContextKey, tx)
+func SetTransactionToContext(ctx context.Context, tx util.Tx) context.Context {
+	return endpointutil.SetContextValue(ctx, txContextKey, tx)
 }
 
 // GetTransactionFromContext returns the transaction from the context.
@@ -27,6 +27,6 @@ func GetTransactionFromContext(ctx context.Context) util.Tx {
 // ClearTransactionFromContext clears the transaction from the context.
 //
 //   - ctx: The context to clear the transaction from.
-func ClearTransactionFromContext(ctx context.Context) {
-	endpointutil.SetContextValue(ctx, txContextKey, nil)
+func ClearTransactionFromContext(ctx context.Context) context.Context {
+	return endpointutil.ClearContextValue(ctx, txContextKey)
 }

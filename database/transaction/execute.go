@@ -9,24 +9,40 @@ import (
 
 // TransactionalFunc is a function that takes a transaction and returns a
 // result.
-type TransactionalFunc[Result any] func(tx util.Tx) (Result, error)
+type TransactionalFunc[Result any] func(
+	ctx context.Context,
+	tx util.Tx,
+) (Result, error)
 
 // ExecuteTransaction executes a TransactionalFunc in a transaction.
 //
 //   - tx: The transaction to use.
 //   - transactionalFn: The function to execute in a transaction.
 func ExecuteTransaction[Result any](
+	ctx context.Context,
 	tx util.Tx,
 	transactionalFn TransactionalFunc[Result],
 ) (result Result, txErr error) {
 	defer func() {
+		var r any
+		hasPanic := false
+		if r = recover(); r != nil {
+			hasPanic = true
+			txErr = fmt.Errorf("panic in transactional function: %v", r)
+		}
 		if err := finalizeTransaction(tx, txErr); err != nil {
 			txErr = err
 			var zero Result
 			result = zero
 		}
+		ClearTransactionFromContext(ctx)
+
+		// Propagate the panic if there was one
+		if hasPanic {
+			panic(r)
+		}
 	}()
-	return transactionalFn(tx)
+	return transactionalFn(ctx, tx)
 }
 
 // ExecuteManagedTransaction executes a TransactionalFunc in a transaction.
@@ -49,17 +65,30 @@ func ExecuteManagedTransaction[Result any](
 	}
 
 	if isNewTx {
+		SetTransactionToContext(ctx, tx)
+
 		defer func() {
+			var r any
+			hasPanic := false
+			if r = recover(); r != nil {
+				hasPanic = true
+				txErr = fmt.Errorf("panic in transactional function: %v", r)
+			}
 			if err := finalizeTransaction(tx, txErr); err != nil {
 				txErr = err
 				var zero Result
 				result = zero
 			}
 			ClearTransactionFromContext(ctx)
+
+			// Propagate the panic if there was one
+			if hasPanic {
+				panic(r)
+			}
 		}()
 	}
 
-	return transactionalFn(tx)
+	return transactionalFn(ctx, tx)
 }
 
 func handleGetTxFromContext(
@@ -75,7 +104,6 @@ func handleGetTxFromContext(
 		if err != nil {
 			return nil, false, err
 		}
-		SetTransactionToContext(ctx, tx)
 		isNewTx = true
 	}
 
@@ -84,8 +112,8 @@ func handleGetTxFromContext(
 
 func finalizeTransaction(tx util.Tx, txErr error) error {
 	if txErr != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return fmt.Errorf("failed to rollback transaction: %v", rollbackErr)
+		if err := tx.Rollback(); err != nil {
+			return fmt.Errorf("failed to rollback transaction: %v", err)
 		}
 		return nil
 	}
