@@ -1,15 +1,13 @@
 package entity
 
 import (
-	"database/sql"
-
 	"github.com/pakkasys/fluidapi/database/util"
 )
 
 // RowsQuery runs a row returning query. The returned rows and stmt objects must
 // be closed by the caller after successful query execution.
 //
-//   - db: The database connection.
+//   - preparer: The preparer used to prepare the query.
 //   - query: The query string.
 //   - parameters: The parameters for the query.
 func RowsQuery(
@@ -33,14 +31,14 @@ func RowsQuery(
 
 // ExecQuery runs a query and returns the result.
 //
-//   - db: The database connection.
+//   - preparer: The preparer used to prepare the query.
 //   - query: The query string.
 //   - parameters: The parameters for the query.
 func ExecQuery(
 	preparer util.Preparer,
 	query string,
 	parameters []any,
-) (sql.Result, error) {
+) (util.Result, error) {
 	stmt, err := preparer.Prepare(query)
 	if err != nil {
 		return nil, err

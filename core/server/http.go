@@ -76,7 +76,7 @@ func startServer(stopChan chan os.Signal, server IServer) error {
 	log.Printf("Shutting down HTTP server")
 
 	// Give the server some time to shut down
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {

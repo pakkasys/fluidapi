@@ -17,14 +17,15 @@ func TestExecuteTransaction_Success(t *testing.T) {
 	mockTx := new(mock.MockTx)
 
 	// Mock the transactional function to return a successful result
-	transactionalFunc := func(tx util.Tx) (string, error) {
+	transactionalFunc := func(ctx context.Context, tx util.Tx) (string, error) {
 		return "success", nil
 	}
 
 	// Setup the mock transaction expectations
 	mockTx.On("Commit").Return(nil).Once()
 
-	result, err := ExecuteTransaction(mockTx, transactionalFunc)
+	ctx := endpointutil.NewContext(context.Background())
+	result, err := ExecuteTransaction(ctx, mockTx, transactionalFunc)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "success", result)
@@ -37,14 +38,15 @@ func TestExecuteTransaction_TransactionalFnError(t *testing.T) {
 	mockTx := new(mock.MockTx)
 
 	// Mock the transactional function to return an error
-	transactionalFunc := func(tx util.Tx) (string, error) {
+	transactionalFunc := func(ctx context.Context, tx util.Tx) (string, error) {
 		return "", errors.New("application error")
 	}
 
 	// Setup the mock transaction expectations
 	mockTx.On("Rollback").Return(nil).Once()
 
-	result, err := ExecuteTransaction(mockTx, transactionalFunc)
+	ctx := endpointutil.NewContext(context.Background())
+	result, err := ExecuteTransaction(ctx, mockTx, transactionalFunc)
 
 	assert.Equal(t, "", result)
 	assert.EqualError(t, err, "application error")
@@ -57,14 +59,15 @@ func TestExecuteTransaction_FinalizeError(t *testing.T) {
 	mockTx := new(mock.MockTx)
 
 	// Mock the transactional function to return an error
-	transactionalFunc := func(tx util.Tx) (string, error) {
+	transactionalFunc := func(ctx context.Context, tx util.Tx) (string, error) {
 		return "", nil
 	}
 
 	// Setup the mock transaction expectations
 	mockTx.On("Commit").Return(errors.New("commit error")).Once()
 
-	result, err := ExecuteTransaction(mockTx, transactionalFunc)
+	ctx := endpointutil.NewContext(context.Background())
+	result, err := ExecuteTransaction(ctx, mockTx, transactionalFunc)
 
 	assert.Equal(t, "", result)
 	assert.EqualError(t, err, "failed to commit transaction: commit error")
@@ -83,7 +86,7 @@ func TestExecuteManagedTransaction_SuccessfulTransaction(t *testing.T) {
 	}
 
 	// Mock the transactionalFunc to return a successful result
-	transactionalFunc := func(tx util.Tx) (string, error) {
+	transactionalFunc := func(ctx context.Context, tx util.Tx) (string, error) {
 		return "success", nil
 	}
 
@@ -108,7 +111,7 @@ func TestExecuteManagedTransaction_GetTxFuncError(t *testing.T) {
 	}
 
 	// Mock the transactionalFunc (should not be called)
-	transactionalFunc := func(tx util.Tx) (string, error) {
+	transactionalFunc := func(ctx context.Context, tx util.Tx) (string, error) {
 		return "success", nil
 	}
 
@@ -130,7 +133,7 @@ func TestExecuteManagedTransaction_TransactionalFnError(t *testing.T) {
 	}
 
 	// Mock the transactionalFunc to return an error
-	transactionalFunc := func(tx util.Tx) (string, error) {
+	transactionalFunc := func(ctx context.Context, tx util.Tx) (string, error) {
 		return "", errors.New("application error")
 	}
 
@@ -156,7 +159,7 @@ func TestExecuteManagedTransaction_CommitError(t *testing.T) {
 	}
 
 	// Mock the transactionalFunc to return a successful result
-	transactionalFunc := func(tx util.Tx) (string, error) {
+	transactionalFunc := func(ctx context.Context, tx util.Tx) (string, error) {
 		return "success", nil
 	}
 
@@ -180,7 +183,7 @@ func TestExecuteManagedTransaction_ExistingTransactionInContext(t *testing.T) {
 	SetTransactionToContext(ctx, mockTx)
 
 	// Mock the transactionalFunc to return a successful result
-	transactionalFunc := func(tx util.Tx) (string, error) {
+	transactionalFunc := func(ctx context.Context, tx util.Tx) (string, error) {
 		return "success", nil
 	}
 
@@ -203,11 +206,11 @@ func TestExecuteManagedTransaction_ExecuteMultipleTimes(t *testing.T) {
 	}
 
 	// Mock the transactionalFunc to return a successful result
-	transactionalFunc := func(tx util.Tx) (string, error) {
+	transactionalFunc := func(ctx context.Context, tx util.Tx) (string, error) {
 		return ExecuteManagedTransaction(
 			ctx,
 			getTxFunc,
-			func(tx util.Tx) (string, error) {
+			func(ctx context.Context, tx util.Tx) (string, error) {
 				return "success", nil
 			},
 		)

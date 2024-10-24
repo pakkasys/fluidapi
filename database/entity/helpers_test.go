@@ -99,7 +99,7 @@ func TestExecuteManagedTransaction_SuccessfulTransaction(t *testing.T) {
 		GetTxFn: getTxFn,
 	}
 
-	transactionalFunc := func(tx util.Tx) (string, error) {
+	transactionalFunc := func(ctx context.Context, tx util.Tx) (string, error) {
 		return "transaction-success", nil
 	}
 
@@ -127,7 +127,7 @@ func TestExecuteManagedTransaction_TransactionFunctionError(t *testing.T) {
 		GetTxFn: getTxFn,
 	}
 
-	transactionalFunc := func(tx util.Tx) (string, error) {
+	transactionalFunc := func(ctx context.Context, tx util.Tx) (string, error) {
 		return "", errors.New("transactional error")
 	}
 

@@ -128,7 +128,7 @@ func (e *EntityHelpers[T]) CreateEntityWithManagedTransaction(
 	return transaction.ExecuteManagedTransaction(
 		ctx,
 		e.GetTxFn,
-		func(tx util.Tx) (*T, error) {
+		func(ctx context.Context, tx util.Tx) (*T, error) {
 			return e.CreateEntity(tx, entity, opts)
 		},
 	)
@@ -186,7 +186,7 @@ func (e *EntityHelpers[T]) CreateEntitiesWithManagedTransaction(
 	return transaction.ExecuteManagedTransaction(
 		ctx,
 		e.GetTxFn,
-		func(tx util.Tx) ([]*T, error) {
+		func(ctx context.Context, tx util.Tx) ([]*T, error) {
 			return e.CreateEntities(tx, entities, opts)
 		},
 	)
@@ -226,7 +226,7 @@ func (e *EntityHelpers[T]) GetEntityWithManagedTransaction(
 	return transaction.ExecuteManagedTransaction(
 		ctx,
 		e.GetTxFn,
-		func(tx util.Tx) (*T, error) {
+		func(ctx context.Context, tx util.Tx) (*T, error) {
 			return e.GetEntity(tx, opts)
 		},
 	)
@@ -254,7 +254,7 @@ func (e *EntityHelpers[T]) GetEntitiesWithManagedTransaction(
 	return transaction.ExecuteManagedTransaction(
 		ctx,
 		e.GetTxFn,
-		func(tx util.Tx) ([]T, error) {
+		func(ctx context.Context, tx util.Tx) ([]T, error) {
 			return e.GetEntities(tx, opts)
 		},
 	)
@@ -293,7 +293,7 @@ func (e *EntityHelpers[T]) GetEntityCountWithManagedTransaction(
 	return transaction.ExecuteManagedTransaction(
 		ctx,
 		e.GetTxFn,
-		func(tx util.Tx) (int, error) {
+		func(ctx context.Context, tx util.Tx) (int, error) {
 			return e.GetEntityCount(tx, selectors, joins)
 		},
 	)
@@ -341,7 +341,7 @@ func (e *EntityHelpers[T]) UpdateEntitiesWithManagedTransaction(
 	return transaction.ExecuteManagedTransaction(
 		ctx,
 		e.GetTxFn,
-		func(tx util.Tx) (int64, error) {
+		func(ctx context.Context, tx util.Tx) (int64, error) {
 			return e.UpdateEntities(tx, selectors, updates)
 		},
 	)
@@ -378,8 +378,30 @@ func (e *EntityHelpers[T]) DeleteEntitiesWithManagedTransaction(
 	return transaction.ExecuteManagedTransaction(
 		ctx,
 		e.GetTxFn,
-		func(tx util.Tx) (int64, error) {
+		func(ctx context.Context, tx util.Tx) (int64, error) {
 			return e.DeleteEntities(tx, selectors, opts)
+		},
+	)
+}
+
+func (e *EntityHelpers[T]) ExecQuery(
+	preparer util.Preparer,
+	query string,
+	params []any,
+) (util.Result, error) {
+	return ExecQuery(preparer, query, params)
+}
+
+func (e *EntityHelpers[T]) ExecQueryWithManagedTransaction(
+	ctx context.Context,
+	query string,
+	params []any,
+) (util.Result, error) {
+	return transaction.ExecuteManagedTransaction(
+		ctx,
+		e.GetTxFn,
+		func(ctx context.Context, tx util.Tx) (util.Result, error) {
+			return e.ExecQuery(tx, query, params)
 		},
 	)
 }
